@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AttendanceStatus {
+  present
+  absent
+  late
+}
+
+enum NotificationType {
+  absence
+}
+
+model School {
+  id        Int       @id @default(autoincrement())
+  name      String
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  users    User[]
+  students Student[]
+  classes  Class[]
+
+  @@map("schools")
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  schoolId     Int       @map("school_id")
+  role         String    // 'admin' | 'teacher' | 'parent' | 'student'
+  name         String
+  email        String
+  phone        String?
+  passwordHash String    @map("password_hash")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  school           School           @relation(fields: [schoolId], references: [id])
+  parentChildren   ParentStudent[]  @relation("parent")
+  classesTeaching  ClassTeacher[]
+  attendanceMarked Attendance[]     @relation("marked_by")
+  notifications    Notification[]   @relation("notification_parent")
+
+  @@unique([email, schoolId])
+  @@map("users")
+}
+
+model Student {
+  id        Int       @id @default(autoincrement())
+  schoolId  Int       @map("school_id")
+  classId   Int       @map("class_id")
+  name      String
+  dob       DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  school       School          @relation(fields: [schoolId], references: [id])
+  class        Class           @relation(fields: [classId], references: [id], onDelete: Restrict)
+  parents      ParentStudent[] @relation("student")
+  attendances  Attendance[]
+  notifications Notification[]
+
+  @@map("students")
+}
+
+model ParentStudent {
+  parentUserId Int
+  studentId    Int
+  relationship String?
+  isPrimary    Boolean @default(false) @map("is_primary")
+
+  parent  User    @relation("parent", fields: [parentUserId], references: [id])
+  student Student @relation("student", fields: [studentId], references: [id])
+
+  @@id([parentUserId, studentId])
+  @@map("parent_students")
+}
+
+model Class {
+  id        Int       @id @default(autoincrement())
+  schoolId  Int       @map("school_id")
+  name      String
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  school      School       @relation(fields: [schoolId], references: [id])
+  students    Student[]
+  teachers    ClassTeacher[]
+  attendances Attendance[]
+
+  @@map("classes")
+}
+
+model ClassTeacher {
+  classId  Int @map("class_id")
+  teacherId Int @map("teacher_id")
+
+  class   Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher User  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@id([classId, teacherId])
+  @@map("class_teachers")
+}
+
+model Attendance {
+  id        Int       @id @default(autoincrement())
+  studentId Int       @map("student_id")
+  classId   Int       @map("class_id")
+  date      DateTime
+  status    AttendanceStatus
+  markedBy  Int       @map("marked_by")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  student Student @relation(fields: [studentId], references: [id])
+  class   Class   @relation(fields: [classId], references: [id])
+  marked  User    @relation("marked_by", fields: [markedBy], references: [id])
+  notifications Notification[]
+
+  @@unique([studentId, classId, date])
+  @@map("attendances")
+}
+
+model Notification {
+  id           Int              @id @default(autoincrement())
+  parentUserId Int              @map("parent_user_id")
+  studentId    Int              @map("student_id")
+  attendanceId Int              @map("attendance_id")
+  type         NotificationType @default(absence)
+  readAt       DateTime?        @map("read_at")
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  parent     User       @relation("notification_parent", fields: [parentUserId], references: [id], onDelete: Cascade)
+  student    Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+
+  @@unique([parentUserId, attendanceId])
+  @@index([parentUserId, readAt, createdAt])
+  @@map("notifications")
+}
