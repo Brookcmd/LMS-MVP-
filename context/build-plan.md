@@ -14,7 +14,7 @@ This is the source of truth for what to build and in what order. If a session's 
 
 6. [x] Teacher: mark daily attendance for their class (present / absent / late)
 7. [x] Parent: view their child's attendance history (list or calendar)
-8. [ ] In-app notification when a child is marked absent
+8. [x] In-app notification when a child is marked absent
 
 **Phase 2 complete = the actual pilot-ready product. Do not start Phase 3 until Phase 2 is used successfully by a real class.** 
 
@@ -35,6 +35,8 @@ This is the source of truth for what to build and in what order. If a session's 
 15. [ ] Teacher-parent messaging
 16. [ ] Assignment submission
 17. [ ] Admin analytics (attendance rate trends, grade averages)
+18. [ ] A game where users can play games that sharpen the mind.
+19. [ ] A schedule where parents and students can see their daily schedule that refelects   realtime schedule changes
 
 ## Explicitly cut — do not build
 
@@ -45,6 +47,8 @@ SCORM/xAPI, e-commerce/payments, gamification/badges, AI chatbots, BI tool integ
 ## Progress log
 
 Update after every completed feature. Most recent entry at the top.
+
+- 2026-07-10 — Feature 8 done. Added parent in-app absence notifications with `GET /parent/notifications` and `PATCH /parent/notifications/:notificationId/read`, plus notification creation when a student is marked absent in the attendance batch flow.
 
 - 2026-07-06 — Feature 7 done. Added parent-only attendance history API (GET /parent/attendance) with required studentId, optional from/to date filters, a default 30-day window, a 180-day maximum range, and server-side parent-child ownership validation through ParentStudent.
 

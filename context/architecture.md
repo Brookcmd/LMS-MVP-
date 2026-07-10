@@ -6,7 +6,7 @@
 - **Database:** PostgreSQL
 - **ORM:** Prisma
 - **Auth:** JWT (access token only; refresh tokens are a later improvement, not Phase 1)
-- **Frontend:** Next.js + React + TypeScript, UI components migrated from MuStudyHub, Tailwind for styling
+- **Frontend:** Next.js + React + TypeScript, Tailwind for styling
 - **No BaaS.** No Supabase, Firebase, or similar. This is deliberate — the point of this project is learning to build and own a real backend.
 
 ## Repo structure
@@ -36,6 +36,8 @@ School         (id, name, created_at)
 
 User           (id, school_id, role, name, email, phone, password_hash, created_at)
                role: 'admin' | 'teacher' | 'parent' | 'student'
+
+Teacher       (id, school_id, grade_id, class_id, name, )
 
 Student        (id, school_id, class_id, name, dob, created_at)
                No login credentials in Phase 1. If a later phase adds student
@@ -77,4 +79,3 @@ Attendance     (id, student_id, class_id, date, status, marked_by, created_at)
 ## Frontend integration
 
 - The Next.js frontend calls the Express API over REST (`/api/...`), not a BaaS SDK.
-- When migrating a MuStudyHub component: strip any `supabase.from(...)` or `supabase.auth...` calls first, then wire it to the equivalent backend endpoint. Don't leave dead Supabase imports in migrated files.

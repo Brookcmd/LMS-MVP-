@@ -114,11 +114,17 @@ export async function createAccount(
  */
 export async function login(payload: LoginPayload): Promise<AuthResponse> {
   const { schoolId, email, password } = payload;
-  const schoolIdNum = parseInt(schoolId, 10);
 
   // Validate required fields
-  if (!email || !password) {
-    throw authErrors.missingField(!email ? "email" : "password");
+  if (!schoolId || !email || !password) {
+    throw authErrors.missingField(
+      !schoolId ? "schoolId" : !email ? "email" : "password",
+    );
+  }
+
+  const schoolIdNum = Number.parseInt(schoolId, 10);
+  if (!Number.isInteger(schoolIdNum) || schoolIdNum <= 0) {
+    throw authErrors.missingField("schoolId");
   }
 
   // Find user by email and schoolId
