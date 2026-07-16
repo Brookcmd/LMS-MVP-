@@ -41,31 +41,60 @@ export default function ParentAttendance(){
   }, [user, defaultStudent])
 
   return (
-    <div className="container">
-      <h2>Parent Attendance History</h2>
-      <div className="card" style={{marginTop:8}}>
-        <div style={{display:'flex',gap:8, flexWrap:'wrap'}}>
-          <input placeholder="Student ID" value={studentId} onChange={e=>setStudentId(e.target.value)} />
-          <input type="date" value={from} onChange={e=>setFrom(e.target.value)} />
-          <input type="date" value={to} onChange={e=>setTo(e.target.value)} />
-          <button onClick={load}>Load</button>
+    <div>
+      <div className="section-header">
+        <div>
+          <span className="subtitle">Attendance</span>
+          <h1 className="title">Student history</h1>
         </div>
-        {error && <div style={{marginTop:12,color:'red'}}>{error}</div>}
-        {loading ? (
-          <div style={{marginTop:12}}>Loading…</div>
-        ) : data ? (
-          <div style={{marginTop:12}}>
-            <div><strong>{data.student.name}</strong> — {data.student.class.name}</div>
-            <div style={{marginTop:8}}>
-              {data.attendance.map(a=> (
-                <div key={a.id} style={{padding:8,borderBottom:'1px solid #eee'}}>
-                  <div>{new Date(a.date).toISOString().slice(0,10)} — {a.status}</div>
-                </div>
-              ))}
+      </div>
+
+      <div className="card section">
+        <div className="form-row">
+          <label className="input-label">
+            Student ID
+            <input className="input-field" placeholder="Student ID" value={studentId} onChange={e=>setStudentId(e.target.value)} />
+          </label>
+          <label className="input-label">
+            From
+            <input className="input-field" type="date" value={from} onChange={e=>setFrom(e.target.value)} />
+          </label>
+          <label className="input-label">
+            To
+            <input className="input-field" type="date" value={to} onChange={e=>setTo(e.target.value)} />
+          </label>
+          <button className="btn-secondary" type="button" onClick={load}>Load</button>
+        </div>
+        {error && <div className="error" style={{ color: '#ba1a1a', marginTop: 12 }}>{error}</div>}
+      </div>
+
+      {loading ? (
+        <div className="loader">Loading…</div>
+      ) : data ? (
+        <div className="space-y-4">
+          <div className="card">
+            <div className="section-header">
+              <div>
+                <span className="subtitle">{data.student.name}</span>
+                <h2 className="title">{data.student.class?.name || 'Class info'}</h2>
+              </div>
             </div>
           </div>
-        ) : null}
-      </div>
+          <div className="space-y-3">
+            {data.attendance.map(a => (
+              <div key={a.id} className="event-card">
+                <div className="event-meta">
+                  <span className="event-status" style={{ background: a.status === 'absent' ? '#ffdad6' : a.status === 'late' ? '#eef2ff' : '#e0f2f1', color: a.status === 'absent' ? '#ba1a1a' : a.status === 'late' ? '#4648d4' : '#00695c' }}>
+                    {a.status?.toUpperCase() || 'UNMARKED'}
+                  </span>
+                  <span style={{ color: '#6b7280', fontSize: 12 }}>{new Date(a.date).toLocaleDateString()}</span>
+                </div>
+                <p style={{ margin: 0, color: '#475569' }}>{a.notes || 'No notes available.'}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

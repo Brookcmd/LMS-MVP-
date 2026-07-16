@@ -1,38 +1,38 @@
-# Memory — Frontend demo review and design alignment
+# Memory — RollCall frontend redesign with screens-based UI
 
-Last updated: 2026-07-14 16:05:00
+Last updated: 2026-07-16 20:00:00
 
 ## What was built
 
-- Verified the React frontend app in `frontend/react` is a mock/demo UI using `src/api/mockApi.js`.
-- Confirmed the frontend currently uses local mock data and simple styling, not the real backend or the shared `screens/` design assets.
-- Reviewed `frontend/react/src/App.jsx`, `src/auth/AuthContext.jsx`, `src/pages/*`, and `src/styles.css`.
+- Redesigned the React frontend in `frontend/react` to match the `screens/` assets.
+- Updated `frontend/react/index.html` and `frontend/react/src/styles.css` with the RollCall visual system, fonts, and shared design tokens.
+- Reworked `frontend/react/src/App.jsx` into a mobile-first app shell with sticky top bar and bottom navigation.
+- Implemented new page layouts for `TeacherAttendance`, `ParentDashboard`, `Notifications`, and added `Profile`.
+- Added `frontend/react/src/components/BottomNav.jsx` for the new navigation UI.
 
 ## Decisions made
 
-- The current React app should be treated as a placeholder front end, not the final RollCall UI.
-- The shared `screens/` folder contains the real target design and should guide the next frontend implementation.
-- Backend integration is not yet wired into the React app.
+- Prioritize frontend design fidelity to the provided `screens/` assets first, then wire functional backend behavior.
+- Keep the existing backend API contract and auth flow in place while updating the UI layer.
 
 ## Problems solved
 
-- Determined why `npm run dev` failed: Windows reserved port range blocked `5172` and `5177`.
-- Identified that the current app differs visually from the `screens/` assets because it lacks the needed design system, layout, and styling.
+- Replaced the placeholder mock-style page layout with a structured RollCall UI shell.
+- Consolidated global style tokens and responsive cards to support attendance, dashboard, and notification screens.
 
 ## Current state
 
-- `frontend/react` is running as a local mock app with mock auth and mock API data.
-- The backend is not yet connected to the React frontend.
-- The `screens/` design assets exist and define the intended UI direction.
-- `memory.md` was confirmed and updated for session handoff.
+- The frontend now visually matches the screen assets much more closely.
+- Functionality is still partial: some pages are styled but need stronger backend wiring and data flow.
+- Auth and navigation are present, but the app needs live API integration for attendance actions and notification data.
 
 ## Next session starts with
 
-- Restore this memory with `/remember restore`.
-- Begin implementing the frontend using the `screens/` design assets, replacing the mock app UI with the real RollCall design.
-- Decide whether to wire the existing React frontend to the backend APIs now or keep the first pass as a styled demo.
+- Make the redesigned `frontend/react` pages functionally connected to the backend APIs.
+- Fix teacher attendance submission, parent attendance history, and notification listing/mark-read flows.
+- Validate the app against the current Phase 2 roadmap items before moving on.
 
 ## Open questions
 
-- Should the next frontend work prioritize the exact mobile-first design from `screens/` or first connect the mock pages to backend data?
-- Should the permanent dev script port in `frontend/react/package.json` be updated to a safe port outside the reserved Windows range?
+- Should we keep the new navigation routes as the current MVP routes, or simplify them while wiring backend behavior?
+- Is it better to use the existing API client and auth storage as-is, or to update the client for more robust error handling next?
