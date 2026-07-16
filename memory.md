@@ -1,38 +1,38 @@
-# Memory — In-app Absence Notifications (Feature 8)
+# Memory — Frontend demo review and design alignment
 
-Last updated: 2026-07-10 17:08:12
+Last updated: 2026-07-14 16:05:00
 
 ## What was built
 
-- Added parent notification route wiring in `backend/src/routes/parent.ts`:
-  - `GET /parent/notifications`
-  - `PATCH /parent/notifications/:notificationId/read`
-- Confirmed existing `backend/src/controllers/parent-notification-controller.ts` handlers are wired correctly.
-- Updated `context/build-plan.md` with Feature 8 completion.
-- Regenerated Prisma client and verified `npm run build` passes.
+- Verified the React frontend app in `frontend/react` is a mock/demo UI using `src/api/mockApi.js`.
+- Confirmed the frontend currently uses local mock data and simple styling, not the real backend or the shared `screens/` design assets.
+- Reviewed `frontend/react/src/App.jsx`, `src/auth/AuthContext.jsx`, `src/pages/*`, and `src/styles.css`.
 
 ## Decisions made
 
-- Absence alerts are persisted as `Notification` records in the backend.
-- Notifications are created when a student is marked absent and are not deleted if the attendance record is later corrected.
-- Parent notification endpoints live under the existing parent route group.
+- The current React app should be treated as a placeholder front end, not the final RollCall UI.
+- The shared `screens/` folder contains the real target design and should guide the next frontend implementation.
+- Backend integration is not yet wired into the React app.
 
 ## Problems solved
 
-- Confirmed the Prisma client had not been generated, regenerated it, and fixed the backend build.
-- Verified the new parent notification routes compile cleanly and no route wiring errors remain.
+- Determined why `npm run dev` failed: Windows reserved port range blocked `5172` and `5177`.
+- Identified that the current app differs visually from the `screens/` assets because it lacks the needed design system, layout, and styling.
 
 ## Current state
 
-- Feature 8 route wiring is implemented and integrated into the backend.
-- Backend build passes with the updated routes and generated Prisma client.
-- `backend/src/routes/parent.ts` now exposes parent notification APIs alongside attendance history.
+- `frontend/react` is running as a local mock app with mock auth and mock API data.
+- The backend is not yet connected to the React frontend.
+- The `screens/` design assets exist and define the intended UI direction.
+- `memory.md` was confirmed and updated for session handoff.
 
 ## Next session starts with
 
-- Add verification and/or smoke tests for the new notification endpoints.
-- If desired, implement a simple frontend or API documentation for parent notification consumption.
+- Restore this memory with `/remember restore`.
+- Begin implementing the frontend using the `screens/` design assets, replacing the mock app UI with the real RollCall design.
+- Decide whether to wire the existing React frontend to the backend APIs now or keep the first pass as a styled demo.
 
 ## Open questions
 
-- Should the frontend surface unread notification counts in Phase 2, or is that deferred until after the backend API is stable?
+- Should the next frontend work prioritize the exact mobile-first design from `screens/` or first connect the mock pages to backend data?
+- Should the permanent dev script port in `frontend/react/package.json` be updated to a safe port outside the reserved Windows range?

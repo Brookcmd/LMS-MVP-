@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {
-    "dev": "tsx watch backend/src/index.ts",
+    "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5172",
     "build": "tsc -p backend/tsconfig.json",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
     "prisma:seed": "tsx backend/prisma/seed.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest --config backend/vitest.config.ts"
   },
   "keywords": [],
   "author": "",

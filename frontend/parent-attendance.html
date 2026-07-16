@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>RollCall | Parent Attendance History</title>
+  <link href="https://fonts.googleapis.com" rel="preconnect" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto}</style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <header class="sticky top-0 bg-white p-4 shadow-sm">
+    <h1 class="text-lg font-semibold">Parent — Attendance History</h1>
+  </header>
+  <main class="p-4 max-w-2xl mx-auto">
+    <form id="fetch-form" class="mb-4 flex gap-2">
+      <input id="studentId" placeholder="Student ID" class="flex-1 p-2 border rounded" />
+      <input id="from" type="date" class="p-2 border rounded" />
+      <input id="to" type="date" class="p-2 border rounded" />
+      <button class="px-4 bg-blue-600 text-white rounded" type="submit">Load</button>
+    </form>
+    <div id="status" class="mb-4 text-sm text-gray-600"></div>
+    <section id="history" class="space-y-3"></section>
+  </main>
+
+  <script>
+    const fetchForm = document.getElementById('fetch-form');
+    const studentIdInput = document.getElementById('studentId');
+    const fromInput = document.getElementById('from');
+    const toInput = document.getElementById('to');
+    const statusEl = document.getElementById('status');
+    const historyEl = document.getElementById('history');
+
+    async function fetchHistory(studentId, from, to) {
+      statusEl.textContent = 'Loading...';
+      try {
+        const params = new URLSearchParams();
+        params.set('studentId', String(studentId));
+        if (from) params.set('from', from);
+        if (to) params.set('to', to);
+        const res = await fetch('/parent/attendance?' + params.toString(), { credentials: 'include' });
+        if (res.status === 401) { statusEl.textContent = 'Unauthorized — please sign in as a parent.'; historyEl.innerHTML=''; return null; }
+        const body = await res.json();
+        if (!body.success) throw new Error(body.error?.message||'Failed');
+        statusEl.textContent = '';
+        return body.data;
+      } catch (e) {
+        statusEl.textContent = 'Error loading history';
+        console.error(e);
+        return null;
+      }
+    }
+
+    function renderHistory(data) {
+      historyEl.innerHTML = '';
+      if (!data) return;
+      const header = document.createElement('div');
+      header.innerHTML = `<h2 class="text-md font-semibold">${escapeHtml(data.student.name)}</h2><div class="text-sm text-gray-500">Range: ${data.range.from} → ${data.range.to}</div>`;
+      historyEl.appendChild(header);
+
+      if (!data.attendance.length) {
+        historyEl.innerHTML += '<p class="text-gray-600">No attendance records in this range.</p>';
+        return;
+      }
+
+      for (const r of data.attendance) {
+        const row = document.createElement('div');
+        row.className = 'p-3 bg-white rounded shadow-sm flex items-center justify-between';
+        row.innerHTML = `<div><div class="font-medium">${new Date(r.date).toLocaleDateString()}</div><div class="text-xs text-gray-500">Marked by: ${escapeHtml(r.marked?.name || 'System')}</div></div><div class="font-semibold">${escapeHtml(r.status)}</div>`;
+        historyEl.appendChild(row);
+      }
+    }
+
+    fetchForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const studentId = studentIdInput.value.trim();
+      if (!studentId) return alert('Provide studentId');
+      const from = fromInput.value || undefined;
+      const to = toInput.value || undefined;
+      const data = await fetchHistory(studentId, from, to);
+      renderHistory(data);
+    });
+
+    function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  </script>
+</body>
+</html>

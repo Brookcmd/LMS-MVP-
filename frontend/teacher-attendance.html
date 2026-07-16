@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>RollCall | Teacher Attendance</title>
+  <link href="https://fonts.googleapis.com" rel="preconnect" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto}</style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <header class="sticky top-0 bg-white p-4 shadow-sm">
+    <h1 class="text-lg font-semibold">Teacher — Mark Attendance</h1>
+  </header>
+  <main class="p-4 max-w-2xl mx-auto">
+    <form id="fetch-form" class="mb-4 flex gap-2">
+      <input id="classId" placeholder="Class ID" class="flex-1 p-2 border rounded" />
+      <input id="date" type="date" class="p-2 border rounded" />
+      <button class="px-4 bg-blue-600 text-white rounded" type="submit">Load</button>
+    </form>
+
+    <div id="status" class="mb-4 text-sm text-gray-600"></div>
+
+    <form id="marks-form" class="space-y-3 hidden">
+      <div id="students-list" class="space-y-2"></div>
+      <div class="flex gap-2 mt-4">
+        <button id="submit-marks" type="button" class="px-4 py-2 bg-green-600 text-white rounded">Submit Marks</button>
+        <button id="refresh" type="button" class="px-4 py-2 border rounded">Refresh</button>
+      </div>
+    </form>
+  </main>
+
+  <script>
+    const fetchForm = document.getElementById('fetch-form');
+    const classIdInput = document.getElementById('classId');
+    const dateInput = document.getElementById('date');
+    const statusEl = document.getElementById('status');
+    const studentsList = document.getElementById('students-list');
+    const marksForm = document.getElementById('marks-form');
+    const submitBtn = document.getElementById('submit-marks');
+    const refreshBtn = document.getElementById('refresh');
+
+    async function fetchAttendance(classId, date) {
+      statusEl.textContent = 'Loading attendance...';
+      try {
+        const res = await fetch(`/attendance?classId=${encodeURIComponent(classId)}&date=${encodeURIComponent(date)}`, { credentials: 'include' });
+        if (res.status === 401) { statusEl.textContent = 'Unauthorized — sign in as a teacher.'; studentsList.innerHTML=''; marksForm.classList.add('hidden'); return []; }
+        const body = await res.json();
+        if (!body.success) throw new Error(body.error?.message||'Failed');
+        statusEl.textContent = '';
+        return body.data;
+      } catch (e) {
+        statusEl.textContent = 'Error loading attendance';
+        console.error(e);
+        return [];
+      }
+    }
+
+    function renderStudents(records) {
+      studentsList.innerHTML = '';
+      if (!records.length) {
+        studentsList.innerHTML = '<p class="text-gray-600">No attendance records for this class/date. You can mark attendance below.</p>';
+      }
+
+      // If there are students in records, list them; otherwise, show placeholder (teacher may still mark)
+      const students = records.length ? records.map(r => ({ id: r.student.id, name: r.student.name, status: r.status || 'present' })) : [];
+
+      if (students.length === 0) {
+        // try to fetch class roster? For simplicity, use placeholder UI to add marks manually
+        studentsList.innerHTML += '<p class="text-sm text-gray-500">No roster loaded. Add marks by Student ID and status below.</p>';
+        studentsList.innerHTML += `<div class="flex gap-2 mt-2"><input placeholder="Student ID" class="p-2 border rounded" id="manual-student-id"/><select id="manual-status" class="p-2 border rounded"><option value="present">Present</option><option value="absent">Absent</option><option value="late">Late</option></select><button id="add-manual" class="px-3 bg-indigo-600 text-white rounded">Add</button></div>`;
+        document.getElementById('add-manual').addEventListener('click', () => {
+          const id = Number(document.getElementById('manual-student-id').value);
+          const status = document.getElementById('manual-status').value;
+          if (!Number.isInteger(id) || id<=0) return alert('Invalid student id');
+          students.push({ id, name: `Student ${id}`, status });
+          renderStudents(students);
+        });
+      }
+
+      for (const s of students) {
+        const row = document.createElement('div');
+        row.className = 'p-3 bg-white rounded shadow-sm flex items-center justify-between';
+        row.innerHTML = `
+          <div>
+            <div class="font-medium">${escapeHtml(s.name)}</div>
+            <div class="text-xs text-gray-500">ID: ${s.id}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <select data-student-id="${s.id}" class="p-2 border rounded">
+              <option value="present" ${s.status==='present'?'selected':''}>Present</option>
+              <option value="absent" ${s.status==='absent'?'selected':''}>Absent</option>
+              <option value="late" ${s.status==='late'?'selected':''}>Late</option>
+            </select>
+          </div>
+        `;
+        studentsList.appendChild(row);
+      }
+
+      marksForm.classList.remove('hidden');
+    }
+
+    async function submitMarks(classId, date) {
+      const selects = Array.from(document.querySelectorAll('[data-student-id]'));
+      const marks = selects.map(s => ({ studentId: Number(s.getAttribute('data-student-id')), status: s.value }));
+      if (!marks.length) return alert('No marks to submit');
+      statusEl.textContent = 'Submitting...';
+      try {
+        const res = await fetch('/attendance/batch', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type':'application/json' },
+          body: JSON.stringify({ classId: Number(classId), date, marks })
+        });
+        const body = await res.json();
+        if (!body.success) throw new Error(body.error?.message||'Failed');
+        statusEl.textContent = `Saved — created ${body.data.created} updated ${body.data.updated} notifications ${body.data.notificationsCreated}`;
+      } catch (e) {
+        statusEl.textContent = 'Error submitting marks';
+        console.error(e);
+      }
+    }
+
+    fetchForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const classId = classIdInput.value.trim();
+      const date = dateInput.value;
+      if (!classId || !date) return alert('Provide classId and date');
+      const data = await fetchAttendance(classId, date);
+      renderStudents(data);
+    });
+
+    submitBtn.addEventListener('click', async () => {
+      const classId = classIdInput.value.trim();
+      const date = dateInput.value;
+      if (!classId || !date) return alert('Provide classId and date');
+      await submitMarks(classId, date);
+    });
+
+    refreshBtn.addEventListener('click', async () => {
+      const classId = classIdInput.value.trim();
+      const date = dateInput.value;
+      if (!classId || !date) return;
+      const data = await fetchAttendance(classId, date);
+      renderStudents(data);
+    });
+
+    function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  </script>
+</body>
+</html>

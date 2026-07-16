@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport" />
+    <title>RollCall | Notifications (Frontend Demo)</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&amp;family=Inter:wght@400;500&amp;display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <style>
+      body { font-family: 'Inter', sans-serif; background: #f7f9fb; }
+      .glass-card { background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); }
+      .unread-dot { width:10px; height:10px; background:#dc2626; border-radius:9999px; display:inline-block }
+    </style>
+  </head>
+  <body class="text-on-surface">
+    <header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl shadow-sm h-16 flex justify-between items-center px-4">
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary text-2xl">school</span>
+        <h1 class="text-lg font-bold text-primary">Notifications</h1>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btn-mark-all" class="text-secondary font-medium text-sm px-3 py-1 rounded-full hover:bg-secondary/10">Mark all read</button>
+        <button id="btn-refresh" class="w-10 h-10 flex items-center justify-center rounded-full">
+          <span class="material-symbols-outlined">refresh</span>
+        </button>
+        <div id="unread-badge" class="ml-2 text-sm text-white bg-red-600 rounded-full px-2 py-1 hidden"></div>
+      </div>
+    </header>
+
+    <main class="pt-20 pb-28 px-4 max-w-lg mx-auto">
+      <div id="status" class="mb-4 text-sm text-gray-600"></div>
+      <section id="notifications-list" class="space-y-4"></section>
+    </main>
+
+    <nav class="fixed bottom-0 left-0 w-full flex justify-around items-center h-20 px-4 pb-safe bg-white/70 backdrop-blur-md z-50 rounded-t-xl">
+      <button class="flex flex-col items-center text-outline">
+        <span class="material-symbols-outlined">dashboard</span>
+        <span class="text-xs">Home</span>
+      </button>
+      <button class="flex flex-col items-center text-outline">
+        <span class="material-symbols-outlined">event_available</span>
+        <span class="text-xs">Events</span>
+      </button>
+      <button class="flex flex-col items-center text-secondary">
+        <span class="material-symbols-outlined">notifications</span>
+        <span class="text-xs">Alerts</span>
+      </button>
+      <button class="flex flex-col items-center text-outline">
+        <span class="material-symbols-outlined">person</span>
+        <span class="text-xs">Profile</span>
+      </button>
+    </nav>
+
+    <script>
+      const statusEl = document.getElementById('status');
+      const listEl = document.getElementById('notifications-list');
+      const unreadBadge = document.getElementById('unread-badge');
+      const markAllBtn = document.getElementById('btn-mark-all');
+      const refreshBtn = document.getElementById('btn-refresh');
+
+      async function fetchNotifications() {
+        statusEl.textContent = 'Loading...';
+        try {
+          const res = await fetch('/parent/notifications', { credentials: 'include' });
+          if (res.status === 401) {
+            statusEl.textContent = 'Unauthorized. Please sign in to see notifications.';
+            listEl.innerHTML = '';
+            unreadBadge.classList.add('hidden');
+            return [];
+          }
+          const body = await res.json();
+          if (!body.success) throw new Error(body.error?.message || 'Failed to load');
+          statusEl.textContent = '';
+          return body.data || [];
+        } catch (err) {
+          statusEl.textContent = 'Error loading notifications.';
+          console.error(err);
+          return [];
+        }
+      }
+
+      function renderNotifications(items) {
+        listEl.innerHTML = '';
+        if (!items.length) {
+          listEl.innerHTML = '<p class="text-center text-gray-600 py-20">All caught up!</p>';
+          unreadBadge.classList.add('hidden');
+          return;
+        }
+
+        let unreadCount = 0;
+        for (const n of items) {
+          const read = n.readAt !== null;
+          if (!read) unreadCount++;
+
+          const card = document.createElement('article');
+          card.className = 'glass-card rounded-xl p-4 shadow-sm border border-white/50 relative overflow-hidden';
+          card.innerHTML = `
+            <div class="flex gap-4">
+              <div class="w-12 h-12 rounded-full flex-shrink-0 bg-gray-100 flex items-center justify-center">
+                <span class="material-symbols-outlined">notifications</span>
+              </div>
+              <div class="flex-grow">
+                <div class="flex justify-between items-start">
+                  <span class="text-sm text-gray-500">${new Date(n.createdAt).toLocaleString()}</span>
+                </div>
+                <h4 class="font-semibold text-primary">${escapeHtml(n.message)}</h4>
+                <p class="text-sm text-gray-600 mt-1">Student: ${escapeHtml(n.student?.name || '')}</p>
+                <div class="mt-3 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    ${read ? '<span class="text-sm text-green-600">Read</span>' : '<span class="text-sm text-red-600">Unread</span>'}
+                  </div>
+                  <div class="flex gap-2">
+                    <button data-id="${n.id}" class="btn-mark-read text-sm px-3 py-1 rounded border">Mark Read</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+
+          listEl.appendChild(card);
+        }
+
+        if (unreadCount > 0) {
+          unreadBadge.textContent = unreadCount;
+          unreadBadge.classList.remove('hidden');
+        } else {
+          unreadBadge.classList.add('hidden');
+        }
+
+        // attach listeners to mark-read buttons
+        document.querySelectorAll('.btn-mark-read').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const id = btn.getAttribute('data-id');
+            await markRead(id);
+            await loadAndRender();
+          });
+        });
+      }
+
+      async function markRead(notificationId) {
+        try {
+          const res = await fetch(`/parent/notifications/${notificationId}/read`, { method: 'PATCH', credentials: 'include' });
+          if (res.status === 401) {
+            statusEl.textContent = 'Unauthorized. Please sign in.';
+            return;
+          }
+          const body = await res.json();
+          if (!body.success) throw new Error(body.error?.message || 'Failed');
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      async function markAllRead() {
+        statusEl.textContent = 'Marking all read...';
+        const items = await fetchNotifications();
+        const unread = items.filter(i => i.readAt === null);
+        for (const n of unread) {
+          await markRead(n.id);
+        }
+        await loadAndRender();
+      }
+
+      async function loadAndRender() {
+        const items = await fetchNotifications();
+        renderNotifications(items);
+      }
+
+      markAllBtn.addEventListener('click', () => {
+        markAllRead();
+      });
+      refreshBtn.addEventListener('click', () => loadAndRender());
+
+      // small helper
+      function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+      loadAndRender();
+    </script>
+  </body>
+</html>

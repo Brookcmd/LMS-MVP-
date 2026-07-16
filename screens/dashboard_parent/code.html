@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>RollCall Parent Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .font-headline { font-family: 'Hanken+Grotesk', sans-serif; }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-tint": "#545f73",
+                    "surface-container-high": "#e6e8ea",
+                    "on-secondary-fixed": "#07006c",
+                    "on-tertiary-fixed": "#00201d",
+                    "on-primary-fixed-variant": "#3c475a",
+                    "primary": "#091426",
+                    "primary-fixed-dim": "#bcc7de",
+                    "primary-container": "#1e293b",
+                    "tertiary-container": "#002f2a",
+                    "tertiary-fixed": "#89f5e7",
+                    "surface": "#f7f9fb",
+                    "on-tertiary-fixed-variant": "#005049",
+                    "surface-container": "#eceef0",
+                    "on-secondary": "#ffffff",
+                    "primary-fixed": "#d8e3fb",
+                    "inverse-primary": "#bcc7de",
+                    "tertiary": "#001815",
+                    "on-secondary-container": "#fffbff",
+                    "on-error-container": "#93000a",
+                    "surface-bright": "#f7f9fb",
+                    "outline-variant": "#c5c6cd",
+                    "tertiary-fixed-dim": "#6bd8cb",
+                    "outline": "#75777d",
+                    "on-primary": "#ffffff",
+                    "secondary-fixed-dim": "#c0c1ff",
+                    "surface-container-lowest": "#ffffff",
+                    "on-background": "#191c1e",
+                    "on-tertiary-container": "#28a094",
+                    "background": "#f7f9fb",
+                    "on-surface-variant": "#45474c",
+                    "on-primary-container": "#8590a6",
+                    "surface-container-low": "#f2f4f6",
+                    "inverse-surface": "#2d3133",
+                    "on-tertiary": "#ffffff",
+                    "on-surface": "#191c1e",
+                    "on-secondary-fixed-variant": "#2f2ebe",
+                    "secondary-fixed": "#e1e0ff",
+                    "secondary-container": "#6063ee",
+                    "on-error": "#ffffff",
+                    "surface-variant": "#e0e3e5",
+                    "secondary": "#4648d4",
+                    "surface-container-highest": "#e0e3e5",
+                    "surface-dim": "#d8dadc",
+                    "error-container": "#ffdad6",
+                    "error": "#ba1a1a",
+                    "on-primary-fixed": "#111c2d",
+                    "inverse-on-surface": "#eff1f3"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "16px",
+                    "xl": "32px",
+                    "md": "16px",
+                    "base": "4px",
+                    "container-padding": "20px",
+                    "lg": "24px",
+                    "xs": "4px",
+                    "sm": "8px"
+            },
+            "fontFamily": {
+                    "headline-lg-mobile": ["Hanken Grotesk"],
+                    "label-caps": ["Hanken Grotesk"],
+                    "body-sm": ["Inter"],
+                    "display-lg": ["Hanken Grotesk"],
+                    "headline-lg": ["Hanken Grotesk"],
+                    "body-lg": ["Inter"],
+                    "title-md": ["Hanken Grotesk"]
+            },
+            "fontSize": {
+                    "headline-lg-mobile": ["20px", {"lineHeight": "28px", "fontWeight": "700"}],
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "title-md": ["18px", {"lineHeight": "24px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+</head>
+<body class="bg-background text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 dark:bg-surface-container/80 backdrop-blur-xl shadow-sm h-16 flex justify-between items-center px-gutter">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary" data-icon="school">school</span>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-extrabold text-primary">RollCall</h1>
+</div>
+<div class="flex items-center gap-md">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high/50 transition-all active:scale-95">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="notifications">notifications</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center border border-outline-variant overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a smiling woman in her 30s, clean-cut professional attire, soft natural window lighting in a modern home office setting. The photo has a high-end SaaS marketing aesthetic with soft depth of field and warm, trustworthy tones to match a premium administrative dashboard." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjwJ4MpTFbK-GLRU8_oxFLXo2o56XUJHnpyPooijLAVvIDU2fgquqMVhfiNFj-OmI-Ij-6Z4zHqsgvMrq8f7tIxNgbNgNyJ_4hSPOFeZb_eBFkNws_n3mDXYF1lSgmU0FFTnKGdCUXJEH62qzG5YyiG2CkdxHlRlyQN7ny-O0oO1__KEs5P9qz_RQOtAs9RWUpmlgz5mK82E19nFM2CivTYRHiFYf-fzrV_GPJ6zyYpyPyFoZHpsgB"/>
+</div>
+</div>
+</header>
+<main class="pt-20 px-gutter max-w-lg mx-auto lg:max-w-4xl lg:grid lg:grid-cols-12 lg:gap-lg">
+<!-- Child Overview Section -->
+<section class="mb-lg lg:col-span-12">
+<div class="flex items-end justify-between mb-sm">
+<div>
+<p class="font-label-caps text-label-caps text-on-primary-container">STUDENT OVERVIEW</p>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-primary">Leo Harrison</h2>
+</div>
+<div class="px-sm py-1 bg-tertiary-fixed text-on-tertiary-fixed-variant rounded-full font-label-caps text-[10px]">
+                    GRADE 4-B
+                </div>
+</div>
+<!-- Attendance Summary Grid -->
+<div class="grid grid-cols-3 gap-sm">
+<div class="bg-surface-container-lowest p-md rounded-xl shadow-sm border border-outline-variant/30 flex flex-col items-center text-center">
+<span class="font-display-lg text-display-lg text-primary">98%</span>
+<span class="font-label-caps text-label-caps text-outline">PRESENT</span>
+</div>
+<div class="bg-surface-container-lowest p-md rounded-xl shadow-sm border border-outline-variant/30 flex flex-col items-center text-center">
+<span class="font-display-lg text-display-lg text-secondary">2</span>
+<span class="font-label-caps text-label-caps text-outline">LATE</span>
+</div>
+<div class="bg-surface-container-lowest p-md rounded-xl shadow-sm border border-outline-variant/30 flex flex-col items-center text-center">
+<span class="font-display-lg text-display-lg text-error">1</span>
+<span class="font-label-caps text-label-caps text-outline">ABSENT</span>
+</div>
+</div>
+</section>
+<!-- Quick Actions (Glassmorphism) -->
+<section class="mb-lg lg:col-span-5 lg:order-2">
+<div class="glass-card p-lg rounded-xl shadow-lg relative overflow-hidden">
+<!-- Background Decoration -->
+<div class="absolute -right-4 -top-4 opacity-5">
+<span class="material-symbols-outlined text-[120px]" data-icon="edit_calendar">edit_calendar</span>
+</div>
+<h3 class="font-title-md text-title-md text-primary mb-md">Quick Actions</h3>
+<div class="space-y-sm">
+<button class="w-full bg-primary text-white py-md px-lg rounded-lg flex items-center justify-between shadow-md active:scale-95 transition-transform">
+<span class="font-body-lg text-body-lg">Report Absence</span>
+<span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<button class="w-full bg-white/50 border border-primary text-primary py-md px-lg rounded-lg flex items-center justify-between active:scale-95 transition-transform">
+<span class="font-body-lg text-body-lg">Request Early Leave</span>
+<span class="material-symbols-outlined" data-icon="schedule">schedule</span>
+</button>
+</div>
+<div class="mt-lg p-sm bg-surface-container-low rounded-lg border border-outline-variant/30">
+<div class="flex gap-sm items-center">
+<span class="material-symbols-outlined text-secondary text-sm" data-icon="info">info</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-tight">School picnic scheduled for Friday, Oct 27.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Calendar View -->
+<section class="mb-lg lg:col-span-7 lg:order-1">
+<div class="bg-surface-container-lowest p-lg rounded-xl shadow-sm border border-outline-variant/30">
+<div class="flex items-center justify-between mb-lg">
+<h3 class="font-title-md text-title-md text-primary">October 2023</h3>
+<div class="flex gap-xs">
+<button class="p-base hover:bg-surface-container transition-colors rounded-full">
+<span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span>
+</button>
+<button class="p-base hover:bg-surface-container transition-colors rounded-full">
+<span class="material-symbols-outlined" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+<div class="calendar-grid text-center font-label-caps text-outline mb-sm">
+<div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div><div>S</div>
+</div>
+<div class="calendar-grid gap-y-sm">
+<!-- Previous Month Days -->
+<div class="py-sm text-outline-variant font-body-sm">25</div>
+<div class="py-sm text-outline-variant font-body-sm">26</div>
+<div class="py-sm text-outline-variant font-body-sm">27</div>
+<div class="py-sm text-outline-variant font-body-sm">28</div>
+<div class="py-sm text-outline-variant font-body-sm">29</div>
+<div class="py-sm text-outline-variant font-body-sm">30</div>
+<!-- Current Month Days -->
+<div class="py-sm font-body-sm flex flex-col items-center gap-1">
+                        1 <div class="w-1.5 h-1.5 bg-on-tertiary-container rounded-full"></div>
+</div>
+<div class="py-sm font-body-sm flex flex-col items-center gap-1">
+                        2 <div class="w-1.5 h-1.5 bg-on-tertiary-container rounded-full"></div>
+</div>
+<div class="py-sm font-body-sm flex flex-col items-center gap-1">
+                        3 <div class="w-1.5 h-1.5 bg-on-tertiary-container rounded-full"></div>
+</div>
+<div class="py-sm font-body-sm flex flex-col items-center gap-1">
+                        4 <div class="w-1.5 h-1.5 bg-secondary rounded-full"></div>
+</div>
+<div class="py-sm font-body-sm flex flex-col items-center gap-1">
+                        5 <div class="w-1.5 h-1.5 bg-on-tertiary-container rounded-full"></div>
+</div>
+<div class="py-sm font-body-sm flex flex-col items-center gap-1">
+                        6 <div class="w-1.5 h-1.5 bg-on-tertiary-container rounded-full"></div>
+</div>
+<div class="py-sm font-body-sm text-outline">7</div>
+<div class="py-sm font-body-sm text-outline">8</div>
+<div class="py-sm font-body-sm flex flex-col items-center gap-1">
+                        9 <div class="w-1.5 h-1.5 bg-error rounded-full"></div>
+</div>
+<div class="py-sm font-body-sm flex flex-col items-center gap-1">
+                        10 <div class="w-1.5 h-1.5 bg-on-tertiary-container rounded-full"></div>
+</div>
+<div class="py-sm font-body-sm flex flex-col items-center gap-1 relative">
+<span class="bg-primary text-white w-7 h-7 rounded-full flex items-center justify-center -mt-1.5">11</span>
+<div class="w-1.5 h-1.5 bg-on-tertiary-container rounded-full"></div>
+</div>
+<div class="py-sm font-body-sm">12</div>
+<div class="py-sm font-body-sm">13</div>
+<div class="py-sm font-body-sm text-outline">14</div>
+<div class="py-sm font-body-sm text-outline">15</div>
+<!-- Simplified tail for visuals -->
+</div>
+<div class="mt-lg flex gap-md border-t border-outline-variant/20 pt-md">
+<div class="flex items-center gap-xs">
+<div class="w-2 h-2 bg-on-tertiary-container rounded-full"></div>
+<span class="text-[10px] font-label-caps text-outline">PRESENT</span>
+</div>
+<div class="flex items-center gap-xs">
+<div class="w-2 h-2 bg-secondary rounded-full"></div>
+<span class="text-[10px] font-label-caps text-outline">LATE</span>
+</div>
+<div class="flex items-center gap-xs">
+<div class="w-2 h-2 bg-error rounded-full"></div>
+<span class="text-[10px] font-label-caps text-outline">ABSENT</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Recent Events List -->
+<section class="lg:col-span-12">
+<h3 class="font-title-md text-title-md text-primary mb-md">Recent Events</h3>
+<div class="space-y-sm">
+<!-- Event Row 1 -->
+<div class="bg-surface-container-lowest p-md rounded-xl shadow-sm border border-outline-variant/10 flex items-center justify-between">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 bg-tertiary-fixed/30 text-on-tertiary-fixed-variant rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="check_circle">check_circle</span>
+</div>
+<div>
+<p class="font-body-lg text-body-lg font-semibold text-primary">On-Time Arrival</p>
+<p class="font-body-sm text-body-sm text-outline">Oct 11, 08:24 AM</p>
+</div>
+</div>
+<span class="px-sm py-1 bg-tertiary-container/10 text-on-tertiary-container rounded font-label-caps text-[10px]">PRESENT</span>
+</div>
+<!-- Event Row 2 -->
+<div class="bg-surface-container-lowest p-md rounded-xl shadow-sm border border-outline-variant/10 flex items-center justify-between">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 bg-secondary-fixed/30 text-secondary rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+</div>
+<div>
+<p class="font-body-lg text-body-lg font-semibold text-primary">Late Arrival</p>
+<p class="font-body-sm text-body-sm text-outline">Oct 10, 08:52 AM</p>
+</div>
+</div>
+<span class="px-sm py-1 bg-secondary-container/10 text-secondary rounded font-label-caps text-[10px]">LATE</span>
+</div>
+<!-- Event Row 3 -->
+<div class="bg-surface-container-lowest p-md rounded-xl shadow-sm border border-outline-variant/10 flex items-center justify-between">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 bg-error-container/20 text-error rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="cancel">cancel</span>
+</div>
+<div>
+<p class="font-body-lg text-body-lg font-semibold text-primary">Full Day Absence</p>
+<p class="font-body-sm text-body-sm text-outline">Oct 09</p>
+</div>
+</div>
+<span class="px-sm py-1 bg-error-container/20 text-error rounded font-label-caps text-[10px]">UNEXCUSED</span>
+</div>
+</div>
+<button class="w-full text-center py-md mt-sm text-secondary font-label-caps text-label-caps hover:underline">
+                VIEW ALL HISTORY
+            </button>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center h-20 px-4 pb-safe bg-white/70 dark:bg-surface-container-highest/70 backdrop-blur-md shadow-[0_-10px_20px_rgba(15,23,42,0.05)] rounded-t-xl z-50">
+<button class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed after:content-[''] after:w-1 after:h-1 after:bg-secondary after:rounded-full after:mt-1 transition-transform duration-200 active:scale-90">
+<span class="material-symbols-outlined" data-icon="dashboard" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-label-caps text-[10px] mt-0.5">Dashboard</span>
+</button>
+<button class="flex flex-col items-center justify-center text-outline dark:text-outline-variant hover:opacity-80 transition-transform duration-200 active:scale-90">
+<span class="material-symbols-outlined" data-icon="event_available">event_available</span>
+<span class="font-label-caps text-[10px] mt-0.5">Calendar</span>
+</button>
+<button class="flex flex-col items-center justify-center text-outline dark:text-outline-variant hover:opacity-80 transition-transform duration-200 active:scale-90">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="font-label-caps text-[10px] mt-0.5">Alerts</span>
+</button>
+<button class="flex flex-col items-center justify-center text-outline dark:text-outline-variant hover:opacity-80 transition-transform duration-200 active:scale-90">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-caps text-[10px] mt-0.5">Profile</span>
+</button>
+</nav>
+<!-- Floating Atmosphere -->
+<div class="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
+<div class="absolute top-[20%] left-[-10%] w-[40%] h-[40%] bg-primary/5 blur-[120px] rounded-full"></div>
+<div class="absolute bottom-[10%] right-[-10%] w-[30%] h-[30%] bg-secondary/5 blur-[100px] rounded-full"></div>
+</div>
+<script>
+        // Micro-interactions
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const ripple = document.createElement('span');
+                ripple.classList.add('ripple');
+                this.appendChild(ripple);
+                setTimeout(() => ripple.remove(), 600);
+            });
+        });
+
+        // Simple Active Tab Switching (Simulation)
+        const navButtons = document.querySelectorAll('nav button');
+        navButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                navButtons.forEach(b => {
+                    b.classList.remove('text-secondary', 'after:content-[\'\']', 'after:w-1', 'after:h-1', 'after:bg-secondary', 'after:rounded-full', 'after:mt-1');
+                    b.classList.add('text-outline');
+                    const icon = b.querySelector('.material-symbols-outlined');
+                    if(icon) icon.style.fontVariationSettings = "'FILL' 0";
+                });
+                btn.classList.remove('text-outline');
+                btn.classList.add('text-secondary', 'after:content-[\'\']', 'after:w-1', 'after:h-1', 'after:bg-secondary', 'after:rounded-full', 'after:mt-1');
+                const activeIcon = btn.querySelector('.material-symbols-outlined');
+                if(activeIcon) activeIcon.style.fontVariationSettings = "'FILL' 1";
+            });
+        });
+    </script>
+</body></html>
