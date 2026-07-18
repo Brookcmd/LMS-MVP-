@@ -39,3 +39,23 @@ Last updated: 2026-07-18
 
 **Pattern notes:**
 Top bar actions should be real actions only. Hide role-irrelevant or unimplemented buttons instead of showing inert controls.
+
+### Attendance Date Rail
+
+File: `frontend/react/src/pages/ParentAttendance.jsx`
+Last updated: 2026-07-18
+
+| Property         | Class/value |
+| ---------------- | ----------- |
+| Background       | `linear-gradient(180deg, #ffffff 0%, #f7f9fb 100%)` for `.date-squircle`; `#f7f9fb` for rail arrow buttons |
+| Border           | `1px solid #e9ebee`; active tiles use `var(--text-secondary)` |
+| Border radius    | `26px` for date tiles, `16px` for rail arrow buttons |
+| Text - primary   | `var(--text-primary)` and `#fff` when active |
+| Text - secondary | `var(--text-muted)` for weekday/month, translucent white when active |
+| Spacing          | `.attendance-calendar` uses `gap: 14px`; rail uses `gap: 10px`; tiles use `padding: 10px 8px` |
+| Hover state      | `.date-squircle:hover` translates up and softens border to `rgba(70, 72, 212, 0.28)` |
+| Shadow           | active tile uses `0 14px 26px rgba(70, 72, 212, 0.22)` |
+| Accent usage     | selected date uses `var(--text-secondary)` |
+
+**Pattern notes:**
+Use squircle-style fixed-size date controls for horizontally scrollable calendar strips. Keep active date state visually strong, with muted weekday/month labels on inactive tiles and white labels on active tiles. Rail arrows should stay compact icon buttons rather than text commands.
