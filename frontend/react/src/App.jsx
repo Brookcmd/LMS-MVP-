@@ -1,5 +1,5 @@
 import React from 'react'
-import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import Notifications from './pages/Notifications'
 import TeacherAttendance from './pages/TeacherAttendance'
@@ -13,6 +13,15 @@ function PrivateRoute({ children, roles }) {
   if (!user) return <Navigate to="/login" replace />
   if (roles && !roles.includes(user.role)) return <div className="container"><p>Forbidden</p></div>
   return children
+}
+
+function HomeRedirect() {
+  const { user } = useAuth()
+
+  if (user?.role === 'teacher') return <Navigate to="/teacher" replace />
+  if (user?.role === 'admin') return <Navigate to="/profile" replace />
+
+  return <ParentDashboard />
 }
 
 function Login() {
@@ -66,7 +75,7 @@ function Login() {
 
 function AppContent(){
   const { user, logout } = useAuth()
-  const location = useLocation()
+  const navigate = useNavigate()
 
   return (
     <div className="app-shell">
@@ -79,12 +88,11 @@ function AppContent(){
             </div>
           </div>
           <div className="actions">
-            <button className="icon-button" title="Search">
-              <span className="material-symbols-outlined">search</span>
-            </button>
-            <button className="icon-button" title="Notifications">
-              <span className="material-symbols-outlined">notifications</span>
-            </button>
+            {user.role === 'parent' && (
+              <button className="icon-button" title="Notifications" onClick={() => navigate('/notifications')}>
+                <span className="material-symbols-outlined">notifications</span>
+              </button>
+            )}
             <button className="icon-button" title="Sign out" onClick={logout}>
               <span className="material-symbols-outlined">logout</span>
             </button>
@@ -95,7 +103,7 @@ function AppContent(){
       <main className="content">
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<PrivateRoute><ParentDashboard /></PrivateRoute>} />
+          <Route path="/" element={<PrivateRoute><HomeRedirect /></PrivateRoute>} />
           <Route path="/notifications" element={<PrivateRoute roles={["parent"]}><Notifications /></PrivateRoute>} />
           <Route path="/attendance" element={<PrivateRoute roles={["parent"]}><ParentAttendance /></PrivateRoute>} />
           <Route path="/teacher" element={<PrivateRoute roles={["teacher"]}><TeacherAttendance /></PrivateRoute>} />
