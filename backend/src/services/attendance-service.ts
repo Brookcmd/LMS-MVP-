@@ -19,11 +19,24 @@ interface AttendanceResult {
   notificationsCreated: number;
 }
 
+function parseAttendanceDate(dateString: string): Date {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    throw appErrors.badRequest("date must use YYYY-MM-DD format");
+  }
+
+  const parsed = new Date(dateString);
+  if (Number.isNaN(parsed.getTime())) {
+    throw appErrors.badRequest("Invalid date");
+  }
+
+  return parsed;
+}
+
 /**
  * Validate that a date is within the allowed window (today to 7 days in the past)
  */
 function validateDateWindow(dateString: string): void {
-  const markDate = new Date(dateString);
+  const markDate = parseAttendanceDate(dateString);
   const today = new Date();
 
   // Set time to midnight for comparison
@@ -168,7 +181,7 @@ export async function markAttendanceBatch(
   }
 
   // Parse the date
-  const attendanceDate = new Date(date);
+  const attendanceDate = parseAttendanceDate(date);
 
   // Upsert each attendance record in a transaction
   const result = await prisma.$transaction(async (tx) => {
@@ -228,31 +241,57 @@ export async function markAttendanceBatch(
 }
 
 /**
- * Get all attendance records for a class on a specific date
+ * Get the class roster with attendance status for a specific date
  */
 export async function getAttendanceByClass(
+  teacherId: number,
   classId: number,
   date: string
 ) {
-  const attendanceDate = new Date(date);
+  const attendanceDate = parseAttendanceDate(date);
 
-  return prisma.attendance.findMany({
+  await validateTeacherOwnsClass(teacherId, classId);
+
+  const students = await prisma.student.findMany({
     where: {
       classId,
-      date: attendanceDate,
-    },
-    include: {
-      student: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
     },
     orderBy: {
-      student: {
-        name: "asc",
+      name: "asc",
+    },
+    select: {
+      id: true,
+      name: true,
+      attendances: {
+        where: {
+          classId,
+          date: attendanceDate,
+        },
+        select: {
+          id: true,
+          status: true,
+          date: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        take: 1,
       },
     },
+  });
+
+  return students.map((student) => {
+    const attendance = student.attendances[0];
+
+    return {
+      id: attendance?.id ?? null,
+      status: attendance?.status ?? null,
+      date: attendance?.date ?? attendanceDate,
+      createdAt: attendance?.createdAt ?? null,
+      updatedAt: attendance?.updatedAt ?? null,
+      student: {
+        id: student.id,
+        name: student.name,
+      },
+    };
   });
 }

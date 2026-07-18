@@ -113,7 +113,9 @@ export async function getAttendanceByClassHandler(
       );
     }
 
+    const teacherId = parseInt(req.user.userId, 10);
     const attendance = await attendanceService.getAttendanceByClass(
+      teacherId,
       classId,
       date
     );

@@ -1,5 +1,6 @@
 import express from "express";
 import { getChildAttendanceHistoryHandler } from "../controllers/parent-attendance-controller";
+import { listParentChildrenHandler } from "../controllers/parent-student-controller";
 import {
   listParentNotificationsHandler,
   markParentNotificationReadHandler,
@@ -11,6 +12,7 @@ const parentRouter = express.Router();
 
 parentRouter.use(authMiddleware, roleMiddleware(["parent"]));
 
+parentRouter.get("/students", listParentChildrenHandler);
 parentRouter.get("/attendance", getChildAttendanceHistoryHandler);
 parentRouter.get("/notifications", listParentNotificationsHandler);
 parentRouter.patch(

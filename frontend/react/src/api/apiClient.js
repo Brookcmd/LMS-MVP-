@@ -46,6 +46,10 @@ export async function listNotifications() {
   return request("/parent/notifications");
 }
 
+export async function listParentStudents() {
+  return request("/parent/students");
+}
+
 export async function markNotificationRead(notificationId) {
   return request(`/parent/notifications/${notificationId}/read`, {
     method: "PATCH",

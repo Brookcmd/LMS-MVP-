@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import {
   deleteParentStudentLink,
   listParentStudentLinks,
+  listParentChildren,
   upsertParentStudentLink,
 } from "../services/parent-student-service";
 import { AuthError } from "../lib/auth-errors";
@@ -34,6 +35,24 @@ export async function listParentStudentLinksHandler(request: Request, response: 
     }
 
     const result = await listParentStudentLinks(request.user.schoolId);
+    response.status(200).json({ success: true, data: result });
+  } catch (error) {
+    handleError(error, response);
+  }
+}
+
+export async function listParentChildrenHandler(request: Request, response: Response): Promise<void> {
+  try {
+    if (!request.user) {
+      response.status(401).json({ success: false, error: { message: "Unauthorized", code: "UNAUTHORIZED" } });
+      return;
+    }
+
+    const result = await listParentChildren({
+      parentUserId: request.user.userId,
+      schoolId: request.user.schoolId,
+    });
+
     response.status(200).json({ success: true, data: result });
   } catch (error) {
     handleError(error, response);

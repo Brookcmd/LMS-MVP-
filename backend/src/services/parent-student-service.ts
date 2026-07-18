@@ -105,7 +105,7 @@ export async function listParentStudentLinks(schoolIdValue: string) {
       parent: { schoolId },
       student: { schoolId },
     },
-    include: {
+    select: {
       parent: {
         select: {
           id: true,
@@ -126,4 +126,51 @@ export async function listParentStudentLinks(schoolIdValue: string) {
       isPrimary: true,
     },
   });
+}
+
+interface ListParentChildrenPayload {
+  parentUserId: string;
+  schoolId: string;
+}
+
+export async function listParentChildren(payload: ListParentChildrenPayload) {
+  const parentUserId = parseId(payload.parentUserId, "parentUserId");
+  const schoolId = parseId(payload.schoolId, "schoolId");
+
+  const links = await prisma.parentStudent.findMany({
+    where: {
+      parentUserId,
+      parent: { schoolId },
+      student: { schoolId },
+    },
+    select: {
+      student: {
+        select: {
+          id: true,
+          name: true,
+          class: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+      relationship: true,
+      isPrimary: true,
+    },
+    orderBy: {
+      student: {
+        name: "asc",
+      },
+    },
+  });
+
+  return links.map((link) => ({
+    id: link.student.id,
+    name: link.student.name,
+    class: link.student.class,
+    relationship: link.relationship,
+    isPrimary: link.isPrimary,
+  }));
 }
