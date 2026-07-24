@@ -19,20 +19,30 @@ function buildHeaders(json = true) {
   return headers;
 }
 
-async function request(path, { method = "GET", body } = {}) {
+export async function request(path, { method = "GET", body } = {}) {
   const response = await fetch(`${BASE_URL}${path}`, {
     method,
     headers: buildHeaders(body !== undefined),
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
-  const payload = await response.json();
-  if (!response.ok || payload.success === false) {
-    const errorMessage = payload?.error?.message ?? response.statusText;
+  const text = await response.text();
+  let payload = null;
+
+  if (text) {
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      payload = { message: text };
+    }
+  }
+
+  if (!response.ok || payload?.success === false) {
+    const errorMessage = payload?.error?.message ?? payload?.message ?? response.statusText || "Request failed";
     throw new Error(errorMessage);
   }
 
-  return payload.data;
+  return payload?.data ?? null;
 }
 
 export async function login({ email, password, schoolId }) {
@@ -75,3 +85,8 @@ export async function markAttendanceBatch({ classId, date, marks }) {
     body: { classId, date, marks },
   });
 }
+
+export async function listTeachingAssignments() { return request('/grades/teaching-assignments/mine') }
+export async function getGradeRoster({ assignmentId, academicYear, quarter }) { return request(`/grades/assignments/${assignmentId}?academicYear=${encodeURIComponent(academicYear)}&quarter=${quarter}`) }
+export async function saveGrades({ assignmentId, academicYear, quarter, grades }) { return request(`/grades/assignments/${assignmentId}`, { method: 'PUT', body: { academicYear, quarter, grades } }) }
+export async function getParentGrades({ studentId, academicYear, quarter }) { return request(`/grades/parent?studentId=${studentId}&academicYear=${encodeURIComponent(academicYear)}&quarter=${quarter}`) }

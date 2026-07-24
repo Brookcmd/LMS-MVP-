@@ -6,6 +6,8 @@ import TeacherAttendance from './pages/TeacherAttendance'
 import ParentAttendance from './pages/ParentAttendance'
 import ParentDashboard from './pages/ParentDashboard'
 import Profile from './pages/Profile'
+import TeacherGrades from './pages/TeacherGrades'
+import ParentGrades from './pages/ParentGrades'
 import BottomNav from './components/BottomNav'
 
 function PrivateRoute({ children, roles }) {
@@ -107,6 +109,8 @@ function AppContent(){
           <Route path="/notifications" element={<PrivateRoute roles={["parent"]}><Notifications /></PrivateRoute>} />
           <Route path="/attendance" element={<PrivateRoute roles={["parent"]}><ParentAttendance /></PrivateRoute>} />
           <Route path="/teacher" element={<PrivateRoute roles={["teacher"]}><TeacherAttendance /></PrivateRoute>} />
+          <Route path="/teacher/grades" element={<PrivateRoute roles={["teacher"]}><TeacherGrades /></PrivateRoute>} />
+          <Route path="/grades" element={<PrivateRoute roles={["parent"]}><ParentGrades /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
           <Route path="*" element={<Navigate to={user ? '/' : '/login'} replace />} />
         </Routes>
