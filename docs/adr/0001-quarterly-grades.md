@@ -27,7 +27,7 @@ This is the quickest approach but it cannot reliably restrict teachers to their 
 
 **Cons**: Weak permissions and inconsistent subject names.
 
-### Option 2: Subjects with teacher class assignments
+### Option 2: Subjects with teacher class assignments 
 
 Subjects are school records, and a teaching assignment links one teacher, one subject, and one class. Grades refer to the assignment.
 
