@@ -40,9 +40,10 @@ export default function ParentAttendance(){
   const { user } = useAuth()
   const q = useQuery()
   const defaultStudent = q.get('studentId') || ''
+  const defaultDate = q.get('date') || ''
   const [studentId,setStudentId]=React.useState(defaultStudent)
   const [students,setStudents]=React.useState([])
-  const [selectedDate,setSelectedDate]=React.useState(() => toDateInputValue(new Date()))
+  const [selectedDate,setSelectedDate]=React.useState(() => /^\d{4}-\d{2}-\d{2}$/.test(defaultDate) ? defaultDate : toDateInputValue(new Date()))
   const [data,setData]=React.useState(null)
   const [loading,setLoading]=React.useState(false)
   const [loadingStudents,setLoadingStudents]=React.useState(false)

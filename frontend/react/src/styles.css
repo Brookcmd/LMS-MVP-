@@ -181,6 +181,12 @@ img {
   outline: none;
 }
 
+.textarea-field {
+  min-height: 104px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
 .search-field {
   padding-left: 44px;
 }
@@ -403,6 +409,222 @@ img {
 .date-squircle.active span,
 .date-squircle.active em {
   color: rgba(255, 255, 255, 0.78);
+}
+
+.homepage-calendar {
+  padding: 20px;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.calendar-weekdays {
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.calendar-weekdays div {
+  text-align: center;
+}
+
+.calendar-grid {
+  gap: 10px;
+}
+
+.calendar-day {
+  min-width: 0;
+  aspect-ratio: 1;
+  border: 1px solid transparent;
+  border-radius: 18px;
+  background: transparent;
+  color: var(--text-primary);
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.calendar-day:hover {
+  transform: translateY(-1px);
+  background: #f4f6fb;
+}
+
+.calendar-day.empty {
+  pointer-events: none;
+}
+
+.calendar-day.today {
+  background: var(--text-primary);
+  color: #fff;
+}
+
+.calendar-day.selected {
+  border-color: rgba(70, 72, 212, 0.28);
+  box-shadow: inset 0 0 0 1px rgba(70, 72, 212, 0.12);
+}
+
+.calendar-day.today.selected {
+  border-color: var(--text-primary);
+}
+
+.calendar-day span:first-child {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.calendar-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-top: 4px;
+  background: var(--accent);
+}
+
+.calendar-dot.absence {
+  background: var(--text-error);
+}
+
+.calendar-dot.late {
+  background: var(--text-secondary);
+}
+
+.calendar-summary {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #e9ebee;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.calendar-summary .subtitle {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.calendar-summary h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-family: var(--font-headline);
+  font-size: 1rem;
+}
+
+.calendar-alert-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.calendar-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 18px;
+  background: #f7f9fb;
+}
+
+.calendar-alert p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.empty-state.compact {
+  padding: 16px;
+}
+
+.success-message {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: var(--success-bg);
+  color: var(--success);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.request-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.request-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e9ebee;
+  border-radius: 18px;
+  background: #f7f9fb;
+}
+
+.request-card h3 {
+  margin: 0 0 4px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.request-card p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: end center;
+  padding: 20px;
+  background: rgba(9, 20, 38, 0.34);
+  backdrop-filter: blur(10px);
+}
+
+.action-modal {
+  width: min(100%, 560px);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  border: 1px solid #e9ebee;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+
+.action-modal .input-label {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.modal-copy {
+  margin: 8px 0 0;
+  color: #475569;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  justify-content: flex-end;
+  margin-top: 4px;
 }
 
 .stats-grid {
@@ -689,6 +911,28 @@ img {
     width: 68px;
     height: 80px;
     border-radius: 24px;
+  }
+  .calendar-grid {
+    gap: 6px;
+  }
+  .calendar-day {
+    border-radius: 14px;
+    padding: 6px;
+  }
+  .calendar-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .modal-backdrop {
+    align-items: end;
+    padding: 12px;
+  }
+  .action-modal {
+    max-height: calc(100vh - 24px);
+  }
+  .modal-actions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
   .section-header {
     flex-direction: column;

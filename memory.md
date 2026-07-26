@@ -1,63 +1,70 @@
-# Memory — Phase 2 MVP navigation committed
+# Memory — Parent UX calendar and quick actions
 
-Last updated: 2026-07-18 16:11:41 +03:00
+Last updated: 2026-07-18 19:30:30 +03:00
 
 ## What was built
 
-- Restored session context and confirmed the authoritative project instructions are Express + Prisma + Postgres, not InsForge.
-- Continued from the Phase 2 frontend/backend wiring state where parent attendance, notifications, parent dashboard live data, and teacher attendance roster behavior had already been implemented and verified.
-- Evaluated whether the current pages/nav are enough for the Phase 2 MVP. Conclusion: existing pages are enough; the issue was role-aware navigation and routing, not missing pages.
-- Updated `frontend/react/src/App.jsx` so `/` redirects teachers to `/teacher`, admins to `/profile`, and parents to the parent dashboard.
-- Updated the topbar in `frontend/react/src/App.jsx` to remove the inert search action and make the notifications action parent-only and linked to `/notifications`.
-- Updated `frontend/react/src/components/BottomNav.jsx` so navigation is role-aware:
-  - Parents see Home, Attendance, Alerts, Profile.
-  - Teachers see Attendance and Profile.
-  - Other roles fall back to Profile.
-- Renamed the parent bottom-nav label from `Events` to `Attendance`.
-- Created `ui-registry.md` via the imprint workflow, capturing app shell navigation and topbar action patterns.
-- Committed these navigation changes as `c856583 fix: make phase 2 navigation role-aware`.
+- Updated `frontend/react/src/pages/ParentAttendance.jsx`:
+  - Replaced the old from/to date input flow with a horizontal squircle-style date rail.
+  - Added previous/next day controls and left/right rail scrolling.
+  - Selecting a date reloads attendance with `from` and `to` set to the selected day.
+  - Added empty state for days with no attendance record.
+  - Added support for `?date=YYYY-MM-DD` so other pages can deep-link to a selected attendance day.
+- Updated `frontend/react/src/pages/ParentDashboard.jsx`:
+  - Made the homepage monthly calendar functional.
+  - Calendar now renders the real selected month, supports previous/next month navigation, selectable days, today/selected states, and event dots from real notification/attendance dates.
+  - Calendar selected-day summary shows alerts for that day and has a `View attendance` action that opens `/attendance?date=...`.
+  - Made quick actions functional on the frontend:
+    - `Report Absence` opens a modal with student, date, and reason.
+    - `Request Early Leave` opens a modal with student, date, pickup time, and reason.
+    - Linked students are loaded through `listParentStudents()`.
+    - Submitted requests are shown under Quick Actions and persisted in `localStorage` per user.
+- Updated `frontend/react/src/styles.css`:
+  - Added styles for the attendance date rail, homepage calendar, quick-action modal, request cards, success state, and textarea fields.
+- Updated `ui-registry.md` through imprint:
+  - Added `Attendance Date Rail`.
+  - Added `Homepage Monthly Calendar`.
+  - Added `Parent Quick Actions`.
 
 ## Decisions made
 
-- Do not add more pages for Phase 2. The Phase 2 MVP page count is sufficient for the pilot.
-- Keep Phase 2 focused on attendance, parent attendance history, and absence notifications.
-- Prefer tightening existing routes/navigation over expanding into a broader school portal.
-- Keep Express + Prisma + Postgres as the source of truth; ignore the stale/conflicting InsForge block in `AGENTS.md`.
-- Use role-aware navigation so users only see MVP-relevant actions.
-- Hide unimplemented shell controls rather than displaying inert buttons.
+- Treat "squirqles" as squircle-like rounded square day controls.
+- Keep parent attendance API usage unchanged by sending the selected day as both `from` and `to`.
+- Use the homepage calendar as a compact overview, not detailed attendance browsing.
+- Use local persistence for parent-created absence and early-leave requests because no backend request endpoint exists yet.
+- Quick actions open focused modal forms on the dashboard instead of navigating away.
+- Keep UI styling aligned with existing tokens and patterns in `ui-registry.md`.
 
 ## Problems solved
 
-- Teachers were previously able to access the `/teacher` page but had no bottom-nav link to it.
-- `/` previously rendered `ParentDashboard` for all authenticated users, including teachers.
-- The parent attendance page was mislabeled as `Events` in the bottom nav.
-- The topbar showed a dead Search action and a Notifications action that was not role-aware.
-- UI pattern memory was missing; `ui-registry.md` now records the app shell navigation pattern for future UI work.
+- Parent attendance date browsing no longer depends on plain date inputs.
+- Homepage calendar is no longer a static hardcoded 1-30 mock.
+- Homepage calendar can now drive the attendance page via a date query param.
+- Quick action buttons are no longer inert.
+- Submitted quick-action requests survive refresh locally until backend support is added.
 
 ## Current state
 
-- Latest commit is `c856583 fix: make phase 2 navigation role-aware`.
-- Frontend build passed with `npm.cmd run build` from `frontend/react`.
-- Backend build passed with `npm.cmd run build` from the repo root.
-- Backend tests passed with `npm.cmd test`: 2 files, 8 tests.
-- Tests still print the known non-failing `pg` SSL mode warning.
-- Current `git status --short` still reports:
-  - `backend/src/services/parent-student-service.ts`
-  - `frontend/react/src/pages/TeacherAttendance.jsx`
-  - `memory.md`
-- Earlier checks showed no content diff for `backend/src/services/parent-student-service.ts` or `frontend/react/src/pages/TeacherAttendance.jsx`; likely line-ending/metadata noise.
-- `memory.md` is intentionally modified by this save operation and is not committed yet.
+- Frontend build passed after each UI change with `npm.cmd run build` from `frontend/react`.
+- Current modified files:
+  - `frontend/react/src/pages/ParentAttendance.jsx`
+  - `frontend/react/src/pages/ParentDashboard.jsx`
+  - `frontend/react/src/styles.css`
+  - `ui-registry.md`
+- `git diff --stat` currently reports 4 changed files with 595 insertions and 19 deletions.
+- Git reports line-ending warnings that LF will be replaced by CRLF next time Git touches the edited frontend files and `ui-registry.md`.
+- No backend endpoints or schema were added for parent-submitted absence/early-leave requests.
 
 ## Next session starts with
 
 - Run `/remember restore`.
-- Run `git status --short`, `git diff --stat`, and targeted diffs for the remaining modified files.
-- Decide whether `memory.md` should be committed separately as session documentation or left uncommitted.
-- Resolve or normalize the line-ending-only noise in `backend/src/services/parent-student-service.ts` and `frontend/react/src/pages/TeacherAttendance.jsx` without reverting real work.
-- Once the working tree is understood, decide whether any larger Phase 2 wiring work remains uncommitted or whether Phase 2 is ready for pilot review.
+- Review the modified frontend files with `git diff`.
+- Decide whether frontend-local quick actions are enough for the current MVP demo, or whether to add backend-backed parent request models/routes.
+- If backend-backed requests are needed, add a request model and parent routes for submitting/listing absence and early-leave requests, then replace localStorage persistence with API calls.
+- Consider running a visual check in the browser for the attendance rail, homepage calendar, and quick-action modal on mobile and desktop.
 
 ## Open questions
 
-- Should the teacher UI continue using a manually entered class ID for the MVP, or should it get a teacher class selector before pilot use?
-- Should the `pg` SSL mode warning be addressed now in test/database config, or left as later cleanup since builds and tests pass?
-- Should `memory.md` be tracked in git for this project, or kept as local session state?
+- Should absence and early-leave requests become real backend records before pilot use?
+- Who should receive or approve parent-submitted requests: teacher, admin, or both?
+- Should parent requests also appear in the Notifications page, or should they get their own requests/history surface?
