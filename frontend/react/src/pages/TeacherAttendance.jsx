@@ -1,17 +1,19 @@
 import React from 'react'
-import { getAttendanceByClass, markAttendanceBatch } from '../api/apiClient'
+import { getAttendanceByClass, markAttendanceBatch, listTeachingAssignments } from '../api/apiClient'
 
 export default function TeacherAttendance(){
-  const [classId,setClassId]=React.useState('10')
+  const [classId,setClassId]=React.useState('')
+  const [assignments,setAssignments]=React.useState([])
   const [date,setDate]=React.useState(new Date().toISOString().slice(0,10))
   const [records,setRecords]=React.useState([])
   const [loading,setLoading]=React.useState(false)
+  const [loadingAssignments,setLoadingAssignments]=React.useState(false)
   const [error,setError]=React.useState(null)
   const [searchTerm,setSearchTerm]=React.useState('')
 
   async function load(){
     if (!classId || !date) {
-      setError('Class ID and date are required')
+      setError('Class and date are required')
       return
     }
 
@@ -28,8 +30,53 @@ export default function TeacherAttendance(){
     }
   }
 
+  async function loadAssignments(){
+    setLoadingAssignments(true)
+    setError(null)
+    try {
+      const data = await listTeachingAssignments()
+      setAssignments(data)
+      if (data.length > 0 && !classId) {
+        setClassId(String(data[0].class.id))
+      }
+    } catch (err) {
+      setError(err?.message ?? 'Unable to load your classes')
+    } finally {
+      setLoadingAssignments(false)
+    }
+  }
+
+  const classes = React.useMemo(() => {
+    const map = new Map()
+    assignments.forEach((assignment) => {
+      if (!assignment.class?.id) return
+      const existing = map.get(assignment.class.id)
+      if (!existing) {
+        map.set(assignment.class.id, {
+          id: assignment.class.id,
+          name: assignment.class.name,
+          subjects: assignment.subject?.name ? [assignment.subject.name] : [],
+        })
+      } else if (assignment.subject?.name && !existing.subjects.includes(assignment.subject.name)) {
+        existing.subjects.push(assignment.subject.name)
+      }
+    })
+    return Array.from(map.values())
+  }, [assignments])
+
+  const selectedClass = React.useMemo(
+    () => classes.find((schoolClass) => String(schoolClass.id) === classId),
+    [classes, classId],
+  )
+
   React.useEffect(() => {
-    load()
+    loadAssignments()
+  }, [])
+
+  React.useEffect(() => {
+    if (classId && date) {
+      load()
+    }
   }, [classId, date])
 
   async function submit(){
@@ -72,7 +119,7 @@ export default function TeacherAttendance(){
       <div className="section-header">
         <div>
           <span className="subtitle">Current class</span>
-          <h1 className="title">Class {classId} attendance</h1>
+          <h1 className="title">Class {classId || '—'} attendance</h1>
         </div>
         <div className="class-summary">
           <div className="summary-item">
@@ -89,15 +136,26 @@ export default function TeacherAttendance(){
       <div className="card section">
         <div className="form-row">
           <label className="input-label">
-            Class ID
-            <input className="input-field" value={classId} onChange={e => setClassId(e.target.value)} />
+            Class
+            <select className="input-field" value={classId} onChange={e => setClassId(e.target.value)}>
+              <option value="">Select your class</option>
+              {classes.map((schoolClass) => (
+                <option key={schoolClass.id} value={schoolClass.id}>
+                  {schoolClass.name}
+                </option>
+              ))}
+            </select>
+            {selectedClass && selectedClass.subjects.length > 0 && (
+              <p className="form-hint">Subjects: {selectedClass.subjects.join(', ')}</p>
+            )}
           </label>
           <label className="input-label">
             Date
             <input className="input-field" type="date" value={date} onChange={e => setDate(e.target.value)} />
           </label>
-          <button className="btn-secondary" type="button" onClick={load}>Load</button>
+          <button className="btn-secondary" type="button" onClick={load} disabled={loadingAssignments}>Load</button>
         </div>
+        {loadingAssignments && <div className="loader">Loading classes…</div>}
       </div>
 
       <div className="section">

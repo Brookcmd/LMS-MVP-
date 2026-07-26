@@ -11,6 +11,7 @@ import attendanceRouter from "./routes/attendance";
 import parentRouter from "./routes/parent";
 import gradesRouter from "./routes/grades";
 
+
 const app = express();
 
 app.use(express.json());

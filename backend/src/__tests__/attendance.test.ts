@@ -48,4 +48,36 @@ describe("Teacher attendance routes", () => {
       }),
     );
   });
+
+  it("saves batch attendance for an authenticated teacher", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+
+    const response = await request(app)
+      .post("/attendance/batch")
+      .set("Authorization", `Bearer ${testData.teacherToken}`)
+      .send({
+        classId: testData.classId,
+        date: today,
+        marks: [
+          {
+            studentId: testData.studentId,
+            status: "present",
+          },
+        ],
+      })
+      .expect(200);
+
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
+          created: expect.any(Number),
+          updated: expect.any(Number),
+          notificationsCreated: expect.any(Number),
+        }),
+      }),
+    );
+
+    expect(response.body.data.created + response.body.data.updated).toBe(1);
+  });
 });

@@ -38,7 +38,7 @@ export async function request(path, { method = "GET", body } = {}) {
   }
 
   if (!response.ok || payload?.success === false) {
-    const errorMessage = payload?.error?.message ?? payload?.message ?? response.statusText || "Request failed";
+    const errorMessage = (payload?.error?.message ?? payload?.message ?? response.statusText) || "Request failed";
     throw new Error(errorMessage);
   }
 

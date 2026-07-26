@@ -221,7 +221,9 @@ export default function ParentAttendance(){
                   </span>
                   <span style={{ color: '#6b7280', fontSize: 12 }}>{new Date(a.date).toLocaleDateString()}</span>
                 </div>
-                <p style={{ margin: 0, color: '#475569' }}>{a.notes || 'No notes available.'}</p>
+                <p style={{ margin: 0, color: '#475569' }}>
+            {a.marked?.name ? `Marked by ${a.marked.name}` : 'Attendance status recorded.'}
+          </p>
               </div>
             ))}
           </div>
