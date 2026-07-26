@@ -24,6 +24,7 @@ model School {
   users    User[]
   students Student[]
   classes  Class[]
+  subjects Subject[]
 
   @@map("schools")
 }
@@ -41,6 +42,8 @@ model User {
   school           School           @relation(fields: [schoolId], references: [id])
   parentChildren   ParentStudent[]  @relation("parent")
   classesTeaching  ClassTeacher[]
+  homeroomClasses  Class[]           @relation("homeroom_teacher")
+  teachingAssignments TeachingAssignment[]
   attendanceMarked Attendance[]     @relation("marked_by")
   notifications    Notification[]   @relation("notification_parent")
 
@@ -61,6 +64,7 @@ model Student {
   parents      ParentStudent[] @relation("student")
   attendances  Attendance[]
   notifications Notification[]
+  grades        Grade[]
 
   @@map("students")
 }
@@ -82,11 +86,14 @@ model Class {
   id        Int       @id @default(autoincrement())
   schoolId  Int       @map("school_id")
   name      String
+  homeroomTeacherId Int? @map("homeroom_teacher_id")
   createdAt DateTime  @default(now()) @map("created_at")
 
   school      School       @relation(fields: [schoolId], references: [id])
+  homeroomTeacher User?    @relation("homeroom_teacher", fields: [homeroomTeacherId], references: [id], onDelete: SetNull)
   students    Student[]
   teachers    ClassTeacher[]
+  teachingAssignments TeachingAssignment[]
   attendances Attendance[]
 
   @@map("classes")
@@ -101,6 +108,54 @@ model ClassTeacher {
 
   @@id([classId, teacherId])
   @@map("class_teachers")
+}
+
+model Subject {
+  id        Int      @id @default(autoincrement())
+  schoolId  Int      @map("school_id")
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  school              School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  teachingAssignments TeachingAssignment[]
+
+  @@unique([schoolId, name])
+  @@map("subjects")
+}
+
+model TeachingAssignment {
+  id        Int      @id @default(autoincrement())
+  classId   Int      @map("class_id")
+  teacherId Int      @map("teacher_id")
+  subjectId Int      @map("subject_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher User    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  grades  Grade[]
+
+  @@unique([classId, teacherId, subjectId])
+  @@index([teacherId, classId])
+  @@map("teaching_assignments")
+}
+
+model Grade {
+  id                   Int      @id @default(autoincrement())
+  studentId            Int      @map("student_id")
+  teachingAssignmentId Int      @map("teaching_assignment_id")
+  academicYear         String   @map("academic_year")
+  quarter              Int
+  score                Int
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  student            Student            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teachingAssignment TeachingAssignment @relation(fields: [teachingAssignmentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, teachingAssignmentId, academicYear, quarter])
+  @@index([teachingAssignmentId, academicYear, quarter])
+  @@map("grades")
 }
 
 model Attendance {
