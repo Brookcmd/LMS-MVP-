@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-    "scripts": {
+  "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5172",
     "build": "tsc -p backend/tsconfig.json",
+    "backend:dev": "node backend/src/index-runner.cjs",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
     "prisma:seed": "tsx backend/prisma/seed.ts",
