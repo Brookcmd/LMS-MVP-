@@ -4,12 +4,14 @@ import { useAuth } from '../auth/AuthContext'
 const parentItems = [
   { to: '/', label: 'Home', icon: 'home' },
   { to: '/attendance', label: 'Attendance', icon: 'calendar_month' },
+  { to: '/grades', label: 'Grades', icon: 'school' },
   { to: '/notifications', label: 'Alerts', icon: 'notifications' },
   { to: '/profile', label: 'Profile', icon: 'person' },
 ]
 
 const teacherItems = [
   { to: '/teacher', label: 'Attendance', icon: 'checklist' },
+  { to: '/teacher/grades', label: 'Grades', icon: 'school' },
   { to: '/profile', label: 'Profile', icon: 'person' },
 ]
 
