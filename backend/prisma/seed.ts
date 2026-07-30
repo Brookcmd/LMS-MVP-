@@ -10,13 +10,13 @@ async function main() {
 
   // Check if test school already exists
   let school = await prisma.school.findFirst({
-    where: { name: "Test School" },
+    where: { name: "Sheba Estudent" },
   });
 
   if (!school) {
     school = await prisma.school.create({
       data: {
-        name: "Test School",
+        name: "Sheba Estudent",
       },
     });
     console.log(`Created school: ${school.name} (ID: ${school.id})`);

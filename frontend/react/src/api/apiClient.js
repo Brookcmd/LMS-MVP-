@@ -52,6 +52,14 @@ export async function login({ email, password, schoolId }) {
   });
 }
 
+export async function signup({ name, email, password, role }) {
+  const result = await request("/auth/signup", {
+    method: "POST",
+    body: { name, email, password, role },
+  });
+  return result?.user ?? result;
+}
+
 export async function listNotifications() {
   return request("/parent/notifications");
 }
@@ -90,3 +98,25 @@ export async function listTeachingAssignments() { return request('/grades/teachi
 export async function getGradeRoster({ assignmentId, academicYear, quarter }) { return request(`/grades/assignments/${assignmentId}?academicYear=${encodeURIComponent(academicYear)}&quarter=${quarter}`) }
 export async function saveGrades({ assignmentId, academicYear, quarter, grades }) { return request(`/grades/assignments/${assignmentId}`, { method: 'PUT', body: { academicYear, quarter, grades } }) }
 export async function getParentGrades({ studentId, academicYear, quarter }) { return request(`/grades/parent?studentId=${studentId}&academicYear=${encodeURIComponent(academicYear)}&quarter=${quarter}`) }
+
+export async function listClasses() { return request('/classes') }
+export async function createClass(body) { return request('/classes', { method: 'POST', body }) }
+export async function updateClass(classId, body) { return request(`/classes/${classId}`, { method: 'PUT', body }) }
+export async function deleteClass(classId) { return request(`/classes/${classId}`, { method: 'DELETE' }) }
+
+export async function listStudents() { return request('/students') }
+export async function createStudent(body) { return request('/students', { method: 'POST', body }) }
+export async function updateStudent(studentId, body) { return request(`/students/${studentId}`, { method: 'PUT', body }) }
+export async function deleteStudent(studentId) { return request(`/students/${studentId}`, { method: 'DELETE' }) }
+
+export async function listTeachers() { return request('/teachers') }
+export async function listParents() { return request('/parents') }
+
+export async function listSubjects() { return request('/grades/subjects') }
+export async function createSubject(body) { return request('/grades/subjects', { method: 'POST', body }) }
+export async function createTeachingAssignment(body) { return request('/grades/teaching-assignments', { method: 'POST', body }) }
+export async function listAllTeachingAssignments() { return request('/grades/teaching-assignments') }
+
+export async function listParentStudentLinks() { return request('/parent-students') }
+export async function upsertParentStudentLink(body) { return request('/parent-students', { method: 'POST', body }) }
+export async function deleteParentStudentLink(parentUserId, studentId) { return request(`/parent-students/${parentUserId}/${studentId}`, { method: 'DELETE' }) }

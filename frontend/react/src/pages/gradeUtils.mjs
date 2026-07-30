@@ -25,3 +25,20 @@ export function filterRosterBySearch(roster = [], searchTerm = '') {
 
   return roster.filter((student) => student.name?.toLowerCase().includes(normalized))
 }
+
+export function applyPreviousQuarterScores(currentRoster = [], previousQuarterStudents = []) {
+  const previousScores = new Map(
+    previousQuarterStudents
+      .filter((student) => student?.id != null && student?.grade?.score != null)
+      .map((student) => [student.id, student.grade.score])
+  )
+
+  return currentRoster.map((student) => {
+    if (student.score !== '' && student.score !== null && student.score !== undefined) {
+      return student
+    }
+
+    const previousScore = previousScores.get(student.id)
+    return previousScore != null ? { ...student, score: String(previousScore) } : student
+  })
+}

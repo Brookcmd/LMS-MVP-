@@ -4,7 +4,7 @@ This file is the entry point. Read it first, every session.
 
 ## Project
 
-RollCall — a school attendance tracking system, Phase 1 of a larger school management system idea. See `context/project-overview.md` for what this is, who it's for, and what's explicitly out of scope right now.
+Sheba Estudent — a school management platform (attendance-first), Phase 1 of a larger school management system idea. See `context/project-overview.md` for what this is, who it's for, and what's explicitly out of scope right now.
 
 See `WORKFLOW.md` for the session-by-session guide on how to actually run each build session using the skills below.
 

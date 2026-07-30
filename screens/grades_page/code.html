@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RollCall | Academic Performance</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-low": "#f2f4f6",
+                    "on-secondary-fixed": "#07006c",
+                    "on-secondary-container": "#fffbff",
+                    "on-primary": "#ffffff",
+                    "secondary-container": "#6063ee",
+                    "on-primary-fixed": "#111c2d",
+                    "secondary": "#4648d4",
+                    "surface": "#f7f9fb",
+                    "on-primary-fixed-variant": "#3c475a",
+                    "secondary-fixed-dim": "#c0c1ff",
+                    "inverse-on-surface": "#eff1f3",
+                    "secondary-fixed": "#e1e0ff",
+                    "on-tertiary-fixed": "#00201d",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "tertiary": "#001815",
+                    "surface-tint": "#545f73",
+                    "on-tertiary-container": "#28a094",
+                    "primary-fixed-dim": "#bcc7de",
+                    "background": "#f7f9fb",
+                    "surface-dim": "#d8dadc",
+                    "on-background": "#191c1e",
+                    "on-error-container": "#93000a",
+                    "inverse-primary": "#bcc7de",
+                    "error": "#ba1a1a",
+                    "outline-variant": "#c5c6cd",
+                    "on-surface-variant": "#45474c",
+                    "on-secondary": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "surface-container-highest": "#e0e3e5",
+                    "surface-container-high": "#e6e8ea",
+                    "primary": "#091426",
+                    "tertiary-container": "#002f2a",
+                    "on-surface": "#191c1e",
+                    "on-secondary-fixed-variant": "#2f2ebe",
+                    "tertiary-fixed-dim": "#6bd8cb",
+                    "on-tertiary-fixed-variant": "#005049",
+                    "primary-container": "#1e293b",
+                    "on-primary-container": "#8590a6",
+                    "primary-fixed": "#d8e3fb",
+                    "tertiary-fixed": "#89f5e7",
+                    "surface-variant": "#e0e3e5",
+                    "outline": "#75777d",
+                    "surface-bright": "#f7f9fb",
+                    "inverse-surface": "#2d3133",
+                    "surface-container": "#eceef0",
+                    "on-error": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "sm": "8px",
+                    "base": "4px",
+                    "xl": "32px",
+                    "md": "16px",
+                    "container-padding": "20px",
+                    "gutter": "16px",
+                    "lg": "24px",
+                    "xs": "4px"
+            },
+            "fontFamily": {
+                    "headline-lg-mobile": ["Hanken Grotesk"],
+                    "body-sm": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "title-md": ["Hanken Grotesk"],
+                    "headline-lg": ["Hanken Grotesk"],
+                    "display-lg": ["Hanken Grotesk"],
+                    "label-caps": ["Hanken Grotesk"]
+            },
+            "fontSize": {
+                    "headline-lg-mobile": ["20px", {"lineHeight": "28px", "fontWeight": "700"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "title-md": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .bg-mesh-gradient {
+            background-color: #f7f9fb;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(96, 99, 238, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(84, 95, 115, 0.05) 0px, transparent 50%);
+        }
+    </style>
+</head>
+<body class="bg-mesh-gradient min-h-screen text-on-surface font-body-lg overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 dark:bg-surface-container/80 backdrop-blur-xl shadow-sm flex justify-between items-center px-gutter h-16">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" data-icon="school">school</span>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-extrabold text-primary">RollCall</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="transition-all duration-300 ease-in-out active:scale-95 hover:bg-surface-container-high/50 p-2 rounded-full">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="notifications">notifications</span>
+</button>
+</div>
+</header>
+<main class="pt-20 pb-32 px-container-padding max-w-[1140px] mx-auto space-y-lg">
+<!-- GPA & Rank Section (Bento Highlight) -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-md">
+<div class="md:col-span-2 glass-card rounded-xl p-lg flex flex-col justify-between relative overflow-hidden group">
+<div class="absolute -right-12 -top-12 w-48 h-48 bg-secondary/5 rounded-full blur-3xl group-hover:bg-secondary/10 transition-colors duration-500"></div>
+<div class="relative z-10">
+<span class="font-label-caps text-label-caps text-on-surface-variant mb-2 block">OVERALL PERFORMANCE</span>
+<div class="flex items-baseline gap-2">
+<h2 class="font-display-lg text-display-lg text-primary">3.82</h2>
+<span class="text-on-tertiary-container font-title-md text-title-md">GPA</span>
+</div>
+<p class="font-body-sm text-body-sm text-outline mt-2">Top 5% of your graduating class</p>
+</div>
+<div class="mt-lg flex items-center justify-between border-t border-outline-variant pt-md relative z-10">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" data-icon="leaderboard" style="font-variation-settings: 'FILL' 1;">leaderboard</span>
+<span class="font-body-sm text-body-sm font-semibold">Rank #12 of 248</span>
+</div>
+<button class="text-secondary font-label-caps text-label-caps flex items-center gap-1 hover:underline">
+                        VIEW HISTORY <span class="material-symbols-outlined text-sm" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+<div class="bg-primary text-on-primary rounded-xl p-lg flex flex-col justify-center relative overflow-hidden shadow-lg">
+<div class="absolute inset-0 opacity-20 bg-cover bg-center" data-alt="A sophisticated abstract architectural photograph with clean diagonal lines in navy blue and deep slate colors, emphasizing professional school administration and structure. High contrast and minimalist lighting." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA-xtDvggY1YdmZ0kPStHIr7vfZ2z2UCrkH_OUv634EvOYAqWRFYaBmBCRaNVfDF9J9u2x3NIboYeCZRLAIh3IyZz0ZLsmrbhM02PbrJc2D_9P8p6RKsFOiAPLQSlSTVWeCGghukQoefTEDqG52q-yJ7_DZYTe8H3mL2OoQPAaE9MVJ6tQGAc4z3BRx2arR6eK5dlEqgIksJ7vHwszV6cGfXWgW4-FsTTKjmjzqfp4XfhPG_6HgLsYC')"></div>
+<div class="relative z-10">
+<span class="font-label-caps text-label-caps text-primary-fixed-dim mb-4 block">NEXT TARGET</span>
+<h3 class="font-headline-lg text-headline-lg mb-2">Dean's List</h3>
+<p class="font-body-sm text-body-sm text-on-primary-container leading-relaxed">You need a 3.9 GPA to qualify for the next honor roll bracket.</p>
+</div>
+</div>
+</section>
+<!-- Subjects & Grades Section -->
+<section class="space-y-md">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-primary">Current Subjects</h2>
+<span class="font-body-sm text-body-sm text-outline">Semester 2, 2024</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<!-- Subject Card 1 -->
+<div class="bg-surface-container-lowest border border-surface-container shadow-sm rounded-xl p-md flex items-center gap-md transition-transform duration-300 hover:translate-y-[-2px]">
+<div class="w-12 h-12 rounded-lg bg-secondary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary" data-icon="functions">functions</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-center mb-2">
+<h4 class="font-title-md text-title-md text-primary">Mathematics</h4>
+<span class="text-secondary font-display-lg text-[24px]">A</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-1.5 overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 94%"></div>
+</div>
+<span class="font-label-caps text-label-caps text-outline mt-2 block">94.2% • PROFICIENT</span>
+</div>
+</div>
+<!-- Subject Card 2 -->
+<div class="bg-surface-container-lowest border border-surface-container shadow-sm rounded-xl p-md flex items-center gap-md transition-transform duration-300 hover:translate-y-[-2px]">
+<div class="w-12 h-12 rounded-lg bg-tertiary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-on-tertiary-fixed-variant" data-icon="biotech">biotech</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-center mb-2">
+<h4 class="font-title-md text-title-md text-primary">Science</h4>
+<span class="text-on-tertiary-container font-display-lg text-[24px]">A-</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-1.5 overflow-hidden">
+<div class="bg-tertiary-container h-full rounded-full" style="width: 91%"></div>
+</div>
+<span class="font-label-caps text-label-caps text-outline mt-2 block">91.5% • PROFICIENT</span>
+</div>
+</div>
+<!-- Subject Card 3 -->
+<div class="bg-surface-container-lowest border border-surface-container shadow-sm rounded-xl p-md flex items-center gap-md transition-transform duration-300 hover:translate-y-[-2px]">
+<div class="w-12 h-12 rounded-lg bg-primary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" data-icon="menu_book">menu_book</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-center mb-2">
+<h4 class="font-title-md text-title-md text-primary">English</h4>
+<span class="text-on-surface-variant font-display-lg text-[24px]">B+</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-1.5 overflow-hidden">
+<div class="bg-on-surface-variant h-full rounded-full" style="width: 88%"></div>
+</div>
+<span class="font-label-caps text-label-caps text-outline mt-2 block">88.9% • COMPETENT</span>
+</div>
+</div>
+<!-- Subject Card 4 -->
+<div class="bg-surface-container-lowest border border-surface-container shadow-sm rounded-xl p-md flex items-center gap-md transition-transform duration-300 hover:translate-y-[-2px]">
+<div class="w-12 h-12 rounded-lg bg-secondary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary" data-icon="history_edu">history_edu</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-center mb-2">
+<h4 class="font-title-md text-title-md text-primary">History</h4>
+<span class="text-secondary font-display-lg text-[24px]">A</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-1.5 overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 96%"></div>
+</div>
+<span class="font-label-caps text-label-caps text-outline mt-2 block">96.0% • PROFICIENT</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Recent Assignments Section -->
+<section class="space-y-md">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-primary">Recent Assignments</h2>
+<button class="text-secondary font-label-caps text-label-caps hover:bg-secondary/5 px-2 py-1 rounded">SEE ALL</button>
+</div>
+<div class="bg-white rounded-xl shadow-sm border border-surface-container overflow-hidden">
+<!-- Assignment 1 -->
+<div class="p-md flex items-center justify-between hover:bg-surface-container-low transition-colors border-b border-surface-container">
+<div class="flex items-center gap-md">
+<div class="bg-surface-container-high p-2 rounded-lg">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="quiz">quiz</span>
+</div>
+<div>
+<h5 class="font-title-md text-title-md text-primary">Algebra Midterm</h5>
+<p class="font-body-sm text-body-sm text-outline">Oct 12, 2023 • Mathematics</p>
+</div>
+</div>
+<div class="text-right">
+<div class="font-title-md text-title-md text-secondary">48/50</div>
+<div class="font-label-caps text-label-caps text-on-tertiary-container">96%</div>
+</div>
+</div>
+<!-- Assignment 2 -->
+<div class="p-md flex items-center justify-between hover:bg-surface-container-low transition-colors border-b border-surface-container">
+<div class="flex items-center gap-md">
+<div class="bg-surface-container-high p-2 rounded-lg">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="assignment">assignment</span>
+</div>
+<div>
+<h5 class="font-title-md text-title-md text-primary">Renaissance Essay</h5>
+<p class="font-body-sm text-body-sm text-outline">Oct 10, 2023 • History</p>
+</div>
+</div>
+<div class="text-right">
+<div class="font-title-md text-title-md text-secondary">25/25</div>
+<div class="font-label-caps text-label-caps text-on-tertiary-container">100%</div>
+</div>
+</div>
+<!-- Assignment 3 -->
+<div class="p-md flex items-center justify-between hover:bg-surface-container-low transition-colors">
+<div class="flex items-center gap-md">
+<div class="bg-surface-container-high p-2 rounded-lg">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="science">science</span>
+</div>
+<div>
+<h5 class="font-title-md text-title-md text-primary">Cell Biology Lab</h5>
+<p class="font-body-sm text-body-sm text-outline">Oct 05, 2023 • Science</p>
+</div>
+</div>
+<div class="text-right">
+<div class="font-title-md text-title-md text-on-surface-variant">17/20</div>
+<div class="font-label-caps text-label-caps text-outline">85%</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full bg-white/70 backdrop-blur-md flex justify-around items-center h-20 px-4 pb-safe z-50 rounded-t-xl shadow-[0_-10px_20px_rgba(15,23,42,0.05)]">
+<button class="flex flex-col items-center justify-center text-outline transition-transform duration-200 active:scale-90">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-caps text-label-caps mt-1">HOME</span>
+</button>
+<button class="flex flex-col items-center justify-center text-secondary transition-transform duration-200 active:scale-90 after:content-[''] after:w-1 after:h-1 after:bg-secondary after:rounded-full after:mt-1">
+<span class="material-symbols-outlined" data-icon="event_available" style="font-variation-settings: 'FILL' 1;">event_available</span>
+<span class="font-label-caps text-label-caps">GRADES</span>
+</button>
+<button class="flex flex-col items-center justify-center text-outline transition-transform duration-200 active:scale-90">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="font-label-caps text-label-caps mt-1">ALERTS</span>
+</button>
+<button class="flex flex-col items-center justify-center text-outline transition-transform duration-200 active:scale-90">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-caps text-label-caps mt-1">PROFILE</span>
+</button>
+</nav>
+<script>
+        // Simple micro-interaction for cards
+        document.querySelectorAll('.glass-card').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                card.style.setProperty('--mouse-x', `${x}px`);
+                card.style.setProperty('--mouse-y', `${y}px`);
+            });
+        });
+    </script>
+</body></html>

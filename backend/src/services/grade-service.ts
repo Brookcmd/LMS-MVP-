@@ -27,6 +27,7 @@ export async function createTeachingAssignment(schoolIdValue: string, payload: R
   try { return await prisma.teachingAssignment.create({ data: { classId, teacherId, subjectId }, include: includeAssignment }); } catch { throw appErrors.conflict("This teaching assignment already exists"); }
 }
 export async function teacherAssignments(teacherIdValue: string, schoolIdValue: string) { return prisma.teachingAssignment.findMany({ where: { teacherId: id(teacherIdValue, "teacherId"), class: { schoolId: id(schoolIdValue, "schoolId") } }, include: includeAssignment, orderBy: { subject: { name: "asc" } } }); }
+export async function listTeachingAssignments(schoolIdValue: string) { return prisma.teachingAssignment.findMany({ where: { class: { schoolId: id(schoolIdValue, "schoolId") } }, include: includeAssignment, orderBy: [{ class: { name: "asc" } }, { subject: { name: "asc" } }] }); }
 
 async function assignmentForTeacher(assignmentIdValue: string, teacherIdValue: string, schoolIdValue: string) {
   const assignment = await prisma.teachingAssignment.findFirst({ where: { id: id(assignmentIdValue, "assignmentId"), teacherId: id(teacherIdValue, "teacherId"), class: { schoolId: id(schoolIdValue, "schoolId") } }, include: includeAssignment });

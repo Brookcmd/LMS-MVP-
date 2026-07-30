@@ -1,6 +1,6 @@
 import React from 'react'
 import { getGradeRoster, listTeachingAssignments, saveGrades } from '../api/apiClient'
-import { getGradeStats, filterRosterBySearch } from './gradeUtils.mjs'
+import { getGradeStats, filterRosterBySearch, applyPreviousQuarterScores } from './gradeUtils.mjs'
 
 const currentYear = `${new Date().getFullYear()}/${String((new Date().getFullYear() + 1) % 100).padStart(2, '0')}`
 const quarterOptions = [1, 2, 3, 4]
@@ -17,6 +17,7 @@ export default function TeacherGrades() {
   const [savedMessage, setSavedMessage] = React.useState('')
   const [searchTerm, setSearchTerm] = React.useState('')
   const [fillValue, setFillValue] = React.useState('')
+  const [copying, setCopying] = React.useState(false)
 
   React.useEffect(() => {
     listTeachingAssignments()
@@ -84,6 +85,22 @@ export default function TeacherGrades() {
     setSavedMessage('')
   }
 
+  const copyFromPreviousQuarter = async () => {
+    if (!assignmentId || Number(quarter) <= 1) return
+
+    try {
+      setError('')
+      setCopying(true)
+      const previousQuarterRoster = await getGradeRoster({ assignmentId, academicYear: year, quarter: Number(quarter) - 1 })
+      setRoster((rows) => applyPreviousQuarterScores(rows, previousQuarterRoster.students || []))
+      setSavedMessage('Copied scores from the previous quarter.')
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setCopying(false)
+    }
+  }
+
   return (
     <div>
       <div className="section-header">
@@ -93,22 +110,31 @@ export default function TeacherGrades() {
         </div>
       </div>
 
-      <div className="card section">
-        <div className="form-row">
-          <label className="input-label">
-            Class and subject
+      <div className="card section grade-summary-card">
+        <div className="grade-summary-top">
+          <div>
+            <p className="label-caps">Current assignment</p>
+            <h2 className="title">{chosen ? `${chosen.class.name} · ${chosen.subject.name}` : 'Choose a teaching assignment'}</h2>
+            <p className="summary">Quarter {quarter} · {year}</p>
+          </div>
+          <div className="chip">Grade entry</div>
+        </div>
+
+        <div className="form-row" style={{ marginTop: 20, gap: 16, alignItems: 'flex-end' }}>
+          <label className="input-label" style={{ flex: 1 }}>
+            <span className="label-caps">Class and subject</span>
             <select className="input-field" value={assignmentId} onChange={(e) => setAssignmentId(e.target.value)}>
               {assignments.map((assignment) => (
                 <option key={assignment.id} value={assignment.id}>{assignment.class.name} · {assignment.subject.name}</option>
               ))}
             </select>
           </label>
-          <label className="input-label">
-            Academic year
+          <label className="input-label" style={{ flex: 1 }}>
+            <span className="label-caps">Academic year</span>
             <input className="input-field" value={year} onChange={(e) => setYear(e.target.value)} />
           </label>
-          <label className="input-label">
-            Quarter
+          <label className="input-label" style={{ flex: 0.6 }}>
+            <span className="label-caps">Quarter</span>
             <select className="input-field" value={quarter} onChange={(e) => setQuarter(e.target.value)}>
               {quarterOptions.map((value) => (
                 <option key={value} value={String(value)}>{value}</option>
@@ -116,27 +142,46 @@ export default function TeacherGrades() {
             </select>
           </label>
         </div>
-        {chosen && <p className="subtitle">{chosen.class.name} · {chosen.subject.name}</p>}
       </div>
 
       {error && <div className="error">{error}</div>}
       {savedMessage && <div className="success">{savedMessage}</div>}
 
+      <div className="stats-grid section">
+        <div className="stat-card">
+          <span className="label-caps">Entered</span>
+          <strong>{stats.enteredCount}</strong>
+        </div>
+        <div className="stat-card">
+          <span className="label-caps">Blank</span>
+          <strong>{stats.blankCount}</strong>
+        </div>
+        <div className="stat-card">
+          <span className="label-caps">Average</span>
+          <strong>{stats.average !== null ? stats.average.toFixed(1) : '—'}</strong>
+        </div>
+      </div>
+
       {roster.length > 0 && (
-        <div className="card section">
-          <div className="form-row">
-            <label className="input-label">
-              Search students
+        <div className="card section toolbar-card">
+          <div className="toolbar-actions">
+            <label className="input-label" style={{ flex: 1 }}>
+              <span className="label-caps">Search students</span>
               <input className="input-field" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Type a name" />
             </label>
-            <label className="input-label">
-              Fill all visible rows with
+            <label className="input-label" style={{ flex: 1 }}>
+              <span className="label-caps">Fill visible rows</span>
               <input className="input-field" type="number" min="0" max="100" value={fillValue} onChange={(e) => setFillValue(e.target.value)} placeholder="e.g. 85" />
             </label>
           </div>
-          <div className="action-row" style={{ marginTop: 12 }}>
-            <button className="btn-secondary" type="button" onClick={applyFillValue}>Apply fill value</button>
-            <div className="summary">{stats.enteredCount} entered · {stats.blankCount} blank · avg {stats.average !== null ? stats.average.toFixed(1) : '—'}</div>
+          <div className="action-row" style={{ marginTop: 18, justifyContent: 'space-between', display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+            <div className="toolbar-actions" style={{ gap: 12 }}>
+              <button className="btn-secondary" type="button" onClick={applyFillValue}>Apply fill value</button>
+              <button className="btn-secondary" type="button" onClick={copyFromPreviousQuarter} disabled={copying || Number(quarter) <= 1}>
+                {copying ? 'Copying…' : 'Copy from previous quarter'}
+              </button>
+            </div>
+            <div className="summary">{roster.length} students · {stats.enteredCount} entered</div>
           </div>
         </div>
       )}
@@ -147,14 +192,14 @@ export default function TeacherGrades() {
         <div className="space-y-3">
           {visibleRoster.length ? (
             visibleRoster.map((student, index) => (
-              <div className="student-card" key={student.id}>
-                <div className="card-body form-row">
+              <div className="card student-card" key={student.id}>
+                <div className="card-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: 0 }}>
                   <div style={{ flex: 1 }}>
                     <p className="student-name">{student.name}</p>
                     <p className="student-roll">Student {index + 1}</p>
                   </div>
-                  <label className="input-label">
-                    Score out of 100
+                  <label className="input-label" style={{ minWidth: 160 }}>
+                    <span className="label-caps">Score</span>
                     <input
                       className="input-field"
                       type="number"
@@ -167,6 +212,8 @@ export default function TeacherGrades() {
                 </div>
               </div>
             ))
+          ) : roster.length ? (
+            <div className="empty-state">No students match that search.</div>
           ) : (
             <div className="empty-state">No students are available for this assignment yet.</div>
           )}

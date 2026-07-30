@@ -1,4 +1,4 @@
-# Bruno API Guide for Admin Login and User Creation
+# Bruno API Guide for Sheba Estudent
 
 This guide shows how to use Bruno to sign in as the seeded admin and create teacher and parent accounts for this backend.
 

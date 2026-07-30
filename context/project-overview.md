@@ -2,7 +2,7 @@
 
 ## What this is
 
-A school attendance tracking system — Phase 1 of a larger school management system idea. One real school (run by a teammate's family) is the first customer and the only target for this phase. This is not being built speculatively for a market; it's software for one specific school, built by university students, with room to generalize later if it goes well.
+A school management platform — Phase 1 focuses on attendance visibility for parents and fast daily roll call for teachers. One real school (run by a teammate's family) is the first customer and the only target for this phase. This is not being built speculatively for a market; it's software for one specific school, built by university students, with room to generalize later if it goes well.
 
 ## Who it's for
 

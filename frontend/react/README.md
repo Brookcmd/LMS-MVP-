@@ -1,4 +1,6 @@
-# RollCall React Frontend (mock)
+# Sheba Estudent React Frontend
+
+React + Vite frontend for the Sheba Estudent school management platform.
 
 This is a minimal React + Vite app to demo the screens with a simple mock API and mock auth.
 

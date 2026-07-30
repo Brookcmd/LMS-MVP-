@@ -1,6 +1,6 @@
 # Frontend demo
 
-This folder contains a minimal mobile-first notifications demo for RollCall.
+This folder contains static HTML demos and the main React app for **Sheba Estudent**.
 
 How to use
 
