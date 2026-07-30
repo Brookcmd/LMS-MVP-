@@ -40,7 +40,7 @@ function Login() {
   const navigate = useNavigate()
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
-  const [schoolId, setSchoolId] = React.useState('1')
+  const [schoolId] = React.useState('12')
   const [error, setError] = React.useState(null)
   const [submitting, setSubmitting] = React.useState(false)
   const [showPassword, setShowPassword] = React.useState(false)
@@ -109,17 +109,6 @@ function Login() {
           <form className="login-form" onSubmit={submit}>
             <fieldset>
               <legend className="sr-only">Account details</legend>
-
-              <label className="login-label" htmlFor="login-school-id">
-                <span>School ID</span>
-                <input
-                  id="login-school-id"
-                  value={schoolId}
-                  onChange={(event) => setSchoolId(event.target.value)}
-                  placeholder="1"
-                  required
-                />
-              </label>
 
               <label className="login-label" htmlFor="login-email">
                 <span>Email address</span>

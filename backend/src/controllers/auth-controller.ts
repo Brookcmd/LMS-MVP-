@@ -64,7 +64,8 @@ export async function loginHandler(
   response: Response,
 ): Promise<void> {
   try {
-    const { email, password, schoolId } = request.body;
+    const { email, password } = request.body;
+    const schoolId = request.body.schoolId || "12";
 
     const result = await login({
       schoolId,

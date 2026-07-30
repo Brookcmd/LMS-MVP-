@@ -1,43 +1,40 @@
-# Memory — Brilliant Style Theme And Logo
+# Memory — ICT Demo Prep & Project Audit
 
-Last updated: 2026-07-30 12:18 PM (UTC+3)
+Last updated: 2026-07-30 1:33 PM (UTC+3)
 
 ## What was built
 
-- Rebuilt the React login page in `frontend/react/src/App.jsx` to match the provided Brilliant style reference: split black illustration panel, off white form panel, large rounded inputs, chunky dark login button, helper links, and responsive mobile stacking.
-- Added full sitewide Brilliant inspired theme overrides in `frontend/react/src/styles.css`: off white dot textured canvas, black navigation and admin surfaces, yellow accents, heavy black borders, hard offset shadows, and tactile buttons, cards, tables, inputs, status pills, modals, calendars, parent, teacher, and admin surfaces.
-- Copied the provided logo from `assets/Artboard 4.png` into `frontend/react/src/assets/sheba-logo.png`.
-- Wired the real logo into the login wordmark and app topbar in `frontend/react/src/App.jsx`.
-- Wired the real logo into the admin sidebar brand mark in `frontend/react/src/pages/admin/AdminLayout.jsx`.
-- Updated `ui-registry.md` with entries for the login page, the sitewide Brilliant inspired theme, and the brand logo usage.
+- **Project audit** — assessed Sheba Estudent for ICT department readiness. Found Phase 1 (Foundation) and Phase 2 (MVP) fully checked off, Phase 3 (Grades) mostly built ahead of schedule. No test suite running, no demo seed data, schoolId visible on login form.
+- **School ID removed from login** — `frontend/react/src/App.jsx`: School ID field removed from the UI, hardcoded to `12` in state. `backend/src/controllers/auth-controller.ts`: added fallback so login defaults to schoolId `"12"` if not provided in the request body.
+- **Demo seed script** — `backend/scripts/seed_demo.ts`: creates 2 teachers (Alemayehu Bekele, Birtukan Tadesse), 2 classes (Grade 10A, Grade 10B), 10 students (5 per class, Ethiopian names), 2 parents linked to children, 3 subjects (Mathematics, English, Science), teaching assignments, today's attendance (3 present, 2 absent per class), and absence notifications. Added `"seed:demo"` script to `backend/package.json`.
 
 ## Decisions made
 
-- The new visual direction is now the app wide source of truth: black, off white, yellow, heavy outlines, and hard shadow depth.
-- The logo file `frontend/react/src/assets/sheba-logo.png` should be used for brand marks. Do not use the Material `school` icon as a brand placeholder again.
-- The backend still requires `schoolId` for login, so the login page keeps that field even though the reference only showed email and password.
-- The CSS illustration on the login page remains a temporary stand in for the left side artwork until real assets are provided.
+- School ID stays in the database schema (multi-tenancy is good architecture) but is hidden from the login UI for the single-school pilot.
+- The demo seed targets school ID 12 (the school the developer has been testing with).
+- Grades features exist and work but were built ahead of the build plan (Phase 3 before Phase 2 was proven with a real class).
 
 ## Problems solved
 
-- Fixed the app shell constraint so `/login` can occupy the full viewport instead of being capped by the normal `.content` width.
-- Repaired `frontend/react/src/App.jsx` after it was accidentally clobbered during a search command, restoring the new login layout and route shell changes before adding the logo.
-- Verified the real logo imports through Vite, producing a bundled `sheba-logo` asset during build.
+- Login friction removed: users no longer need to know or enter a school ID.
+- No demo data existed for ICT presentation — now a single command seeds everything needed.
 
 ## Current state
 
-- `npm.cmd run build` passes in `frontend/react`.
-- Dev server on `http://127.0.0.1:5201` returned `200` for `/login`, `/`, and `/admin`.
-- Modified files from this styling and logo work include `frontend/react/src/App.jsx`, `frontend/react/src/pages/admin/AdminLayout.jsx`, `frontend/react/src/styles.css`, `frontend/react/src/assets/sheba-logo.png`, and `ui-registry.md`.
-- `assets/Artboard 4.png` is present as the original provided logo source.
-- `README.md` was already modified in the workspace before this work and was intentionally left alone.
+- Login form is clean (email + password only, schoolId hardcoded to 12).
+- Backend login handler defaults to schoolId 12 if omitted.
+- Demo seed script ready at `backend/scripts/seed_demo.ts` — run with `npm run seed:demo` from the backend directory.
+- Modified files: `frontend/react/src/App.jsx`, `backend/src/controllers/auth-controller.ts`, `backend/package.json`, `backend/scripts/seed_demo.ts`.
+- Grades are built end to end (backend API + frontend pages for teacher and parent) but ahead of schedule per the build plan.
 
 ## Next session starts with
 
-- Visually inspect `/login`, `/`, teacher pages, parent pages, and `/admin` in the browser to catch any spacing or contrast issues from the broad theme override.
-- If the UI looks good, commit the theme and logo changes separately from any unrelated `README.md` changes.
+- Run `npm run seed:demo` in the backend directory to populate demo data.
+- Start the backend (`npm run dev`) and frontend dev server, then visually inspect `/login`, `/`, teacher pages, parent pages, and `/admin` in the browser to catch any spacing or contrast issues from the theme override.
+- If the UI looks good, commit the changes (schoolId removal, demo seed, audit findings) separately from the earlier theme/logo work.
 
 ## Open questions
 
 - The login left side CSS illustration is still temporary. Replace it with real artwork if the user provides final assets.
 - Some pages contain inline style colors from earlier builds; the theme override covers known cases, but a visual pass may reveal any remaining blue or teal accents that should be removed.
+- Grades were built ahead of plan — decide whether to keep them in the demo or hide them until Phase 2 is proven with a real class.
