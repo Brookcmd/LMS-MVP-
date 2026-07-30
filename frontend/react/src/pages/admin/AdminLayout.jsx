@@ -1,6 +1,7 @@
 import React from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
+import logo from '../../assets/sheba-logo.png'
 
 const NAV_ITEMS = [
   { to: '/admin', end: true, icon: 'dashboard', label: 'Dashboard' },
@@ -36,7 +37,7 @@ export default function AdminLayout() {
       <aside className="admin-sidebar">
         <div className="admin-brand">
           <div className="admin-brand-icon">
-            <span className="material-symbols-outlined">school</span>
+            <img src={logo} alt="" aria-hidden="true" />
           </div>
           <div>
             <h1>Sheba Estudent</h1>

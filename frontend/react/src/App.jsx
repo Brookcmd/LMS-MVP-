@@ -1,5 +1,5 @@
 import React from 'react'
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import Notifications from './pages/Notifications'
 import TeacherAttendance from './pages/TeacherAttendance'
@@ -17,6 +17,7 @@ import AdminClasses from './pages/admin/AdminClasses'
 import AdminSubjects from './pages/admin/AdminSubjects'
 import AdminParentLinks from './pages/admin/AdminParentLinks'
 import BottomNav from './components/BottomNav'
+import logo from './assets/sheba-logo.png'
 
 function PrivateRoute({ children, roles }) {
   const { user } = useAuth()
@@ -60,22 +61,39 @@ function Login() {
 
   return (
     <div className="login-page">
-      <header className="login-brand">
-        <div className="login-brand-mark">
-          <span className="material-symbols-outlined">school</span>
+      <section className="login-visual-panel" aria-label="Sheba Estudent learning illustration">
+        <div className="login-wordmark">
+          <img src={logo} alt="" aria-hidden="true" />
+          <span>Sheba Estudent</span>
         </div>
-        <div>
-          <h1>Sheba Estudent</h1>
-          <p>School Management Suite</p>
+        <div className="login-stars" aria-hidden="true">
+          {Array.from({ length: 22 }).map((_, index) => (
+            <span key={index} />
+          ))}
         </div>
-      </header>
+        <div className="login-space-art" aria-hidden="true">
+          <div className="login-earth">
+            <span className="continent continent-one" />
+            <span className="continent continent-two" />
+            <span className="continent continent-three" />
+            <span className="continent continent-four" />
+          </div>
+          <div className="login-formula formula-y">y?</div>
+          <div className="login-formula formula-v">v ~= sqrt(GM/r)</div>
+          <div className="login-satellite">
+            <span className="satellite-body" />
+            <span className="satellite-wing wing-left" />
+            <span className="satellite-wing wing-right" />
+            <span className="satellite-signal" />
+          </div>
+        </div>
+        <p className="login-tagline">The smarter way to manage school learning.</p>
+      </section>
 
-      <main className="login-card-wrap">
+      <section className="login-form-panel" aria-labelledby="login-title">
         <div className="login-card">
-          <div className="login-card-accent" />
           <div className="login-card-head">
-            <h2>Sign in</h2>
-            <p>Enter your school ID, email, and password to access the portal.</p>
+            <h1 id="login-title">Log In</h1>
           </div>
 
           {error && (
@@ -89,61 +107,73 @@ function Login() {
           )}
 
           <form className="login-form" onSubmit={submit}>
-            <label className="login-label">
-              School ID
-              <div className="login-input-wrap">
-                <span className="material-symbols-outlined">hub</span>
+            <fieldset>
+              <legend className="sr-only">Account details</legend>
+
+              <label className="login-label" htmlFor="login-school-id">
+                <span>School ID</span>
                 <input
+                  id="login-school-id"
                   value={schoolId}
                   onChange={(event) => setSchoolId(event.target.value)}
                   placeholder="1"
                   required
                 />
-              </div>
-            </label>
+              </label>
 
-            <label className="login-label">
-              Email address
-              <div className="login-input-wrap">
-                <span className="material-symbols-outlined">mail</span>
+              <label className="login-label" htmlFor="login-email">
+                <span>Email address</span>
                 <input
+                  id="login-email"
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder="admin@school.edu"
                   required
                 />
-              </div>
-            </label>
+              </label>
 
-            <label className="login-label">
-              Password
-              <div className="login-input-wrap">
-                <span className="material-symbols-outlined">lock</span>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Password"
-                  required
-                />
-                <button
-                  type="button"
-                  className="login-password-toggle"
-                  onClick={() => setShowPassword((current) => !current)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  <span className="material-symbols-outlined">{showPassword ? 'visibility_off' : 'visibility'}</span>
-                </button>
-              </div>
-            </label>
+              <label className="login-label" htmlFor="login-password">
+                <span>Password</span>
+                <div className="login-password-field">
+                  <input
+                    id="login-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="Password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="login-password-toggle"
+                    onClick={() => setShowPassword((current) => !current)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    <span className="material-symbols-outlined">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                  </button>
+                </div>
+              </label>
+            </fieldset>
 
             <button className="login-submit" type="submit" disabled={submitting}>
               {submitting ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
+
+          <div className="login-links" aria-label="Account help">
+            <button type="button" onClick={() => setError('Password reset is not available yet. Please contact your school admin.')}>
+              Reset password
+            </button>
+            <span>
+              New user?{' '}
+              <button type="button" onClick={() => setError('New accounts are created by your school admin.')}>
+                Sign up
+              </button>
+            </span>
+          </div>
         </div>
-      </main>
+      </section>
     </div>
   )
 }
@@ -151,14 +181,16 @@ function Login() {
 function AppContent() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const isAdmin = user?.role === 'admin'
+  const isLoginRoute = location.pathname === '/login'
 
   return (
-    <div className={`app-shell${isAdmin ? ' app-shell-admin' : ''}`}>
+    <div className={`app-shell${isAdmin ? ' app-shell-admin' : ''}${isLoginRoute ? ' app-shell-login' : ''}`}>
       {user && !isAdmin && (
         <header className="topbar">
           <div className="brand">
-            <span className="material-symbols-outlined icon">school</span>
+            <img className="brand-logo" src={logo} alt="" aria-hidden="true" />
             <div>
               <div className="subtitle">Sheba Estudent</div>
             </div>
@@ -176,7 +208,7 @@ function AppContent() {
         </header>
       )}
 
-      <main className={`content${isAdmin ? ' content-admin' : ''}`}>
+      <main className={`content${isAdmin ? ' content-admin' : ''}${isLoginRoute ? ' content-login' : ''}`}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<PrivateRoute><HomeRedirect /></PrivateRoute>} />

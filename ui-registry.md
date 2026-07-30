@@ -99,3 +99,63 @@ Last updated: 2026-07-18
 
 **Pattern notes:**
 Quick actions should open focused modal forms rather than navigate away from the dashboard. Keep submitted request summaries compact and local to the quick-action card until a backend-backed request inbox exists.
+
+### Login Page
+
+File: `frontend/react/src/App.jsx`, `frontend/react/src/styles.css`
+Last updated: 2026-07-30
+
+| Property         | Class/value |
+| ---------------- | ----------- |
+| Background       | split screen, black illustrated `.login-visual-panel`, soft white `.login-form-panel` |
+| Border           | inputs use a light gray border, focused inputs switch to black with a blue focus ring |
+| Border radius    | rounded form inputs at `13px`, primary login button at `28px`, CSS planet uses full circle |
+| Text - primary   | near black form copy, white left panel wordmark |
+| Text - secondary | muted gray account help copy, translucent white left panel tagline |
+| Spacing          | viewport filling two column grid, form width capped at `520px`, panel padding uses responsive clamp values |
+| Hover state      | submit button darkens, link buttons keep blue underline, password toggle gains a light gray surface |
+| Shadow           | submit button uses a heavy black bottom shadow to match the reference button depth |
+| Accent usage     | yellow CSS illustration accents, blue underline and focus accents for helper actions |
+
+**Pattern notes:**
+The login page intentionally departs from the admin shell palette to match the Brilliant inspired reference: black learning illustration panel on the left, minimal white form panel on the right, and large rounded controls. Keep backend required fields in the form, but keep labels visually quiet so the page still reads like the reference.
+
+### Brilliant Inspired Site Theme
+
+File: `frontend/react/src/styles.css`
+Last updated: 2026-07-30
+
+| Property         | Class/value |
+| ---------------- | ----------- |
+| Background       | off white app canvas with subtle dot texture, black shell areas for navigation and admin hero blocks |
+| Border           | main cards, tables, inputs, buttons use heavy black borders |
+| Border radius    | cards use `16px` to `18px`, inputs use `13px`, buttons use `14px` to `28px` depending on context |
+| Text - primary   | near black, high weight headings |
+| Text - secondary | warm muted gray for helper copy, white muted copy inside black navigation |
+| Spacing          | content capped near `960px` on app routes, admin content capped near `1480px`, cards keep existing page rhythm |
+| Hover state      | controls lift slightly and use pale yellow active surfaces |
+| Shadow           | hard black offset shadows for cards and controls, yellow offset shadows for black hero and nav surfaces |
+| Accent usage     | yellow is the main accent for active nav, icons, focus adjacency, hero depth, and highlighted cards |
+
+**Pattern notes:**
+The whole site now follows the login page style: off white learning app canvas, black navigation surfaces, yellow accents, heavy outlines, and tactile button shadows. Future UI should prefer these primitives over the older blue and teal palette.
+
+### Brand Logo
+
+File: `frontend/react/src/assets/sheba-logo.png`, `frontend/react/src/App.jsx`, `frontend/react/src/pages/admin/AdminLayout.jsx`
+Last updated: 2026-07-30
+
+| Property         | Class/value |
+| ---------------- | ----------- |
+| Background       | logo asset owns the yellow background |
+| Border           | black or white border depending on surrounding surface |
+| Border radius    | `10px` to `12px` on displayed marks |
+| Text - primary   | paired with bold Sheba Estudent wordmark text |
+| Text - secondary | none |
+| Spacing          | logo pairs with wordmark using compact inline flex gaps |
+| Hover state      | none, brand mark is static |
+| Shadow           | small hard black offset shadow in the app topbar |
+| Accent usage     | the logo is the source of the yellow brand accent |
+
+**Pattern notes:**
+Use `sheba-logo.png` for app brand marks in login, top navigation, and admin sidebar. Do not use the Material `school` icon as a brand placeholder.

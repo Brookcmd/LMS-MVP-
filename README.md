@@ -1,8 +1,8 @@
 # Sheba Estudent
 
-**Sheba Estudent** is a school management platform built for real schools — starting with attendance visibility for parents and fast daily roll call for teachers. It is designed as a phased product: a solid attendance MVP first, then grades, deadlines, and broader LMS features over time.
+**Sheba Estudent** is a school management platform built for real schools  starting with attendance visibility for parents and fast daily roll call for teachers. It is designed as a phased product: a solid attendance MVP first, then grades, deadlines, and broader LMS features over time.
 
-Built for a single-school pilot (with room to generalize later), the stack is a custom **Express + Prisma + PostgreSQL** backend and a **React (Vite)** frontend — no BaaS, no Supabase.
+Built for a single-school pilot (with room to generalize later), the stack is a custom **Express + Prisma + PostgreSQL** backend and a **React (Vite)** frontend  no BaaS, no Supabase.
 
 ---
 
@@ -36,7 +36,7 @@ Built for a single-school pilot (with room to generalize later), the stack is a 
 
 ## Why this exists
 
-School attendance is often tracked manually — on paper or informally — and parents frequently learn about absences days or weeks late. **Sheba Estudent** closes that gap by giving teachers a quick way to mark attendance and giving parents same-day visibility (plus notifications when a child is marked absent).
+School attendance is often tracked manually  on paper or informally  and parents frequently learn about absences days or weeks late. **Sheba Estudent** closes that gap by giving teachers a quick way to mark attendance and giving parents same-day visibility (plus notifications when a child is marked absent).
 
 The long-term vision is a broader school management system; the current codebase deliberately focuses on what one real class needs first.
 
@@ -58,11 +58,11 @@ The long-term vision is a broader school management system; the current codebase
 ### Admin (`/admin`)
 
 - Dashboard with live counts (classes, students, teachers, subjects)
-- **Classes** — create, edit, delete; assign multiple teachers per class
-- **Students** — enroll students (name, class, date of birth); edit and remove records
-- **Teachers / Parents** — create login accounts via admin-only signup
-- **Subjects & assignments** — manage subject catalog and link teacher + subject + class
-- **Parent links** — connect parent accounts to student records
+- **Classes**  create, edit, delete; assign multiple teachers per class
+- **Students**  enroll students (name, class, date of birth); edit and remove records
+- **Teachers / Parents**  create login accounts via admin-only signup
+- **Subjects & assignments**  manage subject catalog and link teacher + subject + class
+- **Parent links**  connect parent accounts to student records
 
 ### Teacher (`/teacher`)
 
@@ -190,14 +190,14 @@ npm run prisma:seed
 
 ### 4. Start backend and frontend
 
-**Terminal 1 — backend** (port **5200**):
+**Terminal 1  backend** (port **5200**):
 
 ```bash
 cd backend
 npm run dev
 ```
 
-**Terminal 2 — frontend** (port **5201**, proxies `/api` → backend):
+**Terminal 2  frontend** (port **5201**, proxies `/api` → backend):
 
 ```bash
 cd frontend/react
@@ -230,7 +230,7 @@ Log in with the seeded admin account (see [Default accounts](#default-accounts-s
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VITE_API_URL` | `/api` | API base URL. Leave default in dev — Vite proxies to backend |
+| `VITE_API_URL` | `/api` | API base URL. Leave default in dev  Vite proxies to backend |
 
 ---
 
@@ -242,7 +242,7 @@ Log in with the seeded admin account (see [Default accounts](#default-accounts-s
 # Apply pending migrations (development)
 npx prisma migrate dev
 
-# Reset database (destructive — dev only)
+# Reset database (destructive  dev only)
 npx prisma migrate reset
 ```
 
@@ -290,7 +290,7 @@ After seeding, use these credentials on the login page (School ID = school recor
 
 > Change these credentials before any production deployment.
 
-Teachers and parents are **not** seeded — create them from **Admin → Teachers** and **Admin → Parents**, then link parents to students on **Admin → Parent Links**.
+Teachers and parents are **not** seeded  create them from **Admin → Teachers** and **Admin → Parents**, then link parents to students on **Admin → Parent Links**.
 
 ---
 
@@ -299,19 +299,19 @@ Teachers and parents are **not** seeded — create them from **Admin → Teacher
 ### Admin setup (recommended order)
 
 1. Log in as admin → `/admin`
-2. **Teachers** — create teacher accounts
-3. **Parents** — create parent accounts
-4. **Classes** — create classes and assign teachers
-5. **Students** — enroll students into classes
-6. **Parent Links** — link each parent to their child(ren)
-7. **Subjects** — add subjects and teaching assignments (teacher + subject + class)
+2. **Teachers**  create teacher accounts
+3. **Parents**  create parent accounts
+4. **Classes**  create classes and assign teachers
+5. **Students**  enroll students into classes
+6. **Parent Links**  link each parent to their child(ren)
+7. **Subjects**  add subjects and teaching assignments (teacher + subject + class)
 
 ### Teacher daily attendance
 
 1. Log in as teacher → `/teacher`
 2. Select class and date
 3. Mark each student present / absent / late
-4. Submit batch — parents of absent students receive notifications
+4. Submit batch  parents of absent students receive notifications
 
 ### Parent check-in
 
@@ -396,7 +396,7 @@ Responses follow a consistent shape:
 
 `role` must be `"teacher"` or `"parent"`.
 
-### Admin — classes
+### Admin  classes
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -406,7 +406,7 @@ Responses follow a consistent shape:
 | PUT | `/classes/:classId` | Update class |
 | DELETE | `/classes/:classId` | Delete class |
 
-### Admin — students
+### Admin  students
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -416,7 +416,7 @@ Responses follow a consistent shape:
 | PUT | `/students/:studentId` | Update student |
 | DELETE | `/students/:studentId` | Delete student |
 
-### Admin — teachers & parents
+### Admin  teachers & parents
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -424,7 +424,7 @@ Responses follow a consistent shape:
 | GET | `/teachers/:teacherId` | Get teacher |
 | GET | `/parents` | List parents |
 
-### Admin — parent–student links
+### Admin  parent–student links
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -432,7 +432,7 @@ Responses follow a consistent shape:
 | POST | `/parent-students` | Upsert link `{ parentUserId, studentId, relationship?, isPrimary? }` |
 | DELETE | `/parent-students/:parentUserId/:studentId` | Remove link |
 
-### Admin — grades & curriculum
+### Admin  grades & curriculum
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -441,7 +441,7 @@ Responses follow a consistent shape:
 | GET | `/grades/teaching-assignments` | List all assignments (admin) |
 | POST | `/grades/teaching-assignments` | Create `{ classId, teacherId, subjectId }` |
 
-### Teacher — attendance
+### Teacher  attendance
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -450,7 +450,7 @@ Responses follow a consistent shape:
 
 `status`: `"present"` | `"absent"` | `"late"`
 
-### Teacher — grades
+### Teacher  grades
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -493,7 +493,7 @@ School
 
 **Important distinctions:**
 
-- **Students** are enrollment records (name, class, DOB) — not login accounts in the current phase.
+- **Students** are enrollment records (name, class, DOB)  not login accounts in the current phase.
 - **Teachers and parents** are `User` records with credentials, created by admin via signup.
 - A parent can only access data for children linked through `ParentStudent` (enforced server-side from JWT, never from request body alone).
 
@@ -501,7 +501,7 @@ School
 
 ## Authentication
 
-1. Admin creates teacher/parent accounts — no public self-registration.
+1. Admin creates teacher/parent accounts  no public self-registration.
 2. Login with school ID + email + password → JWT containing `{ userId, role, schoolId }`.
 3. Frontend stores JWT in `localStorage` and sends it as `Authorization: Bearer …`.
 4. Role middleware guards routes (`admin`, `teacher`, `parent`).
@@ -569,11 +569,11 @@ Current progress (see `context/build-plan.md`):
 
 | Phase | Status | Highlights |
 |-------|--------|------------|
-| **1 — Foundation** | Done | Auth, roles, admin CRUD, admin portal UI |
-| **2 — Attendance MVP** | Done | Teacher marking, parent history, absence notifications |
-| **3 — Grades** | Mostly done | Teacher grade entry, parent grade view |
-| **4 — Deadlines** | Planned | Exams/assignments with due dates |
-| **5 — Stretch** | Planned | Materials, messaging, analytics, schedules |
+| **1  Foundation** | Done | Auth, roles, admin CRUD, admin portal UI |
+| **2  Attendance MVP** | Done | Teacher marking, parent history, absence notifications |
+| **3  Grades** | Mostly done | Teacher grade entry, parent grade view |
+| **4  Deadlines** | Planned | Exams/assignments with due dates |
+| **5  Stretch** | Planned | Materials, messaging, analytics, schedules |
 
 Explicitly **out of scope** for now: SCORM/xAPI, payments, gamification, AI chatbots, enterprise BI integrations, compliance tooling.
 
@@ -583,10 +583,10 @@ Explicitly **out of scope** for now: SCORM/xAPI, payments, gamification, AI chat
 
 - **Layered backend:** routes → controllers → services → Prisma. No business logic in routes.
 - **Role checks in middleware**, not scattered in handlers.
-- **Consistent API responses** — `{ success, data }` or `{ success, error }`.
-- **Secrets in `.env` only** — never hardcoded or committed.
-- **Stay in phase** — check `context/build-plan.md` before adding features.
-- **Parent data isolation** — parents can only query their own children's records (enforced server-side).
+- **Consistent API responses**  `{ success, data }` or `{ success, error }`.
+- **Secrets in `.env` only**  never hardcoded or committed.
+- **Stay in phase**  check `context/build-plan.md` before adding features.
+- **Parent data isolation**  parents can only query their own children's records (enforced server-side).
 
 Full standards: `context/code-standards.md`  
 Architecture: `context/architecture.md`  
