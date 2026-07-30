@@ -20,8 +20,8 @@ This is the source of truth for what to build and in what order. If a session's 
 
 ## Phase 3 — Grades
 
-9. [ ] Teacher: enter grades per student per subject/assignment
-10. [ ] Parent: view child's grades
+9. [x] Teacher: enter grades per student per subject/assignment
+10. [x] Parent: view child's grades
 11. [ ] Student: view own grades (only if student logins get added)
 
 ## Phase 4 — Deadlines
@@ -47,6 +47,8 @@ SCORM/xAPI, e-commerce/payments, gamification/badges, AI chatbots, BI tool integ
 ## Progress log
 
 Update after every completed feature. Most recent entry at the top.
+
+- 2026-07-30 — Admin portal UI done. Multi-page React admin under `/admin/*` with layout shell, dashboard stats, CRUD for classes/students, teacher/parent signup via `POST /auth/signup`, subjects/assignments, and parent links with dropdowns. Added `GET /parents` and `GET /grades/teaching-assignments` for admin lists.
 
 - 2026-07-10 — Feature 8 done. Added parent in-app absence notifications with `GET /parent/notifications` and `PATCH /parent/notifications/:notificationId/read`, plus notification creation when a student is marked absent in the attendance batch flow.
 
