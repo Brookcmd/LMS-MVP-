@@ -10,6 +10,7 @@
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
     "prisma:seed": "tsx backend/prisma/seed.ts",
+    "seed:demo": "npm --prefix backend run seed:demo",
     "test": "vitest --config backend/vitest.config.ts"
   },
   "keywords": [],
