@@ -3,6 +3,8 @@ import { useAuth } from '../auth/AuthContext'
 
 const parentItems = [
   { to: '/', label: 'Home', icon: 'home' },
+  { to: '/schedule', label: 'Schedule', icon: 'calendar_view_week' },
+  { to: '/deadlines', label: 'Deadlines', icon: 'event' },
   { to: '/attendance', label: 'Attendance', icon: 'calendar_month' },
   { to: '/grades', label: 'Grades', icon: 'school' },
   { to: '/notifications', label: 'Alerts', icon: 'notifications' },
@@ -12,6 +14,8 @@ const parentItems = [
 const teacherItems = [
   { to: '/teacher', label: 'Attendance', icon: 'checklist' },
   { to: '/teacher/grades', label: 'Grades', icon: 'school' },
+  { to: '/teacher/deadlines', label: 'Deadlines', icon: 'event' },
+  { to: '/teacher/schedule', label: 'Schedule', icon: 'calendar_view_week' },
   { to: '/profile', label: 'Profile', icon: 'person' },
 ]
 

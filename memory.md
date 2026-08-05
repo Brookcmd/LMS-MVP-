@@ -1,40 +1,42 @@
-# Memory — ICT Demo Prep & Project Audit
+# Memory — Exam & Assignment Deadlines (Feature 12 & 13) & Realtime Schedule (Feature 19)
 
-Last updated: 2026-07-30 1:33 PM (UTC+3)
+Last updated: 2026-08-05 08:33 AM (UTC+3)
 
 ## What was built
 
-- **Project audit** — assessed Sheba Estudent for ICT department readiness. Found Phase 1 (Foundation) and Phase 2 (MVP) fully checked off, Phase 3 (Grades) mostly built ahead of schedule. No test suite running, no demo seed data, schoolId visible on login form.
-- **School ID removed from login** — `frontend/react/src/App.jsx`: School ID field removed from the UI, hardcoded to `12` in state. `backend/src/controllers/auth-controller.ts`: added fallback so login defaults to schoolId `"12"` if not provided in the request body.
-- **Demo seed script** — `backend/scripts/seed_demo.ts`: creates 2 teachers (Alemayehu Bekele, Birtukan Tadesse), 2 classes (Grade 10A, Grade 10B), 10 students (5 per class, Ethiopian names), 2 parents linked to children, 3 subjects (Mathematics, English, Science), teaching assignments, today's attendance (3 present, 2 absent per class), and absence notifications. Added `"seed:demo"` script to `backend/package.json`.
+- **Feature 19 (Realtime Daily Schedule)**:
+  - `backend/prisma/schema.prisma`: Added `DayOfWeek` enum (`monday`, `tuesday`, `wednesday`, `thursday`, `friday`) and `ScheduleSlot` model. Synced via `npx prisma db push` and generated `@prisma/client`.
+  - `backend/src/routes/schedule.ts` & `app.ts`: Registered `/schedule` router for teacher CRUD and parent schedule retrieval.
+  - `backend/scripts/seed_demo.ts`: Seeded 30 schedule slots across Grade 10A and Grade 10B.
+  - `frontend/react/src/api/apiClient.js`: Added `createScheduleSlot`, `updateScheduleSlot`, `deleteScheduleSlot`, `getTeacherSchedule`, and `getParentSchedule`.
+  - `frontend/react/src/pages/TeacherSchedule.jsx`: Teacher timetable UI with day tabs, slot management form, and delete support.
+  - `frontend/react/src/pages/ParentSchedule.jsx`: Parent timetable UI with child selector, day tabs, vertical timeline, "Now in class" live indicator card, and 30s auto-refresh polling.
+  - `frontend/react/src/components/BottomNav.jsx` & `App.jsx`: Registered `/teacher/schedule` and `/schedule` routes and navigation links.
+- **Feature 12 & 13 (Exam & Assignment Deadlines)**:
+  - `Assessment` database model, backend `/assessments` API, unit tests (8/8 passed), `TeacherDeadlines.jsx`, and `ParentDeadlines.jsx`.
+  - All icons use Material Symbols (`<span className="material-symbols-outlined">...</span>`), zero emojis.
 
 ## Decisions made
 
-- School ID stays in the database schema (multi-tenancy is good architecture) but is hidden from the login UI for the single-school pilot.
-- The demo seed targets school ID 12 (the school the developer has been testing with).
-- Grades features exist and work but were built ahead of the build plan (Phase 3 before Phase 2 was proven with a real class).
+- Realtime schedule polling is implemented on `ParentSchedule.jsx` using a 30-second interval timer.
+- Clean Material Symbols icons (`<span className="material-symbols-outlined">...</span>`) are used throughout the UI.
 
 ## Problems solved
 
-- Login friction removed: users no longer need to know or enter a school ID.
-- No demo data existed for ICT presentation — now a single command seeds everything needed.
+- Realtime class schedules now accessible to both parents and teachers with live status indicators.
+- Seed data automatically populates full timetable slots for demo testing.
 
 ## Current state
 
-- Login form is clean (email + password only, schoolId hardcoded to 12).
-- Backend login handler defaults to schoolId 12 if omitted.
-- Demo seed script ready at `backend/scripts/seed_demo.ts` — run with `npm run seed:demo` from the backend directory.
-- Modified files: `frontend/react/src/App.jsx`, `backend/src/controllers/auth-controller.ts`, `backend/package.json`, `backend/scripts/seed_demo.ts`.
-- Grades are built end to end (backend API + frontend pages for teacher and parent) but ahead of schedule per the build plan.
+- Features 12, 13, and 19 fully built, tested, seeded, and integrated.
+- Backend server running on port 5200 with database synced. `npx tsc --noEmit` returns 0 errors.
 
 ## Next session starts with
 
-- Run `npm run seed:demo` in the backend directory to populate demo data.
-- Start the backend (`npm run dev`) and frontend dev server, then visually inspect `/login`, `/`, teacher pages, parent pages, and `/admin` in the browser to catch any spacing or contrast issues from the theme override.
-- If the UI looks good, commit the changes (schoolId removal, demo seed, audit findings) separately from the earlier theme/logo work.
+- Select the next roadmap feature from Phase 5 Stretch:
+  - Feature 18: Educational Mind-Sharpening Game
+  - Feature 14 & 16: Course Materials Upload & Submissions
 
 ## Open questions
 
-- The login left side CSS illustration is still temporary. Replace it with real artwork if the user provides final assets.
-- Some pages contain inline style colors from earlier builds; the theme override covers known cases, but a visual pass may reveal any remaining blue or teal accents that should be removed.
-- Grades were built ahead of plan — decide whether to keep them in the demo or hide them until Phase 2 is proven with a real class.
+- Decide whether to implement Student logins for Phase 4/5 or keep student views focused under Parent accounts.

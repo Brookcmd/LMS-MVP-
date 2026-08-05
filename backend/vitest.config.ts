@@ -1,7 +1,7 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  root: "./backend",
+  root: ".",
   test: {
     include: ["src/**/*.test.ts"],
     globals: true,

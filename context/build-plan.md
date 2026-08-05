@@ -26,8 +26,8 @@ This is the source of truth for what to build and in what order. If a session's 
 
 ## Phase 4 — Deadlines
 
-12. [ ] Teacher: create exam/assignment with a due date
-13. [ ] Parent + student: see upcoming due dates
+12. [x] Teacher: create exam/assignment with a due date
+13. [x] Parent + student: see upcoming due dates
 
 ## Phase 5 — Stretch (only if time allows after Phase 2 is solid)
 
@@ -36,7 +36,7 @@ This is the source of truth for what to build and in what order. If a session's 
 16. [ ] Assignment submission
 17. [ ] Admin analytics (attendance rate trends, grade averages)
 18. [ ] A game where users can play games that sharpen the mind.
-19. [ ] A schedule where parents and students can see their daily schedule that refelects   realtime schedule changes
+19. [x] A schedule where parents and students can see their daily schedule that reflects realtime schedule changes
 
 ## Explicitly cut — do not build
 
@@ -46,7 +46,11 @@ SCORM/xAPI, e-commerce/payments, gamification/badges, AI chatbots, BI tool integ
 
 ## Progress log
 
-Update after every completed feature. Most recent entry at the top.
+- 2026-08-05 — Restricted schedule slot CRUD to admin only (spec 0001). Updated route guards on POST/PUT/DELETE /schedule to admin role only, updated service layer schoolId validation, made TeacherSchedule.jsx read-only, created AdminSchedule.jsx at /admin/schedule using GET /schedule/class/:classId with class and teacher filter dropdowns.
+
+- 2026-08-05 — Feature 19 done. Added `ScheduleSlot` database model (day-of-week + HH:MM start/end time), backend `/schedule` API (teacher CRUD, parent read), 30 demo slots seeded, `TeacherSchedule.jsx` (day-tab strip, color-coded slots, add/delete form), `ParentSchedule.jsx` (day tabs, vertical timeline, "Now in class" live card, child selector, 30s polling).
+
+- 2026-08-05 — Feature 12 & 13 done. Added `Assessment` database model (type: assignment, exam, quiz, project), backend `/assessments` API endpoints for teachers and parents, unit test suite (8 tests passed), teacher deadline management UI (`TeacherDeadlines.jsx`), and parent deadline schedule UI (`ParentDeadlines.jsx`).
 
 - 2026-07-30 — Admin portal UI done. Multi-page React admin under `/admin/*` with layout shell, dashboard stats, CRUD for classes/students, teacher/parent signup via `POST /auth/signup`, subjects/assignments, and parent links with dropdowns. Added `GET /parents` and `GET /grades/teaching-assignments` for admin lists.
 

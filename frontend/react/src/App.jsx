@@ -8,12 +8,17 @@ import ParentDashboard from './pages/ParentDashboard'
 import Profile from './pages/Profile'
 import TeacherGrades from './pages/TeacherGrades'
 import ParentGrades from './pages/ParentGrades'
+import TeacherDeadlines from './pages/TeacherDeadlines'
+import ParentDeadlines from './pages/ParentDeadlines'
+import TeacherSchedule from './pages/TeacherSchedule'
+import ParentSchedule from './pages/ParentSchedule'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminStudents from './pages/admin/AdminStudents'
 import AdminTeachers from './pages/admin/AdminTeachers'
 import AdminParents from './pages/admin/AdminParents'
 import AdminClasses from './pages/admin/AdminClasses'
+import AdminSchedule from './pages/admin/AdminSchedule'
 import AdminSubjects from './pages/admin/AdminSubjects'
 import AdminParentLinks from './pages/admin/AdminParentLinks'
 import BottomNav from './components/BottomNav'
@@ -205,10 +210,15 @@ function AppContent() {
           <Route path="/attendance" element={<PrivateRoute roles={['parent']}><ParentAttendance /></PrivateRoute>} />
           <Route path="/teacher" element={<PrivateRoute roles={['teacher']}><TeacherAttendance /></PrivateRoute>} />
           <Route path="/teacher/grades" element={<PrivateRoute roles={['teacher']}><TeacherGrades /></PrivateRoute>} />
+          <Route path="/teacher/deadlines" element={<PrivateRoute roles={['teacher']}><TeacherDeadlines /></PrivateRoute>} />
+          <Route path="/teacher/schedule" element={<PrivateRoute roles={['teacher']}><TeacherSchedule /></PrivateRoute>} />
           <Route path="/grades" element={<PrivateRoute roles={['parent']}><ParentGrades /></PrivateRoute>} />
+          <Route path="/deadlines" element={<PrivateRoute roles={['parent']}><ParentDeadlines /></PrivateRoute>} />
+          <Route path="/schedule" element={<PrivateRoute roles={['parent']}><ParentSchedule /></PrivateRoute>} />
           <Route path="/admin" element={<PrivateRoute roles={['admin']}><AdminLayout /></PrivateRoute>}>
             <Route index element={<AdminDashboard />} />
             <Route path="classes" element={<AdminClasses />} />
+            <Route path="schedule" element={<AdminSchedule />} />
             <Route path="students" element={<AdminStudents />} />
             <Route path="teachers" element={<AdminTeachers />} />
             <Route path="parents" element={<AdminParents />} />

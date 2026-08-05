@@ -16,6 +16,21 @@ enum NotificationType {
   absence
 }
 
+enum AssessmentType {
+  assignment
+  exam
+  quiz
+  project
+}
+
+enum DayOfWeek {
+  monday
+  tuesday
+  wednesday
+  thursday
+  friday
+}
+
 model School {
   id        Int       @id @default(autoincrement())
   name      String
@@ -46,6 +61,8 @@ model User {
   teachingAssignments TeachingAssignment[]
   attendanceMarked Attendance[]     @relation("marked_by")
   notifications    Notification[]   @relation("notification_parent")
+  createdAssessments Assessment[]   @relation("assessment_teacher")
+  scheduleSlots  ScheduleSlot[]   @relation("schedule_teacher")
 
   @@unique([email, schoolId])
   @@map("users")
@@ -95,6 +112,8 @@ model Class {
   teachers    ClassTeacher[]
   teachingAssignments TeachingAssignment[]
   attendances Attendance[]
+  assessments Assessment[]
+  scheduleSlots ScheduleSlot[]
 
   @@map("classes")
 }
@@ -118,6 +137,8 @@ model Subject {
 
   school              School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   teachingAssignments TeachingAssignment[]
+  assessments         Assessment[]
+  scheduleSlots       ScheduleSlot[]
 
   @@unique([schoolId, name])
   @@map("subjects")
@@ -193,4 +214,47 @@ model Notification {
   @@unique([parentUserId, attendanceId])
   @@index([parentUserId, readAt, createdAt])
   @@map("notifications")
+}
+
+model Assessment {
+  id          Int            @id @default(autoincrement())
+  title       String
+  description String?
+  type        AssessmentType @default(assignment)
+  dueDate     DateTime       @map("due_date")
+  classId     Int            @map("class_id")
+  subjectId   Int            @map("subject_id")
+  teacherId   Int            @map("teacher_id")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher User    @relation("assessment_teacher", fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([classId, dueDate])
+  @@index([teacherId])
+  @@map("assessments")
+}
+
+model ScheduleSlot {
+  id        Int       @id @default(autoincrement())
+  classId   Int       @map("class_id")
+  subjectId Int       @map("subject_id")
+  teacherId Int       @map("teacher_id")
+  dayOfWeek DayOfWeek @map("day_of_week")
+  startTime String    @map("start_time")  // "HH:MM" 24-hour
+  endTime   String    @map("end_time")    // "HH:MM" 24-hour
+  room      String?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher User    @relation("schedule_teacher", fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, dayOfWeek, startTime])
+  @@index([classId, dayOfWeek])
+  @@index([teacherId])
+  @@map("schedule_slots")
 }

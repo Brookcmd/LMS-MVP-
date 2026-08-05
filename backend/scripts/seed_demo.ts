@@ -10,13 +10,37 @@ import { hashPassword } from "../src/lib/auth-utils";
 async function main() {
   const SCHOOL_ID = 12;
 
-  // Verify school exists
-  const school = await prisma.school.findUnique({ where: { id: SCHOOL_ID } });
+  // Verify or create school
+  let school = await prisma.school.findUnique({ where: { id: SCHOOL_ID } });
   if (!school) {
-    console.error(`School with ID ${SCHOOL_ID} not found. Run prisma:seed first.`);
-    process.exit(1);
+    school = await prisma.school.create({
+      data: {
+        id: SCHOOL_ID,
+        name: "Test School",
+      },
+    });
+    console.log(`Created school: ${school.name} (ID: ${school.id})`);
+  } else {
+    console.log(`Using school: ${school.name} (ID: ${school.id})`);
   }
-  console.log(`Using school: ${school.name} (ID: ${school.id})`);
+
+  // ── Admin User ──
+  let admin = await prisma.user.findUnique({
+    where: { email_schoolId: { email: "admin@testschool.com", schoolId: SCHOOL_ID } },
+  });
+  if (!admin) {
+    const adminHash = await hashPassword("Admin@123");
+    admin = await prisma.user.create({
+      data: {
+        schoolId: SCHOOL_ID,
+        name: "Admin User",
+        email: "admin@testschool.com",
+        role: "admin",
+        passwordHash: adminHash,
+      },
+    });
+    console.log(`Created admin user: admin@testschool.com`);
+  }
 
   // ── Teachers ──
   const teacherData = [
@@ -183,6 +207,44 @@ async function main() {
     }
   }
   console.log("Teaching assignments created.");
+
+  // ── Schedule Slots ──
+  // 3 subjects × 5 days per class. Class A starts at 08:00, Class B starts at 09:00.
+  const days = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
+  // [startTime, endTime] pairs per period index (0=Math, 1=English, 2=Science)
+  const classTimes: Record<number, [string, string][]> = {
+    0: [["08:00", "08:45"], ["09:00", "09:45"], ["10:00", "10:45"]],
+    1: [["09:00", "09:45"], ["10:00", "10:45"], ["11:00", "11:45"]],
+  };
+  const rooms = ["Room 101", "Room 102", "Lab 1"];
+
+  for (let ci = 0; ci < classes.length; ci++) {
+    const cls = classes[ci];
+    const teacherId = teachers[ci].id;
+    const times = classTimes[ci];
+    for (const day of days) {
+      for (let si = 0; si < subjects.length; si++) {
+        const [startTime, endTime] = times[si];
+        const existing = await prisma.scheduleSlot.findFirst({
+          where: { classId: cls.id, dayOfWeek: day, startTime },
+        });
+        if (!existing) {
+          await prisma.scheduleSlot.create({
+            data: {
+              classId: cls.id,
+              subjectId: subjects[si].id,
+              teacherId,
+              dayOfWeek: day,
+              startTime,
+              endTime,
+              room: rooms[si],
+            },
+          });
+        }
+      }
+    }
+    console.log(`Schedule slots created for ${cls.name}`);
+  }
 
   // ── Attendance (today, mark first 3 students present, last 2 absent) ──
   const today = new Date();

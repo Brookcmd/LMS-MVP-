@@ -6,6 +6,7 @@ import logo from '../../assets/sheba-logo.png'
 const NAV_ITEMS = [
   { to: '/admin', end: true, icon: 'dashboard', label: 'Dashboard' },
   { to: '/admin/classes', icon: 'school', label: 'Classes' },
+  { to: '/admin/schedule', icon: 'calendar_view_week', label: 'Schedule' },
   { to: '/admin/students', icon: 'person', label: 'Students' },
   { to: '/admin/teachers', icon: 'group', label: 'Teachers' },
   { to: '/admin/parents', icon: 'family_restroom', label: 'Parents' },
@@ -27,6 +28,7 @@ export default function AdminLayout() {
     if (query.includes('student')) navigate('/admin/students')
     else if (query.includes('teacher')) navigate('/admin/teachers')
     else if (query.includes('parent')) navigate('/admin/parents')
+    else if (query.includes('schedule') || query.includes('timetable')) navigate('/admin/schedule')
     else if (query.includes('class')) navigate('/admin/classes')
     else if (query.includes('subject') || query.includes('assignment')) navigate('/admin/subjects')
     else navigate('/admin/students')

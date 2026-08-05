@@ -11,6 +11,8 @@ import parentStudentsRouter from "./routes/parent-students";
 import attendanceRouter from "./routes/attendance";
 import parentRouter from "./routes/parent";
 import gradesRouter from "./routes/grades";
+import assessmentsRouter from "./routes/assessments";
+import scheduleRouter from "./routes/schedule";
 
 
 const app = express();
@@ -26,6 +28,8 @@ app.use("/parent-students", parentStudentsRouter);
 app.use("/attendance", attendanceRouter);
 app.use("/parent", parentRouter);
 app.use("/grades", gradesRouter);
+app.use("/assessments", assessmentsRouter);
+app.use("/schedule", scheduleRouter);
 app.use(errorHandler);
 
 export default app;

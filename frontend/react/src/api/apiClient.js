@@ -103,6 +103,7 @@ export async function listClasses() { return request('/classes') }
 export async function createClass(body) { return request('/classes', { method: 'POST', body }) }
 export async function updateClass(classId, body) { return request(`/classes/${classId}`, { method: 'PUT', body }) }
 export async function deleteClass(classId) { return request(`/classes/${classId}`, { method: 'DELETE' }) }
+export async function getClassSchedule(classId) { return request(`/schedule/class/${classId}`) }
 
 export async function listStudents() { return request('/students') }
 export async function createStudent(body) { return request('/students', { method: 'POST', body }) }
@@ -120,3 +121,17 @@ export async function listAllTeachingAssignments() { return request('/grades/tea
 export async function listParentStudentLinks() { return request('/parent-students') }
 export async function upsertParentStudentLink(body) { return request('/parent-students', { method: 'POST', body }) }
 export async function deleteParentStudentLink(parentUserId, studentId) { return request(`/parent-students/${parentUserId}/${studentId}`, { method: 'DELETE' }) }
+
+export async function createAssessment(body) { return request('/assessments', { method: 'POST', body }) }
+export async function listTeacherAssessments() { return request('/assessments/teacher') }
+export async function deleteAssessment(id) { return request(`/assessments/${id}`, { method: 'DELETE' }) }
+export async function listParentAssessments(studentId) { return request(`/assessments/parent${studentId ? `?studentId=${studentId}` : ''}`) }
+
+// Schedule (Feature 19)
+export async function createScheduleSlot(body) { return request('/schedule', { method: 'POST', body }) }
+export async function updateScheduleSlot(id, body) { return request(`/schedule/${id}`, { method: 'PUT', body }) }
+export async function deleteScheduleSlot(id) { return request(`/schedule/${id}`, { method: 'DELETE' }) }
+export async function getTeacherSchedule() { return request('/schedule/teacher') }
+export async function getParentSchedule(studentId) {
+  return request(`/schedule/parent${studentId ? `?studentId=${studentId}` : ''}`)
+}
