@@ -7,9 +7,10 @@ const includeAssignment = {
   teacher: { select: { id: true, name: true } },
 } as const;
 
-function id(value: unknown, name: string) { const parsed = Number(value); if (!Number.isInteger(parsed) || parsed <= 0) throw appErrors.badRequest(`Invalid ${name}`); return parsed; }
-function year(value: unknown) { const result = typeof value === "string" ? value.trim() : ""; if (!/^\d{4}\/\d{2}$/.test(result)) throw appErrors.badRequest("academicYear must use YYYY/YY format"); return result; }
-function quarter(value: unknown) { const result = Number(value); if (!Number.isInteger(result) || result < 1 || result > 4) throw appErrors.badRequest("quarter must be between 1 and 4"); return result; }
+export function id(value: unknown, name: string) { const parsed = Number(value); if (!Number.isInteger(parsed) || parsed <= 0) throw appErrors.badRequest(`Invalid ${name}`); return parsed; }
+export function year(value: unknown) { const result = typeof value === "string" ? value.trim() : ""; if (!/^\d{4}\/\d{2}$/.test(result)) throw appErrors.badRequest("academicYear must use YYYY/YY format"); return result; }
+export function quarter(value: unknown) { const result = Number(value); if (!Number.isInteger(result) || result < 1 || result > 4) throw appErrors.badRequest("quarter must be between 1 and 4"); return result; }
+
 
 export async function createSubject(schoolIdValue: string, nameValue: unknown) {
   const schoolId = id(schoolIdValue, "schoolId"); const name = typeof nameValue === "string" ? nameValue.trim() : "";
@@ -29,7 +30,7 @@ export async function createTeachingAssignment(schoolIdValue: string, payload: R
 export async function teacherAssignments(teacherIdValue: string, schoolIdValue: string) { return prisma.teachingAssignment.findMany({ where: { teacherId: id(teacherIdValue, "teacherId"), class: { schoolId: id(schoolIdValue, "schoolId") } }, include: includeAssignment, orderBy: { subject: { name: "asc" } } }); }
 export async function listTeachingAssignments(schoolIdValue: string) { return prisma.teachingAssignment.findMany({ where: { class: { schoolId: id(schoolIdValue, "schoolId") } }, include: includeAssignment, orderBy: [{ class: { name: "asc" } }, { subject: { name: "asc" } }] }); }
 
-async function assignmentForTeacher(assignmentIdValue: string, teacherIdValue: string, schoolIdValue: string) {
+export async function assignmentForTeacher(assignmentIdValue: string, teacherIdValue: string, schoolIdValue: string) {
   const assignment = await prisma.teachingAssignment.findFirst({ where: { id: id(assignmentIdValue, "assignmentId"), teacherId: id(teacherIdValue, "teacherId"), class: { schoolId: id(schoolIdValue, "schoolId") } }, include: includeAssignment });
   if (!assignment) throw appErrors.forbidden("You are not assigned to this subject and class"); return assignment;
 }

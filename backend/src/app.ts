@@ -14,6 +14,8 @@ import parentRouter from "./routes/parent";
 import gradesRouter from "./routes/grades";
 import assessmentsRouter from "./routes/assessments";
 import scheduleRouter from "./routes/schedule";
+import messagesRouter from "./routes/messages";
+import notificationsRouter from "./routes/notifications";
 
 
 const app = express();
@@ -32,6 +34,8 @@ app.use("/parent", parentRouter);
 app.use("/grades", gradesRouter);
 app.use("/assessments", assessmentsRouter);
 app.use("/schedule", scheduleRouter);
+app.use("/messages", messagesRouter);
+app.use("/notifications", notificationsRouter);
 app.use(errorHandler);
 
 export default app;

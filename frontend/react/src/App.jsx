@@ -21,6 +21,7 @@ import AdminClasses from './pages/admin/AdminClasses'
 import AdminSchedule from './pages/admin/AdminSchedule'
 import AdminSubjects from './pages/admin/AdminSubjects'
 import AdminParentLinks from './pages/admin/AdminParentLinks'
+import Messages from './pages/Messages'
 import BottomNav from './components/BottomNav'
 import logo from './assets/sheba-logo.png'
 
@@ -190,7 +191,7 @@ function AppContent() {
             </div>
           </div>
           <div className="actions">
-            {user.role === 'parent' && (
+            {(user.role === 'parent' || user.role === 'teacher') && (
               <button className="icon-button" title="Notifications" onClick={() => navigate('/notifications')}>
                 <span className="material-symbols-outlined">notifications</span>
               </button>
@@ -206,7 +207,8 @@ function AppContent() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<PrivateRoute><HomeRedirect /></PrivateRoute>} />
-          <Route path="/notifications" element={<PrivateRoute roles={['parent']}><Notifications /></PrivateRoute>} />
+          <Route path="/notifications" element={<PrivateRoute roles={['parent', 'teacher']}><Notifications /></PrivateRoute>} />
+          <Route path="/messages" element={<PrivateRoute roles={['parent', 'teacher']}><Messages /></PrivateRoute>} />
           <Route path="/attendance" element={<PrivateRoute roles={['parent']}><ParentAttendance /></PrivateRoute>} />
           <Route path="/teacher" element={<PrivateRoute roles={['teacher']}><TeacherAttendance /></PrivateRoute>} />
           <Route path="/teacher/grades" element={<PrivateRoute roles={['teacher']}><TeacherGrades /></PrivateRoute>} />

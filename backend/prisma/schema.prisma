@@ -14,6 +14,7 @@ enum AttendanceStatus {
 
 enum NotificationType {
   absence
+  message
 }
 
 enum AssessmentType {
@@ -61,8 +62,12 @@ model User {
   teachingAssignments TeachingAssignment[]
   attendanceMarked Attendance[]     @relation("marked_by")
   notifications    Notification[]   @relation("notification_parent")
+  notificationsReceived Notification[] @relation("notification_recipient")
   createdAssessments Assessment[]   @relation("assessment_teacher")
   scheduleSlots  ScheduleSlot[]   @relation("schedule_teacher")
+  teacherConversations Conversation[] @relation("TeacherConversations")
+  parentConversations  Conversation[] @relation("ParentConversations")
+  sentMessages   Message[]        @relation("message_sender")
 
   @@unique([email, schoolId])
   @@map("users")
@@ -82,6 +87,7 @@ model Student {
   attendances  Attendance[]
   notifications Notification[]
   grades        Grade[]
+  conversations Conversation[]
 
   @@map("students")
 }
@@ -199,20 +205,24 @@ model Attendance {
 }
 
 model Notification {
-  id           Int              @id @default(autoincrement())
-  parentUserId Int              @map("parent_user_id")
-  studentId    Int              @map("student_id")
-  attendanceId Int              @map("attendance_id")
-  type         NotificationType @default(absence)
-  readAt       DateTime?        @map("read_at")
-  createdAt    DateTime         @default(now()) @map("created_at")
+  id              Int              @id @default(autoincrement())
+  parentUserId    Int?             @map("parent_user_id")
+  recipientUserId Int?             @map("recipient_user_id")
+  studentId       Int              @map("student_id")
+  attendanceId    Int?             @map("attendance_id")
+  messageId       Int?             @map("message_id")
+  type            NotificationType @default(absence)
+  readAt          DateTime?        @map("read_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
 
-  parent     User       @relation("notification_parent", fields: [parentUserId], references: [id], onDelete: Cascade)
-  student    Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  parent     User?       @relation("notification_parent", fields: [parentUserId], references: [id], onDelete: Cascade)
+  recipient  User?       @relation("notification_recipient", fields: [recipientUserId], references: [id], onDelete: Cascade)
+  student    Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  attendance Attendance? @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  message    Message?    @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
-  @@unique([parentUserId, attendanceId])
   @@index([parentUserId, readAt, createdAt])
+  @@index([recipientUserId, readAt, createdAt])
   @@map("notifications")
 }
 
@@ -257,4 +267,36 @@ model ScheduleSlot {
   @@index([classId, dayOfWeek])
   @@index([teacherId])
   @@map("schedule_slots")
+}
+
+model Conversation {
+  id        Int      @id @default(autoincrement())
+  studentId Int      @map("student_id")
+  teacherId Int      @map("teacher_id")
+  parentId  Int      @map("parent_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  student  Student   @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  teacher  User      @relation("TeacherConversations", fields: [teacherId], references: [id], onDelete: Restrict)
+  parent   User      @relation("ParentConversations", fields: [parentId], references: [id], onDelete: Restrict)
+  messages Message[]
+
+  @@unique([studentId, teacherId, parentId])
+  @@map("conversations")
+}
+
+model Message {
+  id             Int          @id @default(autoincrement())
+  conversationId Int          @map("conversation_id")
+  senderUserId   Int          @map("sender_user_id")
+  content        String
+  isRead         Boolean      @default(false) @map("is_read")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  conversation  Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender        User           @relation("message_sender", fields: [senderUserId], references: [id], onDelete: Cascade)
+  notifications Notification[]
+
+  @@map("messages")
 }

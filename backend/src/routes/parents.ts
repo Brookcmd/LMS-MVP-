@@ -5,8 +5,8 @@ import { listParentsHandler } from "../controllers/parent-user-controller";
 
 const parentsRouter = express.Router();
 
-parentsRouter.use(authMiddleware, roleMiddleware(["admin"]));
+parentsRouter.use(authMiddleware);
 
-parentsRouter.get("/", listParentsHandler);
+parentsRouter.get("/", roleMiddleware(["admin", "teacher"]), listParentsHandler);
 
 export default parentsRouter;

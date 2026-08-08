@@ -99,6 +99,42 @@ export async function getGradeRoster({ assignmentId, academicYear, quarter }) { 
 export async function saveGrades({ assignmentId, academicYear, quarter, grades }) { return request(`/grades/assignments/${assignmentId}`, { method: 'PUT', body: { academicYear, quarter, grades } }) }
 export async function getParentGrades({ studentId, academicYear, quarter }) { return request(`/grades/parent?studentId=${studentId}&academicYear=${encodeURIComponent(academicYear)}&quarter=${quarter}`) }
 
+export async function downloadGradeTemplate({ assignmentId, academicYear, quarter }) {
+  const url = `${BASE_URL}/grades/assignments/${assignmentId}/template?academicYear=${encodeURIComponent(academicYear)}&quarter=${quarter}`
+  const response = await fetch(url, { headers: buildHeaders(false) })
+  if (!response.ok) {
+    const text = await response.text()
+    let msg = response.statusText
+    try { const json = JSON.parse(text); msg = json?.error?.message ?? msg } catch {}
+    throw new Error(msg)
+  }
+  const blob = await response.blob()
+  const disposition = response.headers.get('content-disposition') || ''
+  const match = disposition.match(/filename="?([^"]+)"?/)
+  const filename = match ? match[1] : 'grade-template.xlsx'
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(a.href)
+}
+
+export async function uploadGradeFile({ assignmentId, academicYear, quarter, file }) {
+  const url = `${BASE_URL}/grades/assignments/${assignmentId}/upload?academicYear=${encodeURIComponent(academicYear)}&quarter=${quarter}`
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await fetch(url, { method: 'POST', headers: buildHeaders(false), body: formData })
+  const text = await response.text()
+  let payload = null
+  if (text) {
+    try { payload = JSON.parse(text) } catch { payload = { message: text } }
+  }
+  // Return the full payload so the caller can inspect success/error/details
+  return payload
+}
+
 export async function listClasses() { return request('/classes') }
 export async function createClass(body) { return request('/classes', { method: 'POST', body }) }
 export async function updateClass(classId, body) { return request(`/classes/${classId}`, { method: 'PUT', body }) }
@@ -135,3 +171,13 @@ export async function getTeacherSchedule() { return request('/schedule/teacher')
 export async function getParentSchedule(studentId) {
   return request(`/schedule/parent${studentId ? `?studentId=${studentId}` : ''}`)
 }
+
+// Messaging & Notifications (Feature 15)
+export async function listConversations() { return request('/messages/conversations') }
+export async function createConversation(body) { return request('/messages/conversations', { method: 'POST', body }) }
+export async function getConversationDetails(id, page = 1, limit = 50) { return request(`/messages/conversations/${id}?page=${page}&limit=${limit}`) }
+export async function sendMessage(conversationId, content) { return request(`/messages/conversations/${conversationId}/messages`, { method: 'POST', body: { content } }) }
+export async function markConversationRead(conversationId) { return request(`/messages/conversations/${conversationId}/read`, { method: 'PATCH' }) }
+export async function listUserNotifications() { return request('/notifications') }
+export async function markUserNotificationRead(id) { return request(`/notifications/${id}/read`, { method: 'PATCH' }) }
+

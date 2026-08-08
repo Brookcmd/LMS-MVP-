@@ -11,12 +11,12 @@ import {
 
 const studentsRouter = express.Router();
 
-studentsRouter.use(authMiddleware, roleMiddleware(["admin"]));
+studentsRouter.use(authMiddleware);
 
-studentsRouter.get("/", listStudentsHandler);
-studentsRouter.post("/", createStudentHandler);
-studentsRouter.get("/:studentId", getStudentHandler);
-studentsRouter.put("/:studentId", updateStudentHandler);
-studentsRouter.delete("/:studentId", deleteStudentHandler);
+studentsRouter.get("/", roleMiddleware(["admin", "teacher"]), listStudentsHandler);
+studentsRouter.post("/", roleMiddleware(["admin"]), createStudentHandler);
+studentsRouter.get("/:studentId", roleMiddleware(["admin", "teacher"]), getStudentHandler);
+studentsRouter.put("/:studentId", roleMiddleware(["admin"]), updateStudentHandler);
+studentsRouter.delete("/:studentId", roleMiddleware(["admin"]), deleteStudentHandler);
 
 export default studentsRouter;

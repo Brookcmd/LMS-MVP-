@@ -37,6 +37,7 @@ This is the source of truth for what to build and in what order. If a session's 
 17. [ ] Admin analytics (attendance rate trends, grade averages)
 18. [ ] A game where users can play games that sharpen the mind.
 19. [x] A schedule where parents and students can see their daily schedule that reflects realtime schedule changes
+20. [x] Teacher: bulk grade upload via Excel template (spec 0003)
 
 ## Explicitly cut — do not build
 
@@ -45,6 +46,8 @@ SCORM/xAPI, e-commerce/payments, gamification/badges, AI chatbots, BI tool integ
 ---
 
 ## Progress log
+
+- 2026-08-08 — Feature 20 done. Added bulk grade upload via Excel template (spec 0003). New `grade-upload-service.ts` generates a downloadable `.xlsx` template pre-filled with the class roster and existing scores, and processes uploaded files with row-level validation and atomic writes using the existing Grade upsert pattern. Added `multer` (file uploads) and `exceljs` (Excel parsing) as new dependencies. Extended `TeacherGrades.jsx` with Download Template and Upload Grades controls.
 
 - 2026-08-05 — Restricted schedule slot CRUD to admin only (spec 0001). Updated route guards on POST/PUT/DELETE /schedule to admin role only, updated service layer schoolId validation, made TeacherSchedule.jsx read-only, created AdminSchedule.jsx at /admin/schedule using GET /schedule/class/:classId with class and teacher filter dropdowns.
 

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authMiddleware } from "../middleware/auth";
 import { roleMiddleware } from "../middleware/role";
 import { createAssignmentHandler, createSubjectHandler, homeroomHandler, listAssignmentsHandler, listSubjectsHandler, mineHandler, parentHandler, rosterHandler, saveHandler } from "../controllers/grade-controller";
+import { downloadTemplateHandler, uploadGradesHandler } from "../controllers/grade-upload-controller";
 
 const gradesRouter = Router();
 gradesRouter.use(authMiddleware);
@@ -12,6 +13,8 @@ gradesRouter.get("/teaching-assignments", roleMiddleware(["admin"]), listAssignm
 gradesRouter.get("/teaching-assignments/mine", roleMiddleware(["teacher"]), mineHandler);
 gradesRouter.get("/assignments/:assignmentId", roleMiddleware(["teacher"]), rosterHandler);
 gradesRouter.put("/assignments/:assignmentId", roleMiddleware(["teacher"]), saveHandler);
+gradesRouter.get("/assignments/:assignmentId/template", roleMiddleware(["teacher"]), downloadTemplateHandler);
+gradesRouter.post("/assignments/:assignmentId/upload", roleMiddleware(["teacher"]), uploadGradesHandler);
 gradesRouter.get("/classes/:classId/results", roleMiddleware(["teacher"]), homeroomHandler);
 gradesRouter.get("/parent", roleMiddleware(["parent"]), parentHandler);
 export default gradesRouter;

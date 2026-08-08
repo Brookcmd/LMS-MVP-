@@ -23,7 +23,7 @@ function parseId(value: string, fieldName: string): number {
 
 function formatNotification(notification: {
   id: number;
-  type: "absence";
+  type: string;
   readAt: Date | null;
   createdAt: Date;
   student: {
@@ -42,14 +42,15 @@ function formatNotification(notification: {
       id: number;
       name: string;
     };
-  };
+  } | null;
 }) {
+  const dateStr = notification.attendance?.date ? notification.attendance.date.toISOString().slice(0, 10) : "";
   return {
     id: notification.id,
     type: notification.type,
     readAt: notification.readAt,
     createdAt: notification.createdAt,
-    message: `${notification.student.name} was marked absent on ${notification.attendance.date.toISOString().slice(0, 10)}`,
+    message: `${notification.student.name} was marked absent on ${dateStr}`,
     student: notification.student,
     attendance: notification.attendance,
   };

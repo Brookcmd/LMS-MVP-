@@ -5,9 +5,9 @@ import { getTeacherHandler, listTeachersHandler } from "../controllers/teacher-c
 
 const teachersRouter = express.Router();
 
-teachersRouter.use(authMiddleware, roleMiddleware(["admin"]));
+teachersRouter.use(authMiddleware);
 
-teachersRouter.get("/", listTeachersHandler);
-teachersRouter.get("/:teacherId", getTeacherHandler);
+teachersRouter.get("/", roleMiddleware(["admin", "teacher", "parent"]), listTeachersHandler);
+teachersRouter.get("/:teacherId", roleMiddleware(["admin"]), getTeacherHandler);
 
 export default teachersRouter;

@@ -1,5 +1,5 @@
 import React from 'react'
-import { getGradeRoster, listTeachingAssignments, saveGrades } from '../api/apiClient'
+import { getGradeRoster, listTeachingAssignments, saveGrades, downloadGradeTemplate, uploadGradeFile } from '../api/apiClient'
 import { getGradeStats, filterRosterBySearch, applyPreviousQuarterScores } from './gradeUtils.mjs'
 
 const currentYear = `${new Date().getFullYear()}/${String((new Date().getFullYear() + 1) % 100).padStart(2, '0')}`
@@ -18,6 +18,10 @@ export default function TeacherGrades() {
   const [searchTerm, setSearchTerm] = React.useState('')
   const [fillValue, setFillValue] = React.useState('')
   const [copying, setCopying] = React.useState(false)
+  const [downloading, setDownloading] = React.useState(false)
+  const [uploading, setUploading] = React.useState(false)
+  const [uploadErrors, setUploadErrors] = React.useState([])
+  const fileInputRef = React.useRef(null)
 
   React.useEffect(() => {
     listTeachingAssignments()
@@ -83,6 +87,47 @@ export default function TeacherGrades() {
     const value = fillValue
     setRoster((rows) => rows.map((row) => ({ ...row, score: value })))
     setSavedMessage('')
+  }
+
+  const handleDownloadTemplate = async () => {
+    if (!assignmentId) return
+    try {
+      setError('')
+      setDownloading(true)
+      await downloadGradeTemplate({ assignmentId, academicYear: year, quarter })
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  const handleUploadFile = async () => {
+    const file = fileInputRef.current?.files?.[0]
+    if (!file || !assignmentId) return
+    try {
+      setError('')
+      setUploadErrors([])
+      setUploading(true)
+      setSavedMessage('')
+      const result = await uploadGradeFile({ assignmentId, academicYear: year, quarter, file })
+      if (result?.success) {
+        setSavedMessage(`${result.data.saved} grades uploaded successfully.`)
+        // Re-fetch roster to reflect new scores
+        const data = await getGradeRoster({ assignmentId, academicYear: year, quarter })
+        setRoster(data.students.map((student) => ({ ...student, score: student.grade?.score ?? '' })))
+      } else if (result?.error?.details) {
+        setUploadErrors(result.error.details)
+        setError(result.error.message || 'Some rows failed validation')
+      } else {
+        setError(result?.error?.message || 'Upload failed')
+      }
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   const copyFromPreviousQuarter = async () => {
@@ -183,6 +228,40 @@ export default function TeacherGrades() {
             </div>
             <div className="summary">{roster.length} students · {stats.enteredCount} entered</div>
           </div>
+
+          <div style={{ marginTop: 18, borderTop: '1px solid var(--border, #e2e8f0)', paddingTop: 18 }}>
+            <p className="label-caps" style={{ marginBottom: 12 }}>Bulk upload via Excel</p>
+            <div className="toolbar-actions" style={{ gap: 12, flexWrap: 'wrap' }}>
+              <button className="btn-secondary" type="button" onClick={handleDownloadTemplate} disabled={downloading || !assignmentId}>
+                {downloading ? 'Downloading…' : '⬇ Download template'}
+              </button>
+              <label className="input-label" style={{ flex: 1, minWidth: 200 }}>
+                <input
+                  ref={fileInputRef}
+                  className="input-field"
+                  type="file"
+                  accept=".xlsx"
+                  style={{ padding: '6px 8px' }}
+                />
+              </label>
+              <button className="btn-secondary" type="button" onClick={handleUploadFile} disabled={uploading || !assignmentId}>
+                {uploading ? 'Uploading…' : '⬆ Upload grades'}
+              </button>
+            </div>
+          </div>
+
+          {uploadErrors.length > 0 && (
+            <div style={{ marginTop: 14, padding: '12px 16px', background: 'var(--error-bg, #fef2f2)', border: '1px solid var(--error-border, #fca5a5)', borderRadius: 8 }}>
+              <p style={{ fontWeight: 600, marginBottom: 8, color: 'var(--error-text, #dc2626)' }}>Row errors — fix these in your file and re-upload:</p>
+              <ul style={{ margin: 0, paddingLeft: 20 }}>
+                {uploadErrors.map((err, i) => (
+                  <li key={i} style={{ marginBottom: 4 }}>
+                    <strong>Row {err.row}</strong>{err.studentId ? ` (student ${err.studentId})` : ''}: {err.message}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 
