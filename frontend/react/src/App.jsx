@@ -24,6 +24,7 @@ import AdminClasses from './pages/admin/AdminClasses'
 import AdminSchedule from './pages/admin/AdminSchedule'
 import AdminSubjects from './pages/admin/AdminSubjects'
 import AdminParentLinks from './pages/admin/AdminParentLinks'
+import AdminAnalytics from './pages/admin/AdminAnalytics'
 import LandingPage from './pages/LandingPage'
 import NotFound from './pages/NotFound'
 import Messages from './pages/Messages'
@@ -337,6 +338,7 @@ function AppContent() {
           <Route path="/schedule" element={<PrivateRoute roles={['parent', 'student']}><ParentSchedule /></PrivateRoute>} />
           <Route path="/admin" element={<PrivateRoute roles={['admin']}><AdminLayout /></PrivateRoute>}>
             <Route index element={<AdminDashboard />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="classes" element={<AdminClasses />} />
             <Route path="schedule" element={<AdminSchedule />} />
             <Route path="students" element={<AdminStudents />} />

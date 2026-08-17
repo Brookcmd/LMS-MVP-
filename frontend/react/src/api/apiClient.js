@@ -207,4 +207,14 @@ export async function changeMyPassword(body) {
   return request('/profile/change-password', { method: 'POST', body })
 }
 
+// Admin Analytics (Feature 17)
+export async function getAdminAnalytics({ classId, quarter, academicYear } = {}) {
+  const query = new URLSearchParams()
+  if (classId) query.set('classId', classId)
+  if (quarter) query.set('quarter', quarter)
+  if (academicYear) query.set('academicYear', academicYear)
+  const queryString = query.toString()
+  return request(`/analytics/admin${queryString ? `?${queryString}` : ''}`)
+}
+
 

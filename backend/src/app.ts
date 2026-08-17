@@ -19,6 +19,7 @@ import notificationsRouter from "./routes/notifications";
 import studentRouter from "./routes/student";
 import contactRouter from "./routes/contact";
 import profileRouter from "./routes/profile";
+import analyticsRouter from "./routes/analytics";
 
 const app = express();
 
@@ -27,6 +28,8 @@ app.use(express.json({ limit: "10mb" })); // Support avatar uploads
 app.use("/health", healthRouter);
 app.use("/auth", authRouter);
 app.use("/profile", profileRouter);
+app.use("/analytics", analyticsRouter);
+app.use("/api/analytics", analyticsRouter);
 app.use("/classes", classesRouter);
 app.use("/students", studentsRouter);
 app.use("/teachers", teachersRouter);

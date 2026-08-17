@@ -32,9 +32,9 @@ This is the source of truth for what to build and in what order. If a session's 
 ## Phase 5 — Stretch (only if time allows after Phase 2 is solid)
 
 14. [ ] Course materials upload/download (MuStudyHub UI reuse fits here)
-15. [ ] Teacher-parent messaging
+15. [x] Teacher-parent messaging
 16. [ ] Assignment submission
-17. [ ] Admin analytics (attendance rate trends, grade averages)
+17. [x] Admin analytics (attendance rate trends, grade averages)
 18. [ ] A game where users can play games that sharpen the mind.
 19. [x] A schedule where parents and students can see their daily schedule that reflects realtime schedule changes
 20. [x] Teacher: bulk grade upload via Excel template (spec 0003)
@@ -49,6 +49,8 @@ SCORM/xAPI, e-commerce/payments, gamification/badges, AI chatbots, BI tool integ
 ---
 
 ## Progress log
+
+- 2026-08-17 — Feature 17 done. Built full institutional Admin Analytics Dashboard with executive KPIs, attendance status trends, class attendance rates, letter grade distribution histograms (Bands A-F), subject performance leaderboard, and at-risk student monitoring roster. Added `GET /analytics/admin` backend route and `analytics-service.ts`. Added `AdminAnalytics.jsx`, filter bar controls, topbar search shortcuts, and test suite `analytics.test.ts` (4/4 tests passed). Frontend build passed clean in 2.18s.
 
 - 2026-08-17 — Feature 23 done. Added full user profile management and password security. Updated Prisma schema with `avatarUrl` on `User`. Implemented `GET /profile/me`, `PUT /profile/me`, and `POST /profile/change-password` routes with bcrypt hashing in `backend/src/routes/profile.ts`. Overhauled `Profile.jsx` with photo upload (JPG/PNG/WebP with live preview), editable personal info (Name, Phone), password update with current password validation, and institutional account overview. Added clickable profile avatar in topbar. All 49 backend unit tests pass.
 

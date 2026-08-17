@@ -99,6 +99,10 @@ export default function AdminDashboard() {
             </div>
 
             <div className="admin-quick-actions">
+              <Link to="/admin/analytics" className="admin-quick-action" style={{ background: 'var(--brand-navy-primary)', color: '#FFFFFF' }}>
+                <span className="material-symbols-outlined">analytics</span>
+                Analytics Radar
+              </Link>
               <Link to="/admin/students" className="admin-quick-action">
                 <span className="material-symbols-outlined">person_add</span>
                 Manage Students
@@ -128,6 +132,22 @@ export default function AdminDashboard() {
 
           {/* Institutional Status Deck */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+            <Link to="/admin/analytics" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="card" style={{ padding: '20px', cursor: 'pointer', height: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                  <span className="material-symbols-outlined" style={{ color: 'var(--brand-navy-light)', fontSize: '24px' }}>
+                    bar_chart
+                  </span>
+                  <h4 style={{ margin: 0, fontFamily: 'var(--font-headline)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>
+                    Executive Analytics Console
+                  </h4>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  Real-time intelligence on campus attendance rates, score distribution histograms, subject benchmarks, and early warning risk monitoring.
+                </p>
+              </div>
+            </Link>
+
             <div className="card" style={{ padding: '20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                 <span className="material-symbols-outlined" style={{ color: 'var(--status-present-text)', fontSize: '24px' }}>
