@@ -1,6 +1,9 @@
 import React from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
+import { ThemeProvider, useTheme } from './context/ThemeContext'
+import { ToastProvider } from './context/ToastContext'
+import { ToastContainer } from './components/Toast'
 import Notifications from './pages/Notifications'
 import TeacherAttendance from './pages/TeacherAttendance'
 import ParentAttendance from './pages/ParentAttendance'
@@ -44,6 +47,7 @@ function HomeRedirect() {
 
 function Login() {
   const { login } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
@@ -68,39 +72,59 @@ function Login() {
 
   return (
     <div className="login-page">
-      <section className="login-visual-panel" aria-label="Sheba Estudent learning illustration">
+      <section className="login-visual-panel" aria-label="Sheba University College and Academy Overview">
         <div className="login-wordmark">
           <img src={logo} alt="" aria-hidden="true" />
-          <span>Sheba Estudent</span>
+          <span>Sheba University College</span>
         </div>
-        <div className="login-stars" aria-hidden="true">
-          {Array.from({ length: 22 }).map((_, index) => (
-            <span key={index} />
-          ))}
-        </div>
-        <div className="login-space-art" aria-hidden="true">
-          <div className="login-earth">
-            <span className="continent continent-one" />
-            <span className="continent continent-two" />
-            <span className="continent continent-three" />
-            <span className="continent continent-four" />
-          </div>
-          <div className="login-formula formula-y">y?</div>
-          <div className="login-formula formula-v">v ~= sqrt(GM/r)</div>
-          <div className="login-satellite">
-            <span className="satellite-body" />
-            <span className="satellite-wing wing-left" />
-            <span className="satellite-wing wing-right" />
-            <span className="satellite-signal" />
+
+        <div className="login-visual-center">
+          <span className="login-tag">Official Academic Portal</span>
+          <h2>Empowering Academic Excellence & Student Success</h2>
+          <p>
+            Seamless digital learning management, real-time attendance tracking, grade analytics, and direct institutional communication.
+          </p>
+
+          <div className="login-badge-row">
+            <span className="login-tag">Parent Portal</span>
+            <span className="login-tag">Teacher Hub</span>
+            <span className="login-tag">Student Console</span>
           </div>
         </div>
-        <p className="login-tagline">The smarter way to manage school learning.</p>
+
+        <div className="login-visual-footer">
+          © {new Date().getFullYear()} Sheba University College & Sheba Academy. All rights reserved.
+        </div>
       </section>
 
       <section className="login-form-panel" aria-labelledby="login-title">
         <div className="login-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <button 
+              type="button" 
+              className="icon-button" 
+              onClick={() => navigate('/')} 
+              title="Return to Public Homepage"
+              style={{ width: '36px', height: '36px' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_back</span>
+            </button>
+            <button 
+              type="button" 
+              className="icon-button" 
+              onClick={toggleTheme} 
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              style={{ width: '36px', height: '36px' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                {theme === 'dark' ? 'light_mode' : 'dark_mode'}
+              </span>
+            </button>
+          </div>
+
           <div className="login-card-head">
-            <h1 id="login-title">Log In</h1>
+            <h1 id="login-title">Portal Sign In</h1>
+            <p>Enter your institutional credentials to access your account</p>
           </div>
 
           {error && (
@@ -108,7 +132,7 @@ function Login() {
               <span className="material-symbols-outlined">report</span>
               <div>
                 <strong>Authentication failed</strong>
-                <p>{error}</p>
+                <p style={{ margin: '2px 0 0' }}>{error}</p>
               </div>
             </div>
           )}
@@ -124,7 +148,7 @@ function Login() {
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="admin@school.edu"
+                  placeholder="name@school.edu"
                   required
                 />
               </label>
@@ -137,7 +161,7 @@ function Login() {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
-                    placeholder="Password"
+                    placeholder="••••••••"
                     required
                   />
                   <button
@@ -153,18 +177,51 @@ function Login() {
             </fieldset>
 
             <button className="login-submit" type="submit" disabled={submitting}>
-              {submitting ? 'Signing in…' : 'Sign in'}
+              {submitting ? 'Signing in…' : 'Sign in to Portal'}
             </button>
           </form>
 
+          {/* Quick Demo Access Pills */}
+          <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
+            <span style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', fontWeight: '600', marginBottom: '8px', textAlign: 'center' }}>
+              Quick Demo Persona Fill
+            </span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center' }}>
+              <button 
+                type="button" 
+                className="btn-ghost" 
+                style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                onClick={() => { setEmail('workuabebe@parent.com'); setPassword('Parent@123') }}
+              >
+                Parent
+              </button>
+              <button 
+                type="button" 
+                className="btn-ghost" 
+                style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                onClick={() => { setEmail('alembekele@school.edu'); setPassword('Teacher@123') }}
+              >
+                Teacher
+              </button>
+              <button 
+                type="button" 
+                className="btn-ghost" 
+                style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                onClick={() => { setEmail('admin@testschool.com'); setPassword('Admin@123') }}
+              >
+                Admin
+              </button>
+            </div>
+          </div>
+
           <div className="login-links" aria-label="Account help">
-            <button type="button" onClick={() => setError('Password reset is not available yet. Please contact your school admin.')}>
-              Reset password
+            <button type="button" onClick={() => setError('Password reset is managed by school administrators. Please contact your campus IT desk.')}>
+              Forgot password?
             </button>
             <span>
-              New user?{' '}
-              <button type="button" onClick={() => setError('New accounts are created by your school admin.')}>
-                Sign up
+              Need access?{' '}
+              <button type="button" onClick={() => setError('Student, teacher, and parent accounts are issued directly by the school registrar.')}>
+                Contact Admin
               </button>
             </span>
           </div>
@@ -176,23 +233,43 @@ function Login() {
 
 function AppContent() {
   const { user, logout } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
   const isAdmin = user?.role === 'admin'
   const isLoginRoute = location.pathname === '/login'
   const isLandingRoute = location.pathname === '/' && !user
 
+  const roleLabels = {
+    parent: 'Parent Portal',
+    teacher: 'Teacher Hub',
+    student: 'Student Console',
+    admin: 'Admin Console',
+  }
+
   return (
     <div className={`app-shell${isAdmin ? ' app-shell-admin' : ''}${isLoginRoute ? ' app-shell-login' : ''}${isLandingRoute ? ' app-shell-landing' : ''}`}>
       {user && !isAdmin && (
         <header className="topbar">
-          <div className="brand">
+          <div className="brand" onClick={() => navigate('/')}>
             <img className="brand-logo" src={logo} alt="" aria-hidden="true" />
             <div>
-              <div className="subtitle">Sheba Estudent</div>
+              <div className="brand-title">
+                Sheba Estudent
+                <span className="role-badge">{roleLabels[user.role] || user.role}</span>
+              </div>
             </div>
           </div>
           <div className="actions">
+            <button 
+              className="icon-button" 
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              onClick={toggleTheme}
+            >
+              <span className="material-symbols-outlined">
+                {theme === 'dark' ? 'light_mode' : 'dark_mode'}
+              </span>
+            </button>
             {(user.role === 'parent' || user.role === 'teacher' || user.role === 'student') && (
               <button className="icon-button" title="Notifications" onClick={() => navigate('/notifications')}>
                 <span className="material-symbols-outlined">notifications</span>
@@ -235,14 +312,19 @@ function AppContent() {
       </main>
 
       {user && !isAdmin && <BottomNav />}
+      <ToastContainer />
     </div>
   )
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ToastProvider>
+    </ThemeProvider>
   )
 }

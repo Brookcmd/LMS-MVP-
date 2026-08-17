@@ -1,38 +1,39 @@
-import React from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { getGradeRoster, listTeachingAssignments, saveGrades, downloadGradeTemplate, uploadGradeFile } from '../api/apiClient'
 import { getGradeStats, filterRosterBySearch, applyPreviousQuarterScores } from './gradeUtils.mjs'
+import { useToast } from '../context/ToastContext'
+import { CardSkeleton, StatsSkeleton } from '../components/SkeletonLoader'
 
 const currentYear = `${new Date().getFullYear()}/${String((new Date().getFullYear() + 1) % 100).padStart(2, '0')}`
 const quarterOptions = [1, 2, 3, 4]
 
 export default function TeacherGrades() {
-  const [assignments, setAssignments] = React.useState([])
-  const [assignmentId, setAssignmentId] = React.useState('')
-  const [year, setYear] = React.useState(currentYear)
-  const [quarter, setQuarter] = React.useState('1')
-  const [roster, setRoster] = React.useState([])
-  const [error, setError] = React.useState('')
-  const [loading, setLoading] = React.useState(false)
-  const [saving, setSaving] = React.useState(false)
-  const [savedMessage, setSavedMessage] = React.useState('')
-  const [searchTerm, setSearchTerm] = React.useState('')
-  const [fillValue, setFillValue] = React.useState('')
-  const [copying, setCopying] = React.useState(false)
-  const [downloading, setDownloading] = React.useState(false)
-  const [uploading, setUploading] = React.useState(false)
-  const [uploadErrors, setUploadErrors] = React.useState([])
-  const fileInputRef = React.useRef(null)
+  const { toast } = useToast()
+  const [assignments, setAssignments] = useState([])
+  const [assignmentId, setAssignmentId] = useState('')
+  const [year, setYear] = useState(currentYear)
+  const [quarter, setQuarter] = useState('1')
+  const [roster, setRoster] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [fillValue, setFillValue] = useState('')
+  const [copying, setCopying] = useState(false)
+  const [downloading, setDownloading] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadErrors, setUploadErrors] = useState([])
+  const fileInputRef = useRef(null)
 
-  React.useEffect(() => {
+  useEffect(() => {
     listTeachingAssignments()
       .then((data) => {
-        setAssignments(data)
-        if (data[0]) setAssignmentId(String(data[0].id))
+        setAssignments(data || [])
+        if (data && data[0]) setAssignmentId(String(data[0].id))
       })
-      .catch((e) => setError(e.message))
+      .catch((e) => toast.error(e.message))
   }, [])
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!assignmentId) {
       setRoster([])
       return
@@ -40,39 +41,36 @@ export default function TeacherGrades() {
 
     let active = true
     setLoading(true)
-    setSavedMessage('')
     getGradeRoster({ assignmentId, academicYear: year, quarter })
       .then((data) => {
         if (!active) return
-        setRoster(data.students.map((student) => ({ ...student, score: student.grade?.score ?? '' })))
-        setError('')
+        setRoster((data.students || []).map((student) => ({ ...student, score: student.grade?.score ?? '' })))
       })
       .catch((e) => {
-        if (active) setError(e.message)
+        if (active) toast.error(e.message)
       })
       .finally(() => {
         if (active) setLoading(false)
       })
 
-    return () => {
-      active = false
-    }
+    return () => { active = false }
   }, [assignmentId, year, quarter])
 
   const save = async () => {
     try {
-      setError('')
       setSaving(true)
       const normalized = roster.map((student) => ({ studentId: student.id, score: Number(student.score) }))
       const hasInvalidScore = normalized.some((entry) => !Number.isInteger(entry.score) || entry.score < 0 || entry.score > 100)
       if (hasInvalidScore) {
-        throw new Error('Enter a whole number from 0 to 100 for each student')
+        toast.warning('Please enter a valid whole score between 0 and 100 for each student.')
+        setSaving(false)
+        return
       }
 
       await saveGrades({ assignmentId, academicYear: year, quarter: Number(quarter), grades: normalized })
-      setSavedMessage('Grades saved for this quarter.')
+      toast.success(`Grades saved successfully for Quarter ${quarter}.`)
     } catch (e) {
-      setError(e.message)
+      toast.error(e.message || 'Failed to save grades')
     } finally {
       setSaving(false)
     }
@@ -84,19 +82,23 @@ export default function TeacherGrades() {
 
   const applyFillValue = () => {
     if (fillValue === '') return
-    const value = fillValue
-    setRoster((rows) => rows.map((row) => ({ ...row, score: value })))
-    setSavedMessage('')
+    const val = Number(fillValue)
+    if (isNaN(val) || val < 0 || val > 100) {
+      toast.warning('Fill score must be between 0 and 100.')
+      return
+    }
+    setRoster((rows) => rows.map((row) => ({ ...row, score: fillValue })))
+    toast.info(`Filled score ${fillValue} across visible students.`)
   }
 
   const handleDownloadTemplate = async () => {
     if (!assignmentId) return
     try {
-      setError('')
       setDownloading(true)
       await downloadGradeTemplate({ assignmentId, academicYear: year, quarter })
+      toast.success('Excel grade template downloaded.')
     } catch (e) {
-      setError(e.message)
+      toast.error(e.message || 'Failed to download template')
     } finally {
       setDownloading(false)
     }
@@ -106,24 +108,21 @@ export default function TeacherGrades() {
     const file = fileInputRef.current?.files?.[0]
     if (!file || !assignmentId) return
     try {
-      setError('')
       setUploadErrors([])
       setUploading(true)
-      setSavedMessage('')
       const result = await uploadGradeFile({ assignmentId, academicYear: year, quarter, file })
       if (result?.success) {
-        setSavedMessage(`${result.data.saved} grades uploaded successfully.`)
-        // Re-fetch roster to reflect new scores
+        toast.success(`${result.data?.saved || 0} grades imported from Excel successfully!`)
         const data = await getGradeRoster({ assignmentId, academicYear: year, quarter })
-        setRoster(data.students.map((student) => ({ ...student, score: student.grade?.score ?? '' })))
+        setRoster((data.students || []).map((student) => ({ ...student, score: student.grade?.score ?? '' })))
       } else if (result?.error?.details) {
         setUploadErrors(result.error.details)
-        setError(result.error.message || 'Some rows failed validation')
+        toast.error(result.error.message || 'Some rows failed validation')
       } else {
-        setError(result?.error?.message || 'Upload failed')
+        toast.error(result?.error?.message || 'Upload failed')
       }
     } catch (e) {
-      setError(e.message)
+      toast.error(e.message || 'Excel upload failed')
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -134,130 +133,164 @@ export default function TeacherGrades() {
     if (!assignmentId || Number(quarter) <= 1) return
 
     try {
-      setError('')
       setCopying(true)
       const previousQuarterRoster = await getGradeRoster({ assignmentId, academicYear: year, quarter: Number(quarter) - 1 })
       setRoster((rows) => applyPreviousQuarterScores(rows, previousQuarterRoster.students || []))
-      setSavedMessage('Copied scores from the previous quarter.')
+      toast.info(`Copied baseline scores from Quarter ${Number(quarter) - 1}.`)
     } catch (e) {
-      setError(e.message)
+      toast.error(e.message || 'Failed to copy previous grades')
     } finally {
       setCopying(false)
     }
   }
 
   return (
-    <div>
+    <div className="container">
+      {/* 1. Header Banner */}
       <div className="section-header">
         <div>
-          <span className="subtitle">Grades</span>
-          <h1 className="title">Enter quarterly grades</h1>
+          <span className="subtitle">Evaluation & Academic Records</span>
+          <h1 className="title">
+            {chosen ? `${chosen.class.name} · ${chosen.subject.name}` : 'Grade Entry'}
+          </h1>
         </div>
       </div>
 
-      <div className="card section grade-summary-card">
-        <div className="grade-summary-top">
-          <div>
-            <p className="label-caps">Current assignment</p>
-            <h2 className="title">{chosen ? `${chosen.class.name} · ${chosen.subject.name}` : 'Choose a teaching assignment'}</h2>
-            <p className="summary">Quarter {quarter} · {year}</p>
-          </div>
-          <div className="chip">Grade entry</div>
-        </div>
-
-        <div className="form-row" style={{ marginTop: 20, gap: 16, alignItems: 'flex-end' }}>
-          <label className="input-label" style={{ flex: 1 }}>
-            <span className="label-caps">Class and subject</span>
-            <select className="input-field" value={assignmentId} onChange={(e) => setAssignmentId(e.target.value)}>
+      {/* 2. Assignment & Quarter Selectors */}
+      <div className="card" style={{ marginBottom: '20px', padding: '16px 20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', alignItems: 'flex-end' }}>
+          <div className="input-label" style={{ margin: 0 }}>
+            <span className="label-caps">Teaching Assignment</span>
+            <select 
+              className="select-field" 
+              value={assignmentId} 
+              onChange={(e) => setAssignmentId(e.target.value)}
+            >
               {assignments.map((assignment) => (
-                <option key={assignment.id} value={assignment.id}>{assignment.class.name} · {assignment.subject.name}</option>
+                <option key={assignment.id} value={assignment.id}>
+                  {assignment.class.name} · {assignment.subject.name}
+                </option>
               ))}
             </select>
-          </label>
-          <label className="input-label" style={{ flex: 1 }}>
-            <span className="label-caps">Academic year</span>
-            <input className="input-field" value={year} onChange={(e) => setYear(e.target.value)} />
-          </label>
-          <label className="input-label" style={{ flex: 0.6 }}>
-            <span className="label-caps">Quarter</span>
-            <select className="input-field" value={quarter} onChange={(e) => setQuarter(e.target.value)}>
+          </div>
+
+          <div className="input-label" style={{ margin: 0 }}>
+            <span className="label-caps">Academic Year</span>
+            <input 
+              className="input-field" 
+              value={year} 
+              onChange={(e) => setYear(e.target.value)} 
+            />
+          </div>
+
+          <div className="input-label" style={{ margin: 0 }}>
+            <span className="label-caps">Evaluation Quarter</span>
+            <select 
+              className="select-field" 
+              value={quarter} 
+              onChange={(e) => setQuarter(e.target.value)}
+            >
               {quarterOptions.map((value) => (
-                <option key={value} value={String(value)}>{value}</option>
+                <option key={value} value={String(value)}>Quarter {value}</option>
               ))}
             </select>
-          </label>
+          </div>
         </div>
       </div>
 
-      {error && <div className="error">{error}</div>}
-      {savedMessage && <div className="success">{savedMessage}</div>}
-
-      <div className="stats-grid section">
+      {/* 3. Live Stats KPI Cards */}
+      <div className="stats-grid" style={{ marginBottom: '20px' }}>
         <div className="stat-card">
-          <span className="label-caps">Entered</span>
-          <strong>{stats.enteredCount}</strong>
+          <span>Entered Scores</span>
+          <strong>{stats.enteredCount} / {stats.totalStudents}</strong>
         </div>
         <div className="stat-card">
-          <span className="label-caps">Blank</span>
-          <strong>{stats.blankCount}</strong>
+          <span>Unmarked Students</span>
+          <strong style={{ color: stats.blankCount > 0 ? 'var(--gold-accent)' : 'var(--status-present-text)' }}>
+            {stats.blankCount}
+          </strong>
         </div>
         <div className="stat-card">
-          <span className="label-caps">Average</span>
-          <strong>{stats.average !== null ? stats.average.toFixed(1) : '—'}</strong>
+          <span>Class Average</span>
+          <strong>{stats.average !== null ? `${stats.average.toFixed(1)}%` : '—'}</strong>
         </div>
       </div>
 
+      {/* 4. Batch Operations & Excel Toolbar */}
       {roster.length > 0 && (
-        <div className="card section toolbar-card">
-          <div className="toolbar-actions">
-            <label className="input-label" style={{ flex: 1 }}>
-              <span className="label-caps">Search students</span>
-              <input className="input-field" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Type a name" />
-            </label>
-            <label className="input-label" style={{ flex: 1 }}>
-              <span className="label-caps">Fill visible rows</span>
-              <input className="input-field" type="number" min="0" max="100" value={fillValue} onChange={(e) => setFillValue(e.target.value)} placeholder="e.g. 85" />
-            </label>
-          </div>
-          <div className="action-row" style={{ marginTop: 18, justifyContent: 'space-between', display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-            <div className="toolbar-actions" style={{ gap: 12 }}>
-              <button className="btn-secondary" type="button" onClick={applyFillValue}>Apply fill value</button>
-              <button className="btn-secondary" type="button" onClick={copyFromPreviousQuarter} disabled={copying || Number(quarter) <= 1}>
-                {copying ? 'Copying…' : 'Copy from previous quarter'}
-              </button>
+        <div className="card" style={{ marginBottom: '20px', padding: '16px 20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+            <div className="search-wrapper" style={{ minWidth: '220px', flex: 1 }}>
+              <span className="material-symbols-outlined search-icon">search</span>
+              <input 
+                className="search-field" 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+                placeholder="Search student in roster..." 
+              />
             </div>
-            <div className="summary">{roster.length} students · {stats.enteredCount} entered</div>
-          </div>
 
-          <div style={{ marginTop: 18, borderTop: '1px solid var(--border, #e2e8f0)', paddingTop: 18 }}>
-            <p className="label-caps" style={{ marginBottom: 12 }}>Bulk upload via Excel</p>
-            <div className="toolbar-actions" style={{ gap: 12, flexWrap: 'wrap' }}>
-              <button className="btn-secondary" type="button" onClick={handleDownloadTemplate} disabled={downloading || !assignmentId}>
-                {downloading ? 'Downloading…' : '⬇ Download template'}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                <input 
+                  type="number" 
+                  className="input-field" 
+                  min="0" 
+                  max="100" 
+                  value={fillValue} 
+                  onChange={(e) => setFillValue(e.target.value)} 
+                  placeholder="Score" 
+                  style={{ width: '80px', padding: '8px 10px' }} 
+                />
+                <button type="button" className="btn-secondary" onClick={applyFillValue} style={{ padding: '8px 12px', fontSize: '0.82rem' }}>
+                  Fill All
+                </button>
+              </div>
+
+              {Number(quarter) > 1 && (
+                <button 
+                  type="button" 
+                  className="btn-ghost" 
+                  onClick={copyFromPreviousQuarter} 
+                  disabled={copying}
+                  style={{ padding: '8px 12px', fontSize: '0.82rem' }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>content_copy</span>
+                  Copy Q{Number(quarter) - 1}
+                </button>
+              )}
+
+              <button 
+                type="button" 
+                className="btn-ghost" 
+                onClick={handleDownloadTemplate} 
+                disabled={downloading}
+                style={{ padding: '8px 12px', fontSize: '0.82rem' }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--status-present-text)' }}>download</span>
+                Excel Template
               </button>
-              <label className="input-label" style={{ flex: 1, minWidth: 200 }}>
-                <input
-                  ref={fileInputRef}
-                  className="input-field"
-                  type="file"
-                  accept=".xlsx"
-                  style={{ padding: '6px 8px' }}
+
+              <label className="btn-ghost" style={{ padding: '8px 12px', fontSize: '0.82rem', cursor: 'pointer', margin: 0 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--navy-primary)' }}>upload_file</span>
+                {uploading ? 'Importing…' : 'Import Excel'}
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleUploadFile} 
+                  accept=".xlsx,.xls" 
+                  style={{ display: 'none' }} 
                 />
               </label>
-              <button className="btn-secondary" type="button" onClick={handleUploadFile} disabled={uploading || !assignmentId}>
-                {uploading ? 'Uploading…' : '⬆ Upload grades'}
-              </button>
             </div>
           </div>
 
           {uploadErrors.length > 0 && (
-            <div style={{ marginTop: 14, padding: '12px 16px', background: 'var(--error-bg, #fef2f2)', border: '1px solid var(--error-border, #fca5a5)', borderRadius: 8 }}>
-              <p style={{ fontWeight: 600, marginBottom: 8, color: 'var(--error-text, #dc2626)' }}>Row errors — fix these in your file and re-upload:</p>
-              <ul style={{ margin: 0, paddingLeft: 20 }}>
+            <div className="error" style={{ marginTop: '14px' }}>
+              <strong>Upload Validation Errors:</strong>
+              <ul style={{ margin: '6px 0 0', paddingLeft: '20px', fontSize: '0.85rem' }}>
                 {uploadErrors.map((err, i) => (
-                  <li key={i} style={{ marginBottom: 4 }}>
-                    <strong>Row {err.row}</strong>{err.studentId ? ` (student ${err.studentId})` : ''}: {err.message}
-                  </li>
+                  <li key={i}>{typeof err === 'string' ? err : `${err.student || 'Row'}: ${err.message || 'Invalid score'}`}</li>
                 ))}
               </ul>
             </div>
@@ -265,47 +298,107 @@ export default function TeacherGrades() {
         </div>
       )}
 
+      {/* 5. Grades Roster Grid */}
       {loading ? (
-        <div className="loader">Loading grades…</div>
-      ) : (
-        <div className="space-y-3">
-          {visibleRoster.length ? (
-            visibleRoster.map((student, index) => (
-              <div className="card student-card" key={student.id}>
-                <div className="card-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: 0 }}>
-                  <div style={{ flex: 1 }}>
-                    <p className="student-name">{student.name}</p>
-                    <p className="student-roll">Student {index + 1}</p>
+        <CardSkeleton lines={5} />
+      ) : visibleRoster.length > 0 ? (
+        <div style={{ display: 'grid', gap: '10px' }}>
+          {visibleRoster.map((student) => {
+            const scoreNum = Number(student.score)
+            const isValid = student.score !== '' && !isNaN(scoreNum) && scoreNum >= 0 && scoreNum <= 100
+
+            return (
+              <div 
+                key={student.id} 
+                className="card" 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between', 
+                  padding: '14px 20px',
+                  flexWrap: 'wrap',
+                  gap: '14px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div className="avatar">
+                    <span style={{ fontFamily: 'var(--font-headline)', fontWeight: '700', color: 'var(--navy-primary)' }}>
+                      {(student.name || 'S')[0].toUpperCase()}
+                    </span>
                   </div>
-                  <label className="input-label" style={{ minWidth: 160 }}>
-                    <span className="label-caps">Score</span>
-                    <input
-                      className="input-field"
+                  <div>
+                    <h3 className="student-name" style={{ margin: 0 }}>{student.name}</h3>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Student ID #{student.id}</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {isValid && (
+                    <span className={`status-pill ${scoreNum >= 80 ? 'present' : scoreNum >= 60 ? 'late' : 'absent'}`} style={{ fontSize: '0.75rem' }}>
+                      {scoreNum >= 90 ? 'A+' : scoreNum >= 80 ? 'A' : scoreNum >= 70 ? 'B' : scoreNum >= 60 ? 'C' : 'F'}
+                    </span>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <input 
                       type="number"
                       min="0"
                       max="100"
+                      className="input-field"
                       value={student.score}
-                      onChange={(e) => setRoster((rows) => rows.map((row) => row.id === student.id ? { ...row, score: e.target.value } : row))}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setRoster((prev) => prev.map((r) => r.id === student.id ? { ...r, score: val } : r))
+                      }}
+                      placeholder="0 - 100"
+                      style={{ width: '90px', textAlign: 'center', fontWeight: '700', fontSize: '1rem' }}
                     />
-                  </label>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>/ 100</span>
+                  </div>
                 </div>
               </div>
-            ))
-          ) : roster.length ? (
-            <div className="empty-state">No students match that search.</div>
-          ) : (
-            <div className="empty-state">No students are available for this assignment yet.</div>
-          )}
+            )
+          })}
+        </div>
+      ) : (
+        <div className="empty-state">
+          <span className="material-symbols-outlined" style={{ fontSize: '36px', color: 'var(--text-muted)' }}>
+            school
+          </span>
+          <p style={{ margin: '8px 0 0', color: 'var(--text-secondary)' }}>
+            {searchTerm ? 'No matching students found.' : 'No students found in this course assignment.'}
+          </p>
         </div>
       )}
 
-      <div className="submit-panel">
-        <div className="summary">{roster.length ? `${roster.length} students ready for grade entry` : 'Select an assignment to begin'}</div>
-        <button className="btn-primary" disabled={!roster.length || saving} onClick={save}>
-          {saving ? 'Saving…' : 'Save grades'}
-        </button>
-      </div>
+      {/* 6. Bottom Sticky Save Toolbar */}
+      {roster.length > 0 && (
+        <div className="submit-panel" style={{ marginTop: '24px' }}>
+          <div className="summary">
+            {stats.blankCount === 0 ? (
+              <span style={{ color: 'var(--status-present-text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>check_circle</span>
+                All {stats.totalStudents} grades entered
+              </span>
+            ) : (
+              <span style={{ color: 'var(--gold-accent)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>info</span>
+                {stats.blankCount} students still pending scores
+              </span>
+            )}
+          </div>
+
+          <button 
+            type="button" 
+            className="btn-primary" 
+            onClick={save} 
+            disabled={saving || roster.length === 0}
+            style={{ minWidth: '180px' }}
+          >
+            <span className="material-symbols-outlined">save</span>
+            {saving ? 'Saving Records…' : 'Save All Grades'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
-

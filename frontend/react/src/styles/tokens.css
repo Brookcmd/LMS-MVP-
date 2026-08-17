@@ -1,0 +1,199 @@
+/* ==========================================================================
+   SHEBA UNIVERSITY COLLEGE & SHEBA ACADEMY (SUC/SA)
+   Unified Institutional Design System Tokens & Global Foundations
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  /* AAU / Sheba Navy Palette */
+  --navy-primary: #0B3861;
+  --navy-deep: #071C33;
+  --navy-main: #0B3861;
+  --navy-light: #184B7A;
+  --navy-surface: #F0F4F8;
+
+  /* Sheba Crimson / Red Accent */
+  --red-accent: #E63946;
+  --red-accent-light: #FF8A8A;
+  --red-accent-soft: #FEE2E2;
+
+  /* Amber & Gold Brand Accents */
+  --amber-accent: #D97706;
+  --amber-accent-light: #FEF3C7;
+  --gold-accent: #F59E0B;
+
+  /* Surfaces & Backgrounds (Light Mode) */
+  --bg-canvas: #F2F4F6;
+  --bg-white: #FFFFFF;
+  --bg-surface: #FFFFFF;
+  --bg-surface-muted: #F0F4F8;
+  --bg-surface-strong: #E2E8F0;
+  --bg-light-gray: #F2F4F6;
+  --bg-hero-blue: #F0F4F8;
+  --bg-secondary: #F2F4F6;
+  --bg-tertiary: #E2E8F0;
+  --bg-card: #FFFFFF;
+  --bg-dark: #071C33;
+
+  /* Typography Colors (Light Mode) */
+  --text-heading: #0B3861;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
+  --text-light: #F8FAFC;
+  --text-inverse: #FFFFFF;
+  --text-on-navy: #F8FAFC;
+
+  /* Borders & Dividers (Light Mode) */
+  --border-color: #E2E8F0;
+  --border-light: #F1F5F9;
+  --border-strong: #CBD5E1;
+  --border-dark: rgba(255, 255, 255, 0.12);
+
+  /* Status Colors */
+  --status-present-bg: #D1FAE5;
+  --status-present-text: #059669;
+  --status-present-border: #A7F3D0;
+
+  --status-absent-bg: #FEE2E2;
+  --status-absent-text: #DC2626;
+  --status-absent-border: #FECACA;
+
+  --status-late-bg: #FEF3C7;
+  --status-late-text: #D97706;
+  --status-late-border: #FDE68A;
+
+  --status-info-bg: #DBEAFE;
+  --status-info-text: #1D4ED8;
+  --status-info-border: #BFDBFE;
+
+  /* Geometry & Radii */
+  --radius-container: 16px;
+  --radius-card: 10px;
+  --radius-btn: 6px;
+  --radius-tag: 4px;
+  --radius-pill: 9999px;
+  --radius: 10px;
+  --radius-sm: 6px;
+
+  /* Shadows & Elevation */
+  --shadow-subtle: 0 2px 10px rgba(11, 56, 97, 0.05);
+  --shadow-card: 0 4px 18px rgba(11, 56, 97, 0.07);
+  --shadow-hover: 0 10px 28px rgba(11, 56, 97, 0.14);
+  --shadow-modal: 0 20px 48px rgba(7, 28, 51, 0.25);
+  --shadow: 0 4px 18px rgba(11, 56, 97, 0.07);
+
+  /* Typography Scales */
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-headline: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+
+  --font-heading-xl: clamp(1.8rem, 3.5vw, 2.5rem);
+  --font-heading-lg: clamp(1.4rem, 2.5vw, 2rem);
+  --font-heading-md: clamp(1.1rem, 1.6vw, 1.35rem);
+  --font-body: 0.95rem;
+  --font-label: 0.8125rem;
+
+  /* Animations & Transitions */
+  --transition-smooth: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: all 0.15s ease;
+
+  /* Legacy LMS token aliases (backward compatibility) */
+  --bg: var(--bg-canvas);
+  --surface: var(--bg-surface);
+  --surface-muted: var(--bg-surface-muted);
+  --surface-strong: var(--bg-surface-strong);
+  --surface-border: var(--border-color);
+  --text-error: var(--status-absent-text);
+  --error-bg: var(--status-absent-bg);
+  --success: var(--status-present-text);
+  --success-bg: var(--status-present-bg);
+  --accent: var(--navy-primary);
+  --accent-soft: var(--navy-light);
+}
+
+/* Dark Theme Overrides */
+html[data-theme="dark"],
+[data-theme="dark"] {
+  /* Surfaces & Backgrounds (Dark Mode) */
+  --bg-canvas: #080F1E;
+  --bg-white: #0D172A;
+  --bg-surface: #0D172A;
+  --bg-surface-muted: #132038;
+  --bg-surface-strong: #1E293B;
+  --bg-light-gray: #0F1D33;
+  --bg-hero-blue: #0A1628;
+  --bg-secondary: #0D172A;
+  --bg-tertiary: #132038;
+  --bg-card: #0D172A;
+  --bg-dark: #030712;
+
+  /* Navy Palettes (Dark Mode) */
+  --navy-primary: #60A5FA;
+  --navy-main: #F8FAFC;
+  --navy-deep: #050C1A;
+  --navy-light: #93C5FD;
+  --navy-surface: #132038;
+
+  /* Red Accents (Dark Mode) */
+  --red-accent: #FF5252;
+  --red-accent-light: #FF8A8A;
+  --red-accent-soft: rgba(255, 82, 82, 0.15);
+
+  /* Amber & Gold (Dark Mode) */
+  --amber-accent: #FBBF24;
+  --amber-accent-light: rgba(251, 191, 36, 0.15);
+  --gold-accent: #FCD34D;
+
+  /* Typography Colors (Dark Mode) */
+  --text-heading: #F8FAFC;
+  --text-primary: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
+  --text-light: #F8FAFC;
+  --text-inverse: #080F1E;
+  --text-on-navy: #F8FAFC;
+
+  /* Borders & Dividers (Dark Mode) */
+  --border-color: #1E293B;
+  --border-light: #162032;
+  --border-strong: #334155;
+  --border-dark: rgba(255, 255, 255, 0.12);
+
+  /* Status Colors (Dark Mode) */
+  --status-present-bg: rgba(16, 185, 129, 0.15);
+  --status-present-text: #34D399;
+  --status-present-border: rgba(52, 211, 153, 0.3);
+
+  --status-absent-bg: rgba(239, 68, 68, 0.15);
+  --status-absent-text: #F87171;
+  --status-absent-border: rgba(248, 113, 113, 0.3);
+
+  --status-late-bg: rgba(245, 158, 11, 0.15);
+  --status-late-text: #FBBF24;
+  --status-late-border: rgba(251, 191, 36, 0.3);
+
+  --status-info-bg: rgba(59, 130, 246, 0.15);
+  --status-info-text: #93C5FD;
+  --status-info-border: rgba(147, 197, 253, 0.3);
+
+  /* Shadows (Dark Mode) */
+  --shadow-subtle: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.55);
+  --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.7);
+  --shadow-modal: 0 20px 48px rgba(0, 0, 0, 0.8);
+  --shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+
+  /* Legacy aliases in dark mode */
+  --bg: var(--bg-canvas);
+  --surface: var(--bg-surface);
+  --surface-muted: var(--bg-surface-muted);
+  --surface-strong: var(--bg-surface-strong);
+  --surface-border: var(--border-color);
+  --text-error: var(--status-absent-text);
+  --error-bg: var(--status-absent-bg);
+  --success: var(--status-present-text);
+  --success-bg: var(--status-present-bg);
+  --accent: var(--navy-primary);
+  --accent-soft: var(--navy-light);
+}

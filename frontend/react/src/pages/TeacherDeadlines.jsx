@@ -1,10 +1,12 @@
-import React from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   createAssessment,
   deleteAssessment,
   listTeacherAssessments,
   listTeachingAssignments,
 } from '../api/apiClient'
+import { useToast } from '../context/ToastContext'
+import { CardSkeleton } from '../components/SkeletonLoader'
 
 const TYPE_OPTIONS = [
   { value: 'assignment', label: 'Assignment', icon: 'description' },
@@ -14,26 +16,24 @@ const TYPE_OPTIONS = [
 ]
 
 export default function TeacherDeadlines() {
-  const [assignments, setAssignments] = React.useState([])
-  const [assessments, setAssessments] = React.useState([])
-  const [loading, setLoading] = React.useState(true)
-  const [creating, setCreating] = React.useState(false)
-  const [deletingId, setDeletingId] = React.useState(null)
-  const [error, setError] = React.useState('')
-  const [success, setSuccess] = React.useState('')
-  const [filterType, setFilterType] = React.useState('all')
+  const { toast } = useToast()
+  const [assignments, setAssignments] = useState([])
+  const [assessments, setAssessments] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [creating, setCreating] = useState(false)
+  const [deletingId, setDeletingId] = useState(null)
+  const [filterType, setFilterType] = useState('all')
 
   // Form state
-  const [selectedAssignmentId, setSelectedAssignmentId] = React.useState('')
-  const [title, setTitle] = React.useState('')
-  const [type, setType] = React.useState('assignment')
-  const [dueDate, setDueDate] = React.useState('')
-  const [description, setDescription] = React.useState('')
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState('')
+  const [title, setTitle] = useState('')
+  const [type, setType] = useState('assignment')
+  const [dueDate, setDueDate] = useState('')
+  const [description, setDescription] = useState('')
 
-  const loadData = React.useCallback(async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
-      setError('')
       const [teachingList, assessmentList] = await Promise.all([
         listTeachingAssignments(),
         listTeacherAssessments(),
@@ -44,33 +44,31 @@ export default function TeacherDeadlines() {
         setSelectedAssignmentId(String(teachingList[0].id))
       }
     } catch (e) {
-      setError(e.message || 'Failed to load data')
+      toast.error(e.message || 'Failed to load deadlines')
     } finally {
       setLoading(false)
     }
   }, [selectedAssignmentId])
 
-  React.useEffect(() => {
+  useEffect(() => {
     loadData()
   }, [loadData])
 
   const handleCreate = async (e) => {
     e.preventDefault()
     if (!selectedAssignmentId || !title.trim() || !dueDate) {
-      setError('Please select a class/subject, title, and due date.')
+      toast.warning('Please select a course, title, and due date.')
       return
     }
 
     const chosen = assignments.find((a) => String(a.id) === selectedAssignmentId)
     if (!chosen) {
-      setError('Invalid class/subject selection.')
+      toast.error('Invalid course selection.')
       return
     }
 
     try {
       setCreating(true)
-      setError('')
-      setSuccess('')
       await createAssessment({
         classId: chosen.class.id,
         subjectId: chosen.subject.id,
@@ -79,29 +77,26 @@ export default function TeacherDeadlines() {
         dueDate: new Date(dueDate).toISOString(),
         description: description.trim() || undefined,
       })
-      setSuccess(`Deadline "${title}" created successfully!`)
+      toast.success(`Deadline "${title}" posted to students!`)
       setTitle('')
       setDescription('')
       setDueDate('')
       await loadData()
     } catch (err) {
-      setError(err.message || 'Failed to create deadline')
+      toast.error(err.message || 'Failed to post deadline')
     } finally {
       setCreating(false)
     }
   }
 
   const handleDelete = async (id, itemTitle) => {
-    if (!window.confirm(`Are you sure you want to delete "${itemTitle}"?`)) return
-
     try {
       setDeletingId(id)
-      setError('')
       await deleteAssessment(id)
-      setSuccess(`Deleted "${itemTitle}".`)
+      toast.success(`Removed "${itemTitle}".`)
       await loadData()
     } catch (err) {
-      setError(err.message || 'Failed to delete deadline')
+      toast.error(err.message || 'Failed to delete deadline')
     } finally {
       setDeletingId(null)
     }
@@ -119,206 +114,238 @@ export default function TeacherDeadlines() {
   }
 
   return (
-    <div>
+    <div className="container">
+      {/* 1. Header */}
       <div className="section-header">
         <div>
-          <span className="subtitle">Deadlines & Schedule</span>
-          <h1 className="title">Exam & Assignment Deadlines</h1>
+          <span className="subtitle">Curriculum Timetable</span>
+          <h1 className="title">Assessments & Deadlines</h1>
         </div>
       </div>
 
-      {error && <div className="error" style={{ marginBottom: 16 }}>{error}</div>}
-      {success && <div className="success" style={{ marginBottom: 16 }}>{success}</div>}
-
-      {/* Creation Card */}
-      <div className="card section" style={{ padding: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2 className="title" style={{ fontSize: '1.25rem' }}>Create New Deadline / Assessment</h2>
-          <span className="chip">Teacher Action</span>
-        </div>
-
-        <form onSubmit={handleCreate}>
-          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-            <label className="input-label">
-              <span className="label-caps">Class & Subject</span>
-              <select
-                className="input-field"
-                value={selectedAssignmentId}
-                onChange={(e) => setSelectedAssignmentId(e.target.value)}
-                disabled={creating}
-              >
-                {assignments.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.class.name} · {item.subject.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="input-label">
-              <span className="label-caps">Title</span>
-              <input
-                className="input-field"
-                type="text"
-                placeholder="e.g. Midterm Physics Exam"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                disabled={creating}
-                required
-              />
-            </label>
-
-            <label className="input-label">
-              <span className="label-caps">Type</span>
-              <select
-                className="input-field"
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                disabled={creating}
-              >
-                {TYPE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="input-label">
-              <span className="label-caps">Due Date & Time</span>
-              <input
-                className="input-field"
-                type="datetime-local"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                disabled={creating}
-                required
-              />
-            </label>
-          </div>
-
-          <label className="input-label" style={{ marginTop: 16, display: 'block' }}>
-            <span className="label-caps">Description / Instructions (Optional)</span>
-            <textarea
-              className="input-field"
-              rows={2}
-              placeholder="Provide context, required chapters, or submission instructions..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              disabled={creating}
-              style={{ width: '100%', resize: 'vertical' }}
-            />
-          </label>
-
-          <div style={{ marginTop: 16, textAlign: 'right' }}>
-            <button className="btn-primary" type="submit" disabled={creating || !assignments.length} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>add</span> {creating ? 'Creating…' : 'Add Deadline'}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Stats Summary */}
-      <div className="stats-grid section">
+      {/* 2. Stats Grid */}
+      <div className="stats-grid" style={{ marginBottom: '24px' }}>
         <div className="stat-card">
-          <span className="label-caps">Total Deadlines</span>
+          <span>Active Tasks</span>
           <strong>{stats.total}</strong>
         </div>
         <div className="stat-card">
-          <span className="label-caps">Exams</span>
-          <strong>{stats.exams}</strong>
+          <span>Exams</span>
+          <strong style={{ color: 'var(--red-accent)' }}>{stats.exams}</strong>
         </div>
         <div className="stat-card">
-          <span className="label-caps">Assignments</span>
-          <strong>{stats.assignments}</strong>
+          <span>Assignments</span>
+          <strong style={{ color: 'var(--navy-primary)' }}>{stats.assignments}</strong>
         </div>
         <div className="stat-card">
-          <span className="label-caps">Quizzes</span>
-          <strong>{stats.quizzes}</strong>
+          <span>Quizzes</span>
+          <strong style={{ color: 'var(--gold-accent)' }}>{stats.quizzes}</strong>
         </div>
       </div>
 
-      {/* Filters & List */}
-      <div className="card section toolbar-card" style={{ padding: 16, marginBottom: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button
-              className={`btn-secondary ${filterType === 'all' ? 'active-filter' : ''}`}
-              type="button"
-              onClick={() => setFilterType('all')}
-              style={{ fontWeight: filterType === 'all' ? '700' : 'normal' }}
-            >
-              All Types ({stats.total})
-            </button>
-            {TYPE_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                className={`btn-secondary ${filterType === opt.value ? 'active-filter' : ''}`}
-                type="button"
-                onClick={() => setFilterType(opt.value)}
-                style={{ fontWeight: filterType === opt.value ? '700' : 'normal', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>{opt.icon}</span> {opt.label}
-              </button>
-            ))}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+        {/* 3. Creation Form Card */}
+        <div className="card" style={{ padding: '24px', height: 'fit-content' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div>
+              <span className="subtitle">Publish Notice</span>
+              <h2 style={{ margin: 0, fontFamily: 'var(--font-headline)', fontSize: '1.2rem', color: 'var(--text-heading)' }}>
+                New Assessment
+              </h2>
+            </div>
+            <span className="chip">Faculty</span>
           </div>
+
+          <form onSubmit={handleCreate}>
+            <div className="input-label">
+              <span className="label-caps">Course Assignment</span>
+              <select
+                className="select-field"
+                value={selectedAssignmentId}
+                onChange={(e) => setSelectedAssignmentId(e.target.value)}
+                required
+              >
+                {assignments.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.class.name} · {a.subject.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="input-label">
+              <span className="label-caps">Task Category</span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                {TYPE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`btn-ghost ${type === opt.value ? 'active' : ''}`}
+                    onClick={() => setType(opt.value)}
+                    style={{
+                      justifyContent: 'flex-start',
+                      padding: '8px 12px',
+                      fontSize: '0.82rem',
+                      border: type === opt.value ? '2px solid var(--navy-primary)' : '1px solid var(--border-color)',
+                      background: type === opt.value ? 'var(--navy-surface)' : 'transparent',
+                      color: type === opt.value ? 'var(--navy-primary)' : 'var(--text-primary)',
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{opt.icon}</span>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="input-label">
+              <span className="label-caps">Title</span>
+              <input
+                type="text"
+                className="input-field"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Midterm Chapter 1-4 Exam"
+                required
+              />
+            </div>
+
+            <div className="input-label">
+              <span className="label-caps">Due Date & Time</span>
+              <input
+                type="datetime-local"
+                className="input-field"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="input-label">
+              <span className="label-caps">Instructions & Materials</span>
+              <textarea
+                className="textarea-field"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Detailed instructions or reference pages..."
+                style={{ minHeight: '80px' }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={creating}
+              style={{ width: '100%', marginTop: '8px' }}
+            >
+              <span className="material-symbols-outlined">add_task</span>
+              {creating ? 'Publishing…' : 'Publish Deadline'}
+            </button>
+          </form>
         </div>
-      </div>
 
-      {loading ? (
-        <div className="loader">Loading deadlines…</div>
-      ) : filteredAssessments.length > 0 ? (
-        <div className="space-y-3" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {filteredAssessments.map((item) => {
-            const due = new Date(item.dueDate)
-            const typeInfo = TYPE_OPTIONS.find((t) => t.value === item.type) || TYPE_OPTIONS[0]
-            const isOverdue = due.getTime() < Date.now()
+        {/* 4. Active Deadlines List */}
+        <div>
+          <div className="card" style={{ marginBottom: '16px', padding: '12px 16px' }}>
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto' }}>
+              {['all', 'exam', 'assignment', 'quiz', 'project'].map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  className={`btn-ghost ${filterType === tab ? 'active' : ''}`}
+                  onClick={() => setFilterType(tab)}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '0.8rem',
+                    textTransform: 'capitalize',
+                    background: filterType === tab ? 'var(--navy-primary)' : 'transparent',
+                    color: filterType === tab ? '#FFFFFF' : 'var(--text-secondary)',
+                    borderRadius: 'var(--radius-pill)',
+                  }}
+                >
+                  {tab === 'all' ? 'All Deadlines' : `${tab}s`}
+                </button>
+              ))}
+            </div>
+          </div>
 
-            return (
-              <div className="card" key={item.id} style={{ padding: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '1.4rem', color: 'var(--text-secondary, #475569)' }}>{typeInfo.icon}</span>
-                      <h3 className="title" style={{ fontSize: '1.1rem', margin: 0 }}>{item.title}</h3>
-                      <span className="chip" style={{ textTransform: 'capitalize' }}>{item.type}</span>
-                      {isOverdue && <span className="chip" style={{ background: '#fee2e2', color: '#991b1b' }}>Past Due</span>}
+          {loading ? (
+            <CardSkeleton lines={3} />
+          ) : filteredAssessments.length > 0 ? (
+            <div style={{ display: 'grid', gap: '12px' }}>
+              {filteredAssessments.map((item) => {
+                const dateObj = new Date(item.dueDate)
+                const isPast = dateObj < new Date()
+
+                return (
+                  <div 
+                    key={item.id} 
+                    className="card" 
+                    style={{ 
+                      padding: '18px 20px',
+                      borderLeft: `4px solid ${
+                        item.type === 'exam' ? 'var(--red-accent)' : item.type === 'quiz' ? 'var(--gold-accent)' : 'var(--navy-primary)'
+                      }`
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '8px' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <span className="status-pill present" style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>
+                            {item.type}
+                          </span>
+                          <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                            {item.class?.name} · {item.subject?.name}
+                          </span>
+                        </div>
+                        <h3 style={{ margin: 0, fontFamily: 'var(--font-headline)', fontSize: '1.15rem', color: 'var(--text-primary)' }}>
+                          {item.title}
+                        </h3>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        onClick={() => handleDelete(item.id, item.title)}
+                        disabled={deletingId === item.id}
+                        title="Delete this deadline"
+                        style={{ color: 'var(--status-absent-text)', padding: '4px 8px' }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>delete</span>
+                      </button>
                     </div>
 
-                    <p className="summary" style={{ margin: '4px 0 8px 0' }}>
-                      <strong>{item.class?.name}</strong> · {item.subject?.name}
-                    </p>
-
                     {item.description && (
-                      <p style={{ color: 'var(--text-secondary, #64748b)', fontSize: '0.9rem', marginBottom: 8 }}>
+                      <p style={{ margin: '0 0 12px', fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
                         {item.description}
                       </p>
                     )}
 
-                    <p className="label-caps" style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                      Due: {due.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} at {due.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', borderTop: '1px solid var(--border-color)', paddingTop: '10px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: isPast ? 'var(--status-absent-text)' : 'var(--text-secondary)' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>event</span>
+                        Due {dateObj.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })} at {dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      {isPast && (
+                        <span className="status-pill absent" style={{ fontSize: '0.7rem' }}>Expired</span>
+                      )}
+                    </div>
                   </div>
-
-                  <div>
-                    <button
-                      className="btn-secondary"
-                      type="button"
-                      onClick={() => handleDelete(item.id, item.title)}
-                      disabled={deletingId === item.id}
-                      style={{ color: '#dc2626', borderColor: '#fca5a5' }}
-                    >
-                      {deletingId === item.id ? 'Deleting…' : 'Delete'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
+                )
+              })}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <span className="material-symbols-outlined" style={{ fontSize: '36px', color: 'var(--text-muted)' }}>
+                fact_check
+              </span>
+              <p style={{ margin: '8px 0 0', color: 'var(--text-secondary)' }}>
+                No deadlines posted for this category.
+              </p>
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="empty-state">No deadlines found for the selected filter.</div>
-      )}
+      </div>
     </div>
   )
 }

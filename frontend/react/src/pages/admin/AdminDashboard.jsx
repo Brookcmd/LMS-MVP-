@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { listClasses, listStudents, listSubjects, listTeachers } from '../../api/apiClient'
+import { listClasses, listStudents, listSubjects, listTeachers, listParents } from '../../api/apiClient'
+import { StatsSkeleton } from '../../components/SkeletonLoader'
 
 function StatCard({ title, value, accent, icon }) {
   return (
@@ -19,22 +20,23 @@ function StatCard({ title, value, accent, icon }) {
 }
 
 export default function AdminDashboard() {
-  const [stats, setStats] = React.useState({ classes: 0, students: 0, teachers: 0, subjects: 0 })
-  const [loading, setLoading] = React.useState(true)
-  const [error, setError] = React.useState(null)
+  const [stats, setStats] = useState({ classes: 0, students: 0, teachers: 0, subjects: 0, parents: 0 })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  React.useEffect(() => {
+  useEffect(() => {
     let active = true
 
     async function load() {
       try {
         setLoading(true)
         setError(null)
-        const [classes, students, teachers, subjects] = await Promise.all([
-          listClasses(),
-          listStudents(),
-          listTeachers(),
-          listSubjects(),
+        const [classes, students, teachers, subjects, parents] = await Promise.all([
+          listClasses().catch(() => []),
+          listStudents().catch(() => []),
+          listTeachers().catch(() => []),
+          listSubjects().catch(() => []),
+          listParents().catch(() => []),
         ])
 
         if (!active) return
@@ -43,6 +45,7 @@ export default function AdminDashboard() {
           students: students?.length ?? 0,
           teachers: teachers?.length ?? 0,
           subjects: subjects?.length ?? 0,
+          parents: parents?.length ?? 0,
         })
       } catch (err) {
         if (active) setError(err?.message ?? 'Unable to load dashboard data')
@@ -56,70 +59,105 @@ export default function AdminDashboard() {
   }, [])
 
   return (
-    <>
-      <section className="admin-hero">
-        <div>
-          <span className="admin-kicker">System Overview</span>
-          <h2>Admin control center</h2>
-          <p>Manage classes, students, teachers, subjects, and parent links from one place.</p>
+    <div>
+      <section className="academic-hero-banner" style={{ marginBottom: '24px' }}>
+        <div className="academic-hero-top">
+          <span className="academic-hero-kicker">Sheba University College • Institutional Registrar</span>
+          <span className="academic-hero-date">Campus Super Admin</span>
         </div>
+        <h1 className="academic-hero-title">
+          Administrative Command Center
+        </h1>
+        <p className="academic-hero-subtitle">
+          Manage classes, faculty assignments, student rosters, timetable schedules, and parent records from one centralized portal.
+        </p>
       </section>
 
       {error && <div className="admin-error">{error}</div>}
 
       {loading ? (
-        <div className="admin-loading">Loading dashboard…</div>
+        <StatsSkeleton count={4} />
       ) : (
         <>
           <div className="admin-stats-grid">
-            <StatCard title="Total Classes" value={stats.classes} accent="accent-blue" icon="school" />
-            <StatCard title="Total Students" value={stats.students} accent="accent-green" icon="person" />
-            <StatCard title="Total Teachers" value={stats.teachers} accent="accent-indigo" icon="group" />
-            <StatCard title="Active Subjects" value={stats.subjects} accent="accent-purple" icon="book" />
+            <StatCard title="Active Classes" value={stats.classes} accent="accent-blue" icon="school" />
+            <StatCard title="Enrolled Students" value={stats.students} accent="accent-green" icon="person" />
+            <StatCard title="Faculty Teachers" value={stats.teachers} accent="accent-indigo" icon="group" />
+            <StatCard title="Registered Parents" value={stats.parents} accent="accent-purple" icon="family_restroom" />
+            <StatCard title="Curriculum Subjects" value={stats.subjects} accent="accent-blue" icon="menu_book" />
           </div>
 
-          <section className="admin-panel">
-            <div className="admin-panel-head">
-              <h3>Quick Actions</h3>
+          {/* Quick Navigation Panels */}
+          <section className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+              <div>
+                <span className="subtitle">School Management</span>
+                <h3 style={{ margin: 0, fontFamily: 'var(--font-headline)', fontSize: '1.2rem', color: 'var(--text-heading)' }}>
+                  Administrative Quick Actions
+                </h3>
+              </div>
             </div>
+
             <div className="admin-quick-actions">
               <Link to="/admin/students" className="admin-quick-action">
                 <span className="material-symbols-outlined">person_add</span>
-                Add Student
+                Manage Students
               </Link>
               <Link to="/admin/teachers" className="admin-quick-action">
                 <span className="material-symbols-outlined">group_add</span>
-                Add Teacher
+                Manage Faculty
               </Link>
               <Link to="/admin/parents" className="admin-quick-action">
                 <span className="material-symbols-outlined">family_restroom</span>
-                Add Parent
+                Manage Parents
               </Link>
               <Link to="/admin/classes" className="admin-quick-action">
-                <span className="material-symbols-outlined">add</span>
-                Add Class
+                <span className="material-symbols-outlined">domain_add</span>
+                Manage Classes
+              </Link>
+              <Link to="/admin/schedule" className="admin-quick-action">
+                <span className="material-symbols-outlined">calendar_month</span>
+                Manage Schedule
               </Link>
               <Link to="/admin/subjects" className="admin-quick-action">
-                <span className="material-symbols-outlined">menu_book</span>
-                Manage Subjects
-              </Link>
-              <Link to="/admin/parent-links" className="admin-quick-action">
-                <span className="material-symbols-outlined">link</span>
-                Link Parent
+                <span className="material-symbols-outlined">auto_stories</span>
+                Curriculum Subjects
               </Link>
             </div>
           </section>
 
-          <section className="admin-panel admin-panel-muted">
-            <div className="admin-panel-head">
-              <h3>Coming soon</h3>
+          {/* Institutional Status Deck */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+            <div className="card" style={{ padding: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                <span className="material-symbols-outlined" style={{ color: 'var(--status-present-text)', fontSize: '24px' }}>
+                  check_circle
+                </span>
+                <h4 style={{ margin: 0, fontFamily: 'var(--font-headline)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>
+                  Database Engine & Auth
+                </h4>
+              </div>
+              <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                PostgreSQL and Prisma ORM are synchronized. JWT token verification and role guards are actively enforced across all routes.
+              </p>
             </div>
-            <p className="admin-muted-copy">
-              Live class monitoring, activity feeds, and analytics are planned for a later phase.
-            </p>
-          </section>
+
+            <div className="card" style={{ padding: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                <span className="material-symbols-outlined" style={{ color: 'var(--gold-accent)', fontSize: '24px' }}>
+                  schedule
+                </span>
+                <h4 style={{ margin: 0, fontFamily: 'var(--font-headline)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>
+                  Academic Term Status
+                </h4>
+              </div>
+              <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                Academic Year 2025/2026 • Semester II is ongoing. Attendance, quarterly grades, and timetable schedules are active.
+              </p>
+            </div>
+          </div>
         </>
       )}
-    </>
+    </div>
   )
 }

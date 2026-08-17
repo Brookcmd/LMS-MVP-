@@ -1,6 +1,7 @@
-import React from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
+import { useTheme } from '../../context/ThemeContext'
 import logo from '../../assets/sheba-logo.png'
 
 const NAV_ITEMS = [
@@ -16,9 +17,17 @@ const NAV_ITEMS = [
 
 export default function AdminLayout() {
   const { user, logout } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
-  const [search, setSearch] = React.useState('')
+  const location = useLocation()
+  const [search, setSearch] = useState('')
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const adminName = user?.name || user?.email || 'Admin User'
+
+  // Close mobile drawer whenever route changes
+  useEffect(() => {
+    setDrawerOpen(false)
+  }, [location.pathname])
 
   function handleSearch(event) {
     event.preventDefault()
@@ -36,7 +45,17 @@ export default function AdminLayout() {
 
   return (
     <div className="admin-shell">
-      <aside className="admin-sidebar">
+      {/* Mobile Drawer Overlay */}
+      {drawerOpen && (
+        <div 
+          className="admin-drawer-backdrop" 
+          onClick={() => setDrawerOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Admin Sidebar Navigation */}
+      <aside className={`admin-sidebar ${drawerOpen ? 'open' : ''}`}>
         <div className="admin-brand">
           <div className="admin-brand-icon">
             <img src={logo} alt="" aria-hidden="true" />
@@ -45,6 +64,17 @@ export default function AdminLayout() {
             <h1>Sheba Estudent</h1>
             <p>Admin Portal</p>
           </div>
+          {drawerOpen && (
+            <button 
+              type="button" 
+              className="admin-icon-btn" 
+              onClick={() => setDrawerOpen(false)}
+              aria-label="Close navigation menu"
+              style={{ marginLeft: 'auto', color: '#CBD5E1' }}
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          )}
         </div>
 
         <nav className="admin-nav">
@@ -54,6 +84,7 @@ export default function AdminLayout() {
               to={item.to}
               end={item.end}
               className={({ isActive }) => (isActive ? 'active' : undefined)}
+              onClick={() => setDrawerOpen(false)}
             >
               <span className="material-symbols-outlined">{item.icon}</span>
               {item.label}
@@ -71,15 +102,37 @@ export default function AdminLayout() {
 
       <div className="admin-main">
         <header className="admin-topbar">
-          <form className="admin-search-box" onSubmit={handleSearch}>
-            <span className="material-symbols-outlined">search</span>
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search students, teachers, classes..."
-            />
-          </form>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button 
+              type="button" 
+              className="admin-mobile-menu-btn" 
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open navigation menu"
+            >
+              <span className="material-symbols-outlined">menu</span>
+            </button>
+
+            <form className="admin-search-box" onSubmit={handleSearch}>
+              <span className="material-symbols-outlined">search</span>
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search students, teachers, classes..."
+              />
+            </form>
+          </div>
+
           <div className="admin-topbar-actions">
+            <button 
+              type="button" 
+              className="icon-button" 
+              onClick={toggleTheme} 
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              <span className="material-symbols-outlined">
+                {theme === 'dark' ? 'light_mode' : 'dark_mode'}
+              </span>
+            </button>
             <div className="admin-user-pill">
               <div>
                 <strong>{adminName}</strong>

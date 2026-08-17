@@ -1,228 +1,188 @@
-import React from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { getTeacherSchedule } from '../api/apiClient'
+import { LiveClassCard } from '../components/LiveClassCard'
+import { CardSkeleton } from '../components/SkeletonLoader'
+import { useToast } from '../context/ToastContext'
 
 const DAYS = [
-  { key: 'monday', label: 'Mon' },
-  { key: 'tuesday', label: 'Tue' },
-  { key: 'wednesday', label: 'Wed' },
-  { key: 'thursday', label: 'Thu' },
-  { key: 'friday', label: 'Fri' },
+  { key: 'monday', label: 'Mon', full: 'Monday' },
+  { key: 'tuesday', label: 'Tue', full: 'Tuesday' },
+  { key: 'wednesday', label: 'Wed', full: 'Wednesday' },
+  { key: 'thursday', label: 'Thu', full: 'Thursday' },
+  { key: 'friday', label: 'Fri', full: 'Friday' },
 ]
 
-const DAY_FULL = {
-  monday: 'Monday',
-  tuesday: 'Tuesday',
-  wednesday: 'Wednesday',
-  thursday: 'Thursday',
-  friday: 'Friday',
-}
-
 const TODAY_KEY = (() => {
-  const d = new Date().getDay() // 0=Sun
+  const d = new Date().getDay()
   const map = { 1: 'monday', 2: 'tuesday', 3: 'wednesday', 4: 'thursday', 5: 'friday' }
   return map[d] || 'monday'
 })()
 
-const SUBJECT_COLORS = [
-  { bg: '#f0f4ff', border: '#c7d7fe', text: '#3730a3' },
-  { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534' },
-  { bg: '#fff7ed', border: '#fed7aa', text: '#9a3412' },
-  { bg: '#fdf4ff', border: '#e9d5ff', text: '#7e22ce' },
-  { bg: '#f0fdfa', border: '#99f6e4', text: '#115e59' },
-]
-
-function subjectColor(subjectId) {
-  return SUBJECT_COLORS[subjectId % SUBJECT_COLORS.length]
-}
-
-function formatTime(t) {
-  const [h, m] = t.split(':').map(Number)
-  const ampm = h < 12 ? 'AM' : 'PM'
-  const h12 = h % 12 || 12
-  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
-}
-
 export default function TeacherSchedule() {
-  const [slots, setSlots] = React.useState([])
-  const [loading, setLoading] = React.useState(true)
-  const [error, setError] = React.useState('')
-  const [activeDay, setActiveDay] = React.useState(TODAY_KEY)
+  const { toast } = useToast()
+  const [slots, setSlots] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [activeDay, setActiveDay] = useState(TODAY_KEY)
 
-  const loadData = React.useCallback(async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
-      setError('')
       const scheduleData = await getTeacherSchedule()
       setSlots(scheduleData || [])
     } catch (e) {
-      setError(e.message || 'Failed to load schedule')
+      toast.error(e.message || 'Failed to load teaching schedule')
     } finally {
       setLoading(false)
     }
   }, [])
 
-  // Poll every 30 seconds for real-time feel
-  React.useEffect(() => {
+  useEffect(() => {
     loadData()
-    const interval = setInterval(loadData, 30_000)
-    return () => clearInterval(interval)
   }, [loadData])
 
-  const daySlots = slots
-    .filter((s) => s.dayOfWeek === activeDay)
-    .sort((a, b) => a.startTime.localeCompare(b.startTime))
+  const slotList = Array.isArray(slots) ? slots : []
+  const daySlots = slotList
+    .filter((s) => (s.dayOfWeek || '').toLowerCase() === activeDay)
+    .sort((a, b) => String(a.startTime || '').localeCompare(String(b.startTime || '')))
 
-  // Weekly stats
-  const totalSlots = slots.length
-  const uniqueDays = new Set(slots.map((s) => s.dayOfWeek)).size
+  const uniqueDays = new Set(slotList.map((s) => (s.dayOfWeek || '').toLowerCase())).size
 
   return (
-    <div>
+    <div className="container">
+      {/* 1. Header */}
       <div className="section-header">
         <div>
-          <span className="subtitle">Timetable</span>
-          <h1 className="title">My Teaching Schedule</h1>
+          <span className="subtitle">Classroom Timetable</span>
+          <h1 className="title">Teaching Schedule</h1>
         </div>
       </div>
 
-      {error && <div className="error" style={{ marginBottom: 16 }}>{error}</div>}
+      {/* 2. Top Live Class Card */}
+      <div style={{ marginBottom: '24px' }}>
+        <LiveClassCard slots={slotList} />
+      </div>
 
-      {/* Stats */}
-      <div className="stats-grid section">
+      {/* 3. Summary Stats */}
+      <div className="stats-grid" style={{ marginBottom: '20px' }}>
         <div className="stat-card">
-          <span className="label-caps">Total Slots</span>
-          <strong>{totalSlots}</strong>
+          <span>Weekly Periods</span>
+          <strong>{slotList.length}</strong>
         </div>
         <div className="stat-card">
-          <span className="label-caps">Active Days</span>
-          <strong>{uniqueDays} / 5</strong>
+          <span>Teaching Days</span>
+          <strong>{uniqueDays} / 5 Days</strong>
         </div>
         <div className="stat-card">
-          <span className="label-caps">Today</span>
-          <strong>{DAY_FULL[TODAY_KEY] || '—'}</strong>
+          <span>Viewing Day</span>
+          <strong style={{ textTransform: 'capitalize' }}>
+            {DAYS.find(d => d.key === activeDay)?.full || activeDay}
+          </strong>
         </div>
       </div>
 
-      {/* Day Tab Strip */}
-      <div className="card section toolbar-card" style={{ padding: '12px 16px', marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
+      {/* 4. Day Tabs Strip */}
+      <div className="card" style={{ padding: '12px 16px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto' }}>
           {DAYS.map((d) => {
-            const count = slots.filter((s) => s.dayOfWeek === d.key).length
+            const count = slotList.filter((s) => (s.dayOfWeek || '').toLowerCase() === d.key).length
             const isToday = d.key === TODAY_KEY
             const isActive = d.key === activeDay
+
             return (
               <button
                 key={d.key}
                 type="button"
                 onClick={() => setActiveDay(d.key)}
-                className={`btn-secondary ${isActive ? 'active-filter' : ''}`}
+                className={`btn-ghost ${isActive ? 'active' : ''}`}
                 style={{
-                  minWidth: 72,
-                  fontWeight: isActive ? 700 : 400,
+                  flex: 1,
+                  minWidth: '80px',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: 2,
-                  padding: '8px 10px',
-                  position: 'relative',
+                  padding: '10px 12px',
+                  borderRadius: 'var(--radius-btn)',
+                  background: isActive ? 'var(--navy-primary)' : isToday ? 'var(--navy-surface)' : 'transparent',
+                  color: isActive ? '#FFFFFF' : isToday ? 'var(--navy-primary)' : 'var(--text-primary)',
+                  border: isActive ? 'none' : isToday ? '1px solid var(--navy-light)' : '1px solid var(--border-color)',
+                  transition: 'var(--transition-fast)',
                 }}
               >
-                <span style={{ fontSize: '0.78rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                  {d.label}
+                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.06em', opacity: isActive ? 0.9 : 0.7 }}>
+                  {d.label} {isToday ? '•' : ''}
                 </span>
-                <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>{count}</span>
-                {isToday && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: 4,
-                      right: 6,
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      background: 'var(--accent, #4338ca)',
-                    }}
-                  />
-                )}
+                <span style={{ fontWeight: 800, fontSize: '1.2rem', marginTop: '2px' }}>
+                  {count}
+                </span>
               </button>
             )
           })}
         </div>
       </div>
 
-      {/* Slot List */}
+      {/* 5. Timetable Schedule List */}
       {loading ? (
-        <div className="loader">Loading schedule…</div>
+        <CardSkeleton lines={4} />
       ) : daySlots.length > 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {daySlots.map((slot) => {
-            const color = subjectColor(slot.subject.id)
-            return (
-              <div
-                key={slot.id}
-                className="card"
-                style={{
-                  padding: '16px 20px',
-                  borderLeft: `4px solid ${color.border}`,
-                  background: color.bg,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: 12,
-                  flexWrap: 'wrap',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  {/* Time block */}
-                  <div style={{ textAlign: 'center', minWidth: 68 }}>
-                    <div style={{ fontWeight: 700, fontSize: '1rem', color: color.text }}>
-                      {formatTime(slot.startTime)}
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                      {formatTime(slot.endTime)}
-                    </div>
+        <div style={{ display: 'grid', gap: '12px' }}>
+          {daySlots.map((slot) => (
+            <div 
+              key={slot.id} 
+              className="card"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '18px 24px',
+                flexWrap: 'wrap',
+                gap: '16px',
+                borderLeft: '4px solid var(--navy-primary)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
+                <div style={{ background: 'var(--navy-surface)', padding: '10px 14px', borderRadius: 'var(--radius-btn)', textAlign: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ color: 'var(--navy-primary)', fontSize: '24px' }}>
+                    alarm
+                  </span>
+                  <span style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--navy-primary)', marginTop: '2px' }}>
+                    {slot.startTime}
+                  </span>
+                </div>
+
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span className="status-pill present" style={{ fontSize: '0.72rem' }}>
+                      {slot.class?.name || 'Class'}
+                    </span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                      {slot.startTime} – {slot.endTime}
+                    </span>
                   </div>
-                  {/* Info */}
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '1.2rem', color: color.text }}>
-                        school
-                      </span>
-                      <h3 className="title" style={{ fontSize: '1rem', margin: 0 }}>
-                        {slot.subject.name}
-                      </h3>
-                      <span className="chip" style={{ background: color.bg, color: color.text, borderColor: color.border }}>
-                        {slot.class.name}
-                      </span>
-                    </div>
-                    {slot.room && (
-                      <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>meeting_room</span>
-                        {slot.room}
-                      </p>
-                    )}
-                  </div>
+                  <h3 style={{ margin: 0, fontFamily: 'var(--font-headline)', fontSize: '1.25rem', color: 'var(--text-primary)' }}>
+                    {slot.subject?.name || 'Subject'}
+                  </h3>
                 </div>
               </div>
-            )
-          })}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="chip">
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>meeting_room</span>
+                  {slot.room || 'Room 101'}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="empty-state">
-          <span className="material-symbols-outlined" style={{ fontSize: '2rem', marginBottom: 8, display: 'block' }}>
-            calendar_view_week
+          <span className="material-symbols-outlined" style={{ fontSize: '40px', color: 'var(--text-muted)' }}>
+            event_available
           </span>
-          No classes scheduled for {DAY_FULL[activeDay]}.
+          <p style={{ margin: '8px 0 0', color: 'var(--text-secondary)' }}>
+            No teaching periods scheduled for this day.
+          </p>
         </div>
       )}
-
-      {/* Realtime notice */}
-      <p style={{ marginTop: 20, fontSize: '0.78rem', color: '#94a3b8', textAlign: 'center' }}>
-        <span className="material-symbols-outlined" style={{ fontSize: '0.95rem', verticalAlign: 'middle', marginRight: 4 }}>
-          sync
-        </span>
-        Schedule refreshes automatically every 30 seconds
-      </p>
     </div>
   )
 }
