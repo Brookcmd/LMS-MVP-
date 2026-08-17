@@ -27,8 +27,8 @@ export function Header({ lang, setLang, t, theme, toggleTheme, openModal, setSea
       <div className="aau-top-utility-bar">
         <div className="aau-top-utility-container">
           <div className="aau-top-left-announcement">
-            <Radio size={14} className="aau-radio-pulse" />
-            <span>Stay Tuned 99.4 FM Sheba Broadcast • Admissions 2026/27 Open</span>
+            {/* <Radio size={14} className="aau-radio-pulse" />
+            <span>Stay Tuned 99.4 FM Sheba Broadcast • Admissions 2026/27 Open</span> */}
           </div>
 
           <div className="aau-top-right-actions">
