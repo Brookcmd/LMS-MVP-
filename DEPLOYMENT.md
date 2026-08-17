@@ -19,8 +19,8 @@ This guide covers deploying the LMS application for client testing using **Rende
 Make sure your repository has the latest code pushed:
 ```bash
 git add .
-git commit -m "Configure CORS, Prisma config and preparation for Render + Vercel deployment"
-git push origin main
+git commit -m "Configure CORS, Prisma build scripts, and deployment configuration"
+git push origin master
 ```
 
 ---
@@ -32,7 +32,7 @@ git push origin main
 3. Configure the following fields:
    - **Name**: `lms-backend` (or any name you choose)
    - **Region**: Select closest region (e.g., Frankfurt / EU Central or Oregon)
-   - **Branch**: `main`
+   - **Branch**: `master` (or your active branch)
    - **Root Directory**: `backend`
    - **Runtime**: `Node`
    - **Build Command**: `npm install && npx prisma generate && npm run build`
