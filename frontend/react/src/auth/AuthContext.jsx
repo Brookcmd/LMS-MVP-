@@ -29,7 +29,15 @@ export function AuthProvider({ children }){
     setUser(null)
   }
 
-  return <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>
+  function updateUser(fields) {
+    setUser((prev) => {
+      const next = { ...prev, ...fields }
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(next))
+      return next
+    })
+  }
+
+  return <AuthContext.Provider value={{ user, login, logout, updateUser }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth(){ return React.useContext(AuthContext) }

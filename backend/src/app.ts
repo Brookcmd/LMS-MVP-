@@ -18,13 +18,15 @@ import messagesRouter from "./routes/messages";
 import notificationsRouter from "./routes/notifications";
 import studentRouter from "./routes/student";
 import contactRouter from "./routes/contact";
+import profileRouter from "./routes/profile";
 
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "10mb" })); // Support avatar uploads
 app.use("/health", healthRouter);
 app.use("/auth", authRouter);
+app.use("/profile", profileRouter);
 app.use("/classes", classesRouter);
 app.use("/students", studentsRouter);
 app.use("/teachers", teachersRouter);

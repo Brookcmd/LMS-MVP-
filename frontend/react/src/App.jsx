@@ -25,6 +25,7 @@ import AdminSchedule from './pages/admin/AdminSchedule'
 import AdminSubjects from './pages/admin/AdminSubjects'
 import AdminParentLinks from './pages/admin/AdminParentLinks'
 import LandingPage from './pages/LandingPage'
+import NotFound from './pages/NotFound'
 import Messages from './pages/Messages'
 import BottomNav from './components/BottomNav'
 import logo from './assets/sheba-logo.png'
@@ -240,6 +241,24 @@ function AppContent() {
   const isLoginRoute = location.pathname === '/login'
   const isLandingRoute = location.pathname === '/' && !user
 
+  const KNOWN_ROUTES = [
+    '/',
+    '/login',
+    '/notifications',
+    '/messages',
+    '/attendance',
+    '/teacher',
+    '/teacher/grades',
+    '/teacher/deadlines',
+    '/teacher/schedule',
+    '/grades',
+    '/deadlines',
+    '/schedule',
+    '/profile',
+  ]
+  const isKnownRoute = KNOWN_ROUTES.includes(location.pathname) || location.pathname.startsWith('/admin')
+  const isNotFoundRoute = !isKnownRoute
+
   const roleLabels = {
     parent: 'Parent Portal',
     teacher: 'Teacher Hub',
@@ -248,8 +267,8 @@ function AppContent() {
   }
 
   return (
-    <div className={`app-shell${isAdmin ? ' app-shell-admin' : ''}${isLoginRoute ? ' app-shell-login' : ''}${isLandingRoute ? ' app-shell-landing' : ''}`}>
-      {user && !isAdmin && (
+    <div className={`app-shell${isAdmin ? ' app-shell-admin' : ''}${isLoginRoute ? ' app-shell-login' : ''}${isLandingRoute ? ' app-shell-landing' : ''}${isNotFoundRoute ? ' app-shell-notfound' : ''}`}>
+      {user && !isAdmin && !isNotFoundRoute && (
         <header className="topbar">
           <div className="brand" onClick={() => navigate('/')}>
             <img className="brand-logo" src={logo} alt="" aria-hidden="true" />
@@ -275,6 +294,25 @@ function AppContent() {
                 <span className="material-symbols-outlined">notifications</span>
               </button>
             )}
+            <button 
+              type="button" 
+              className="icon-button" 
+              title="My Account Profile" 
+              onClick={() => navigate('/profile')}
+              style={{ padding: '2px' }}
+            >
+              {user.avatarUrl ? (
+                <img 
+                  src={user.avatarUrl} 
+                  alt={user.name} 
+                  style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} 
+                />
+              ) : (
+                <span className="avatar" style={{ width: '28px', height: '28px', fontSize: '0.75rem' }}>
+                  {(user.name || user.email || 'U')[0].toUpperCase()}
+                </span>
+              )}
+            </button>
             <button className="icon-button" title="Sign out" onClick={logout}>
               <span className="material-symbols-outlined">logout</span>
             </button>
@@ -282,7 +320,7 @@ function AppContent() {
         </header>
       )}
 
-      <main className={`content${isAdmin ? ' content-admin' : ''}${isLoginRoute ? ' content-login' : ''}${isLandingRoute ? ' content-landing' : ''}`}>
+      <main className={`content${isAdmin ? ' content-admin' : ''}${isLoginRoute ? ' content-login' : ''}${isLandingRoute ? ' content-landing' : ''}${isNotFoundRoute ? ' content-notfound' : ''}`}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={user ? <HomeRedirect /> : <LandingPage />} />
@@ -307,11 +345,11 @@ function AppContent() {
             <Route path="parent-links" element={<AdminParentLinks />} />
           </Route>
           <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
 
-      {user && !isAdmin && <BottomNav />}
+      {user && !isAdmin && !isNotFoundRoute && <BottomNav />}
       <ToastContainer />
     </div>
   )

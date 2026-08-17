@@ -40,6 +40,7 @@ This is the source of truth for what to build and in what order. If a session's 
 20. [x] Teacher: bulk grade upload via Excel template (spec 0003)
 21. [x] Merge landing page into LMS frontend (spec 0004)
 22. [x] LMS UI/UX and aesthetic modernization across all portals (spec 0006)
+23. [x] User Profile Management & Security (Name, Phone, Avatar Upload, Password Rotation)
 
 ## Explicitly cut — do not build
 
@@ -48,6 +49,8 @@ SCORM/xAPI, e-commerce/payments, gamification/badges, AI chatbots, BI tool integ
 ---
 
 ## Progress log
+
+- 2026-08-17 — Feature 23 done. Added full user profile management and password security. Updated Prisma schema with `avatarUrl` on `User`. Implemented `GET /profile/me`, `PUT /profile/me`, and `POST /profile/change-password` routes with bcrypt hashing in `backend/src/routes/profile.ts`. Overhauled `Profile.jsx` with photo upload (JPG/PNG/WebP with live preview), editable personal info (Name, Phone), password update with current password validation, and institutional account overview. Added clickable profile avatar in topbar. All 49 backend unit tests pass.
 
 - 2026-08-17 — Feature 22 done. Completed full LMS UI/UX and aesthetic modernization across all portals (spec 0006). Transferred AAU Sheba Navy (`#0B3861`) and Sheba Crimson (`#E63946`) institutional design system into shared `tokens.css` and overhauled `styles.css`. Implemented global `ToastProvider` for floating feedback notices, `SkeletonLoader` shimmer states, circular SVG `AttendanceRing`, and real-time pulsating `LiveClassCard`. Redesigned `ParentDashboard.jsx` with institutional hero banner, child switcher pills, and dual KPI cards. Upgraded `TeacherAttendance.jsx` with 1-click batch actions and live student status counters. Upgraded `ParentGrades.jsx` with visual score progress bars and letter grade badges. Integrated light/dark `ThemeProvider` across App, TopBar, Login, and AdminLayout. All 43 backend tests and frontend production build pass.
 

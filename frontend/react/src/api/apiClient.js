@@ -194,8 +194,17 @@ export async function getStudentAttendance({ from, to }) {
 export async function getStudentAssessments() {
   return request('/assessments/student')
 }
-export async function getStudentProfile() {
-  return request('/student/profile')
+// User Profile Management
+export async function getMyProfile() {
+  return request('/profile/me')
+}
+
+export async function updateMyProfile(body) {
+  return request('/profile/me', { method: 'PUT', body })
+}
+
+export async function changeMyPassword(body) {
+  return request('/profile/change-password', { method: 'POST', body })
 }
 
 

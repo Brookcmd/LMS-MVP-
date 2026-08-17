@@ -3,7 +3,7 @@ import { getStudentAttendanceHistoryHandler } from "../controllers/parent-attend
 import { authMiddleware } from "../middleware/auth";
 import { roleMiddleware } from "../middleware/role";
 import { prisma } from "../lib/prisma";
-import { AppError } from "../lib/app-error";
+import { AppError, appErrors } from "../lib/app-error";
 
 const studentRouter = express.Router();
 
@@ -29,7 +29,7 @@ studentRouter.get("/profile", async (req, res, next) => {
     });
 
     if (!student) {
-      throw new AppError("Student record not found", 404, "NOT_FOUND");
+      throw appErrors.notFound("Student record not found");
     }
 
     res.json({ success: true, data: student });
