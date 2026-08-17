@@ -1,7 +1,7 @@
 import React from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
-import { getChildAttendanceHistory, listParentStudents } from '../api/apiClient'
+import { getChildAttendanceHistory, getStudentAttendance, listParentStudents } from '../api/apiClient'
 
 function useQuery(){ return new URLSearchParams(useLocation().search) }
 
@@ -38,6 +38,7 @@ function buildDateRail(selectedDate){
 
 export default function ParentAttendance(){
   const { user } = useAuth()
+  const isStudent = user?.role === 'student'
   const q = useQuery()
   const defaultStudent = q.get('studentId') || ''
   const defaultDate = q.get('date') || ''
@@ -53,6 +54,7 @@ export default function ParentAttendance(){
   const dateRail = React.useMemo(() => buildDateRail(selectedDate), [selectedDate])
 
   async function loadStudents(){
+    if (isStudent) return
     setError(null)
     setLoadingStudents(true)
     try {
@@ -69,7 +71,7 @@ export default function ParentAttendance(){
   }
 
   async function load(){
-    if(!studentId) {
+    if (!isStudent && !studentId) {
       setError('Please select a student')
       return
     }
@@ -78,7 +80,9 @@ export default function ParentAttendance(){
     setLoading(true)
 
     try {
-      const res = await getChildAttendanceHistory({ studentId, from: selectedDate, to: selectedDate })
+      const res = isStudent
+        ? await getStudentAttendance({ from: selectedDate, to: selectedDate })
+        : await getChildAttendanceHistory({ studentId, from: selectedDate, to: selectedDate })
       setData(res)
     } catch (err) {
       setError(err?.message ?? 'Unable to load attendance history')
@@ -90,12 +94,13 @@ export default function ParentAttendance(){
   React.useEffect(() => {
     if (!user) return
     loadStudents()
-  }, [user])
+  }, [user, isStudent])
 
   React.useEffect(() => {
-    if (!user || !studentId) return
+    if (!user) return
+    if (!isStudent && !studentId) return
     load()
-  }, [user, studentId, selectedDate])
+  }, [user, studentId, selectedDate, isStudent])
 
   React.useEffect(() => {
     activeDateRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
@@ -121,25 +126,27 @@ export default function ParentAttendance(){
       <div className="section-header">
         <div>
           <span className="subtitle">Attendance</span>
-          <h1 className="title">Student history</h1>
+          <h1 className="title">Attendance History</h1>
         </div>
       </div>
 
       <div className="card section">
-        <div className="form-row">
-          <label className="input-label">
-            Student
-            <select className="input-field" value={studentId} onChange={e=>setStudentId(e.target.value)}>
-              <option value="">Select a student</option>
-              {students.map(student => (
-                <option key={student.id} value={student.id}>
-                  {student.name} {student.class?.name ? `(${student.class.name})` : ''}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button className="btn-secondary" type="button" onClick={load} disabled={!studentId || loadingStudents}>Load</button>
-        </div>
+        {!isStudent && (
+          <div className="form-row">
+            <label className="input-label">
+              Student
+              <select className="input-field" value={studentId} onChange={e=>setStudentId(e.target.value)}>
+                <option value="">Select a student</option>
+                {students.map(student => (
+                  <option key={student.id} value={student.id}>
+                    {student.name} {student.class?.name ? `(${student.class.name})` : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button className="btn-secondary" type="button" onClick={load} disabled={!studentId || loadingStudents}>Load</button>
+          </div>
+        )}
 
         <div className="attendance-calendar">
           <div className="attendance-calendar-header">

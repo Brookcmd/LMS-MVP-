@@ -5,6 +5,7 @@ import {
   createAssessmentHandler,
   deleteAssessmentHandler,
   getParentAssessmentsHandler,
+  getStudentAssessmentsHandler,
   getTeacherAssessmentsHandler,
 } from "../controllers/assessment-controller";
 
@@ -17,7 +18,8 @@ assessmentsRouter.post("/", roleMiddleware(["teacher"]), createAssessmentHandler
 assessmentsRouter.get("/teacher", roleMiddleware(["teacher"]), getTeacherAssessmentsHandler);
 assessmentsRouter.delete("/:id", roleMiddleware(["teacher"]), deleteAssessmentHandler);
 
-// Parent endpoint
+// Parent & Student endpoints
 assessmentsRouter.get("/parent", roleMiddleware(["parent"]), getParentAssessmentsHandler);
+assessmentsRouter.get("/student", roleMiddleware(["student"]), getStudentAssessmentsHandler);
 
 export default assessmentsRouter;

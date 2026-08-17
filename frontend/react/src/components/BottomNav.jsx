@@ -21,6 +21,16 @@ const teacherItems = [
   { to: '/profile', label: 'Profile', icon: 'person' },
 ]
 
+const studentItems = [
+  { to: '/', label: 'Home', icon: 'home' },
+  { to: '/schedule', label: 'Schedule', icon: 'calendar_view_week' },
+  { to: '/deadlines', label: 'Deadlines', icon: 'event' },
+  { to: '/attendance', label: 'Attendance', icon: 'calendar_month' },
+  { to: '/grades', label: 'Grades', icon: 'school' },
+  { to: '/notifications', label: 'Alerts', icon: 'notifications' },
+  { to: '/profile', label: 'Profile', icon: 'person' },
+]
+
 const defaultItems = [
   { to: '/profile', label: 'Profile', icon: 'person' },
 ]
@@ -28,7 +38,7 @@ const defaultItems = [
 export default function BottomNav() {
   const location = useLocation()
   const { user } = useAuth()
-  const items = user?.role === 'parent' ? parentItems : user?.role === 'teacher' ? teacherItems : defaultItems
+  const items = user?.role === 'parent' ? parentItems : user?.role === 'teacher' ? teacherItems : user?.role === 'student' ? studentItems : defaultItems
 
   return (
     <nav className="bottom-nav">

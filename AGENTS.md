@@ -20,3 +20,53 @@ Key patterns:
 - Reference users with `auth.users(id)`; use `auth.uid()` in RLS policies.
 - For storage uploads, persist both the returned `url` and `key`.
 <!-- INSFORGE:END -->
+
+## Stack
+
+* **Language / Runtime**: TypeScript, Node 20
+* **Framework**: Express (Backend), React with Vite (Frontend)
+* **Database**: Postgres, Prisma ORM
+* **Package manager**: npm
+
+## Build approach
+
+Tracer Bullet, vertical end to end slices, thin but complete through every layer
+
+## Commands
+
+```bash
+# Backend dev server
+cd backend && npm run dev
+
+# Frontend dev server
+cd frontend/react && npm run dev
+
+# Run backend unit tests
+cd backend && npm test
+
+# Build backend
+cd backend && npm run build
+```
+
+## Specs
+
+Stored in `docs/specs/`. Format: `docs/specs/NNNN-title.md`.
+
+## Rules
+
+* Stay inside the current phase in `context/build-plan.md`.
+* Backend uses Express, Prisma, and Postgres only.
+* Secrets stored in `.env`, never hardcoded or committed.
+* Route handlers use try catch blocks and consistent error response shapes.
+* Role checks enforced in middleware.
+* Parents query only their own children data, verified server side from JWT.
+
+## Context files
+
+* [`context/project-overview.md`](context/project-overview.md): Project goals and scope
+* [`context/architecture.md`](context/architecture.md): Stack, folder structure, and data model
+* [`context/code-standards.md`](context/code-standards.md): Code structure and conventions
+* [`context/build-plan.md`](context/build-plan.md): Feature roadmap and progress log
+
+_Drafted by /audit from the repo, worth a quick human pass. Edit freely: once a line stops matching this draft, later runs treat it as curated and will flag rather than overwrite it._
+

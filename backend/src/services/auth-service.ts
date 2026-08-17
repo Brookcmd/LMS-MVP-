@@ -11,8 +11,9 @@ export interface CreateAccountPayload {
   schoolId: string;
   name: string;
   email: string;
-  role: "teacher" | "parent";
+  role: "teacher" | "parent" | "student";
   password: string;
+  studentId?: string | number;
 }
 
 export interface LoginPayload {
@@ -35,18 +36,18 @@ export interface AuthResponse {
 }
 
 /**
- * Create a new user account (teacher or parent only).
+ * Create a new user account (teacher, parent, or student).
  * Hashes the password before storing.
  * Throws AuthError if email already exists in the school or role is invalid.
  */
 export async function createAccount(
   payload: CreateAccountPayload,
 ): Promise<AuthResponse> {
-  const { schoolId, name, email, role, password } = payload;
+  const { schoolId, name, email, role, password, studentId } = payload;
   const schoolIdNum = parseInt(schoolId, 10);
 
   // Validate role
-  if (role !== "teacher" && role !== "parent") {
+  if (role !== "teacher" && role !== "parent" && role !== "student") {
     throw authErrors.invalidRole(role);
   }
 
@@ -85,6 +86,17 @@ export async function createAccount(
       phone: null,
     },
   });
+
+  // If studentId provided, link User to Student
+  if (role === "student" && studentId) {
+    const sId = typeof studentId === "number" ? studentId : parseInt(studentId, 10);
+    if (Number.isInteger(sId) && sId > 0) {
+      await prisma.student.updateMany({
+        where: { id: sId, schoolId: schoolIdNum },
+        data: { userId: user.id },
+      });
+    }
+  }
 
   // Generate JWT
   const token = signJWT({

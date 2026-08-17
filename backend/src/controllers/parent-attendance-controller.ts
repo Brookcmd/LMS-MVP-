@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { AppError } from "../lib/app-error";
-import { getChildAttendanceHistory } from "../services/parent-attendance-service";
+import { getChildAttendanceHistory, getStudentAttendanceHistory } from "../services/parent-attendance-service";
 
 function readQuery(value: unknown): string | undefined {
   if (Array.isArray(value)) {
@@ -55,6 +55,32 @@ export async function getChildAttendanceHistoryHandler(
       parentUserId: request.user.userId,
       schoolId: request.user.schoolId,
       studentId,
+      from: readQuery(request.query.from),
+      to: readQuery(request.query.to),
+    });
+
+    response.status(200).json({ success: true, data: result });
+  } catch (error) {
+    handleError(error, response);
+  }
+}
+
+export async function getStudentAttendanceHistoryHandler(
+  request: Request,
+  response: Response,
+): Promise<void> {
+  try {
+    if (!request.user) {
+      response.status(401).json({
+        success: false,
+        error: { message: "Unauthorized", code: "UNAUTHORIZED" },
+      });
+      return;
+    }
+
+    const result = await getStudentAttendanceHistory({
+      userId: request.user.userId,
+      schoolId: request.user.schoolId,
       from: readQuery(request.query.from),
       to: readQuery(request.query.to),
     });

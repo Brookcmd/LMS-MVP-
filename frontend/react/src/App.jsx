@@ -21,6 +21,7 @@ import AdminClasses from './pages/admin/AdminClasses'
 import AdminSchedule from './pages/admin/AdminSchedule'
 import AdminSubjects from './pages/admin/AdminSubjects'
 import AdminParentLinks from './pages/admin/AdminParentLinks'
+import LandingPage from './pages/LandingPage'
 import Messages from './pages/Messages'
 import BottomNav from './components/BottomNav'
 import logo from './assets/sheba-logo.png'
@@ -179,9 +180,10 @@ function AppContent() {
   const location = useLocation()
   const isAdmin = user?.role === 'admin'
   const isLoginRoute = location.pathname === '/login'
+  const isLandingRoute = location.pathname === '/' && !user
 
   return (
-    <div className={`app-shell${isAdmin ? ' app-shell-admin' : ''}${isLoginRoute ? ' app-shell-login' : ''}`}>
+    <div className={`app-shell${isAdmin ? ' app-shell-admin' : ''}${isLoginRoute ? ' app-shell-login' : ''}${isLandingRoute ? ' app-shell-landing' : ''}`}>
       {user && !isAdmin && (
         <header className="topbar">
           <div className="brand">
@@ -191,7 +193,7 @@ function AppContent() {
             </div>
           </div>
           <div className="actions">
-            {(user.role === 'parent' || user.role === 'teacher') && (
+            {(user.role === 'parent' || user.role === 'teacher' || user.role === 'student') && (
               <button className="icon-button" title="Notifications" onClick={() => navigate('/notifications')}>
                 <span className="material-symbols-outlined">notifications</span>
               </button>
@@ -203,20 +205,20 @@ function AppContent() {
         </header>
       )}
 
-      <main className={`content${isAdmin ? ' content-admin' : ''}${isLoginRoute ? ' content-login' : ''}`}>
+      <main className={`content${isAdmin ? ' content-admin' : ''}${isLoginRoute ? ' content-login' : ''}${isLandingRoute ? ' content-landing' : ''}`}>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<PrivateRoute><HomeRedirect /></PrivateRoute>} />
-          <Route path="/notifications" element={<PrivateRoute roles={['parent', 'teacher']}><Notifications /></PrivateRoute>} />
+          <Route path="/" element={user ? <HomeRedirect /> : <LandingPage />} />
+          <Route path="/notifications" element={<PrivateRoute roles={['parent', 'teacher', 'student']}><Notifications /></PrivateRoute>} />
           <Route path="/messages" element={<PrivateRoute roles={['parent', 'teacher']}><Messages /></PrivateRoute>} />
-          <Route path="/attendance" element={<PrivateRoute roles={['parent']}><ParentAttendance /></PrivateRoute>} />
+          <Route path="/attendance" element={<PrivateRoute roles={['parent', 'student']}><ParentAttendance /></PrivateRoute>} />
           <Route path="/teacher" element={<PrivateRoute roles={['teacher']}><TeacherAttendance /></PrivateRoute>} />
           <Route path="/teacher/grades" element={<PrivateRoute roles={['teacher']}><TeacherGrades /></PrivateRoute>} />
           <Route path="/teacher/deadlines" element={<PrivateRoute roles={['teacher']}><TeacherDeadlines /></PrivateRoute>} />
           <Route path="/teacher/schedule" element={<PrivateRoute roles={['teacher']}><TeacherSchedule /></PrivateRoute>} />
-          <Route path="/grades" element={<PrivateRoute roles={['parent']}><ParentGrades /></PrivateRoute>} />
-          <Route path="/deadlines" element={<PrivateRoute roles={['parent']}><ParentDeadlines /></PrivateRoute>} />
-          <Route path="/schedule" element={<PrivateRoute roles={['parent']}><ParentSchedule /></PrivateRoute>} />
+          <Route path="/grades" element={<PrivateRoute roles={['parent', 'student']}><ParentGrades /></PrivateRoute>} />
+          <Route path="/deadlines" element={<PrivateRoute roles={['parent', 'student']}><ParentDeadlines /></PrivateRoute>} />
+          <Route path="/schedule" element={<PrivateRoute roles={['parent', 'student']}><ParentSchedule /></PrivateRoute>} />
           <Route path="/admin" element={<PrivateRoute roles={['admin']}><AdminLayout /></PrivateRoute>}>
             <Route index element={<AdminDashboard />} />
             <Route path="classes" element={<AdminClasses />} />
@@ -228,7 +230,7 @@ function AppContent() {
             <Route path="parent-links" element={<AdminParentLinks />} />
           </Route>
           <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-          <Route path="*" element={<Navigate to={user ? '/' : '/login'} replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
 

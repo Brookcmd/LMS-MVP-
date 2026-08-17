@@ -69,3 +69,14 @@ export async function getParentAssessmentsHandler(request: Request, response: Re
     fail(error, response);
   }
 }
+
+export async function getStudentAssessmentsHandler(request: Request, response: Response) {
+  try {
+    const auth = user(request, response);
+    if (!auth) return;
+    const data = await assessmentService.getStudentAssessments(auth.userId, auth.schoolId);
+    response.json({ success: true, data });
+  } catch (error) {
+    fail(error, response);
+  }
+}

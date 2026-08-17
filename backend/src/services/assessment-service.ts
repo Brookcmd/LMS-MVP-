@@ -199,3 +199,53 @@ export async function getParentAssessments(
     };
   });
 }
+
+export async function getStudentAssessments(
+  userIdValue: string | number,
+  schoolIdValue: string | number
+) {
+  const userId = id(userIdValue, "userId");
+  const schoolId = id(schoolIdValue, "schoolId");
+
+  const student = await prisma.student.findFirst({
+    where: { userId, schoolId },
+    select: { id: true, name: true, classId: true, class: { select: { id: true, name: true } } },
+  });
+
+  if (!student) {
+    throw appErrors.notFound("Student record not linked to this user account");
+  }
+
+  const assessments = await prisma.assessment.findMany({
+    where: {
+      classId: student.classId,
+    },
+    include: {
+      class: { select: { id: true, name: true } },
+      subject: { select: { id: true, name: true } },
+      teacher: { select: { id: true, name: true } },
+    },
+    orderBy: { dueDate: "asc" },
+  });
+
+  const now = new Date();
+  return assessments.map((item) => {
+    const dueDate = new Date(item.dueDate);
+    const diffMs = dueDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+    let status: "overdue" | "today" | "upcoming" = "upcoming";
+    if (diffMs < 0 && Math.abs(diffDays) > 0) {
+      status = "overdue";
+    } else if (dueDate.toDateString() === now.toDateString()) {
+      status = "today";
+    }
+
+    return {
+      ...item,
+      students: [student],
+      status,
+      daysRemaining: diffDays,
+    };
+  });
+}

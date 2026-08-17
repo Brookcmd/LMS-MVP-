@@ -1,5 +1,6 @@
 import React from 'react'
 import { getParentSchedule, listParentStudents } from '../api/apiClient'
+import { useAuth } from '../auth/AuthContext'
 
 const DAYS = [
   { key: 'monday', label: 'Mon', full: 'Monday' },
@@ -49,6 +50,8 @@ function getNextPeriod(daySlots) {
 }
 
 export default function ParentSchedule() {
+  const { user } = useAuth()
+  const isStudent = user?.role === 'student'
   const [allSlots, setAllSlots] = React.useState([])
   const [children, setChildren] = React.useState([])
   const [selectedChildId, setSelectedChildId] = React.useState(null)
@@ -61,7 +64,7 @@ export default function ParentSchedule() {
       setError('')
       const [scheduleData, studentData] = await Promise.all([
         getParentSchedule(childId || undefined),
-        listParentStudents(),
+        isStudent ? Promise.resolve([]) : listParentStudents().catch(() => []),
       ])
       setAllSlots(scheduleData || [])
       const uniqueChildren = []
@@ -74,7 +77,6 @@ export default function ParentSchedule() {
           }
         }
       }
-      // Fallback: use parent/students endpoint if no slots yet
       if (uniqueChildren.length === 0 && studentData?.length) {
         for (const s of studentData) {
           if (!seen.has(s.id)) {
@@ -92,7 +94,7 @@ export default function ParentSchedule() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [isStudent])
 
   React.useEffect(() => {
     loadData(selectedChildId)
@@ -101,8 +103,10 @@ export default function ParentSchedule() {
   }, [loadData, selectedChildId])
 
   // Filter slots for selected child
-  const selectedChild = children.find((c) => c.id === selectedChildId)
-  const childSlots = selectedChild
+  const selectedChild = children.find((c) => c.id === selectedChildId) || (isStudent ? { id: user?.id, name: user?.name } : null)
+  const childSlots = isStudent
+    ? allSlots
+    : selectedChild
     ? allSlots.filter((s) => s.students?.some((st) => st.id === selectedChild.id))
     : []
 

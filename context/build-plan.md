@@ -22,7 +22,7 @@ This is the source of truth for what to build and in what order. If a session's 
 
 9. [x] Teacher: enter grades per student per subject/assignment
 10. [x] Parent: view child's grades
-11. [ ] Student: view own grades (only if student logins get added)
+11. [x] Student: view own grades (student logins enabled and connected to Student profiles)
 
 ## Phase 4 — Deadlines
 
@@ -38,6 +38,7 @@ This is the source of truth for what to build and in what order. If a session's 
 18. [ ] A game where users can play games that sharpen the mind.
 19. [x] A schedule where parents and students can see their daily schedule that reflects realtime schedule changes
 20. [x] Teacher: bulk grade upload via Excel template (spec 0003)
+21. [x] Merge landing page into LMS frontend (spec 0004)
 
 ## Explicitly cut — do not build
 
@@ -46,6 +47,13 @@ SCORM/xAPI, e-commerce/payments, gamification/badges, AI chatbots, BI tool integ
 ---
 
 ## Progress log
+
+- 2026-08-12 — AAU-inspired landing page enhancements done. Added split photo-frame hero slider, royal blue quick portals bar, 1+3 asymmetric news grid, "Sheba in Motion" upcoming events calendar with date badges, and expanded footer social bar (X, YouTube, Facebook, LinkedIn, Telegram, TikTok, Instagram) + campus radio stream status.
+
+- 2026-08-12 — Feature 21 done. Merged landing page from `landingpage/` into `frontend/react` under `/` route for unauthenticated visitors (spec 0004). Created `translations.js`, `universityData.js`, `landing.css`, 16 components under `src/components/landing/`, and `LandingPage.jsx`. Added `POST /api/contact` backend endpoint in `backend/src/routes/contact.ts`. Removed legacy standalone `landingpage/` directory.
+
+- 2026-08-09 — Feature 11 done. Connected User (student role) to Student model with unique userId in Prisma. Added student authentication and dedicated endpoints (/student/attendance, /student/profile, /grades/student, /assessments/student). Enabled student access across Attendance, Grades, Deadlines, Schedule, and Notifications, omitting Direct Messaging for students. Fixed test teardown in setup.ts.
+
 
 - 2026-08-08 — Feature 20 done. Added bulk grade upload via Excel template (spec 0003). New `grade-upload-service.ts` generates a downloadable `.xlsx` template pre-filled with the class roster and existing scores, and processes uploaded files with row-level validation and atomic writes using the existing Grade upsert pattern. Added `multer` (file uploads) and `exceljs` (Excel parsing) as new dependencies. Extended `TeacherGrades.jsx` with Download Template and Upload Grades controls.
 

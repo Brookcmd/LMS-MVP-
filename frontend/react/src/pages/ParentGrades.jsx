@@ -1,10 +1,13 @@
 import React from 'react'
-import { getParentGrades, listParentStudents } from '../api/apiClient'
+import { getParentGrades, getStudentGrades, listParentStudents } from '../api/apiClient'
+import { useAuth } from '../auth/AuthContext'
 
 const currentYear = `${new Date().getFullYear()}/${String((new Date().getFullYear() + 1) % 100).padStart(2, '0')}`
 const quarterOptions = [1, 2, 3, 4]
 
 export default function ParentGrades() {
+  const { user } = useAuth()
+  const isStudent = user?.role === 'student'
   const [students, setStudents] = React.useState([])
   const [studentId, setStudentId] = React.useState('')
   const [year, setYear] = React.useState(currentYear)
@@ -14,6 +17,7 @@ export default function ParentGrades() {
   const [loading, setLoading] = React.useState(false)
 
   React.useEffect(() => {
+    if (isStudent) return
     let active = true
     setLoading(true)
     listParentStudents()
@@ -33,16 +37,34 @@ export default function ParentGrades() {
     return () => {
       active = false
     }
-  }, [])
+  }, [isStudent])
 
   React.useEffect(() => {
+    let active = true
+    setLoading(true)
+
+    if (isStudent) {
+      getStudentGrades({ academicYear: year, quarter })
+        .then((payload) => {
+          if (!active) return
+          setData(payload)
+          setError('')
+        })
+        .catch((e) => {
+          if (active) setError(e.message)
+        })
+        .finally(() => {
+          if (active) setLoading(false)
+        })
+      return () => { active = false }
+    }
+
     if (!studentId) {
       setData(null)
+      setLoading(false)
       return
     }
 
-    let active = true
-    setLoading(true)
     getParentGrades({ studentId, academicYear: year, quarter })
       .then((payload) => {
         if (!active) return
@@ -59,7 +81,7 @@ export default function ParentGrades() {
     return () => {
       active = false
     }
-  }, [studentId, year, quarter])
+  }, [isStudent, studentId, year, quarter])
 
   const result = data?.result
 
@@ -74,14 +96,16 @@ export default function ParentGrades() {
 
       <div className="card section">
         <div className="form-row">
-          <label className="input-label">
-            Student
-            <select className="input-field" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
-              {students.map((student) => (
-                <option key={student.id} value={student.id}>{student.name}</option>
-              ))}
-            </select>
-          </label>
+          {!isStudent && (
+            <label className="input-label">
+              Student
+              <select className="input-field" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+                {students.map((student) => (
+                  <option key={student.id} value={student.id}>{student.name}</option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="input-label">
             Academic year
             <input className="input-field" value={year} onChange={(e) => setYear(e.target.value)} />

@@ -139,3 +139,48 @@ export async function getChildAttendanceHistory(payload: GetChildAttendanceHisto
     attendance: records,
   };
 }
+
+export async function getStudentAttendanceHistory(payload: { userId: string; schoolId: string; from?: string; to?: string }) {
+  const userId = parseId(payload.userId, "userId");
+  const schoolId = parseId(payload.schoolId, "schoolId");
+  const { fromDate, toDate } = resolveDateRange(payload.from, payload.to);
+
+  const student = await prisma.student.findFirst({
+    where: { userId, schoolId },
+    select: {
+      id: true,
+      name: true,
+      class: { select: { id: true, name: true } },
+    },
+  });
+
+  if (!student) {
+    throw appErrors.notFound("Student record not linked to this user account");
+  }
+
+  const records = await prisma.attendance.findMany({
+    where: {
+      studentId: student.id,
+      date: { gte: fromDate, lte: toDate },
+    },
+    orderBy: { date: "desc" },
+    select: {
+      id: true,
+      date: true,
+      status: true,
+      class: { select: { id: true, name: true } },
+      marked: { select: { id: true, name: true } },
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  return {
+    student,
+    range: {
+      from: formatDateOnly(fromDate),
+      to: formatDateOnly(toDate),
+    },
+    attendance: records,
+  };
+}

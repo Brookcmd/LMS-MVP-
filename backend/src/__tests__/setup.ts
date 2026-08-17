@@ -41,6 +41,8 @@ export let testData: TestData;
 beforeAll(async () => {
   // Clean existing test data in correct order (respect FK constraints)
   await prisma.notification.deleteMany();
+  await prisma.message.deleteMany();
+  await prisma.conversation.deleteMany();
   await prisma.attendance.deleteMany();
   await prisma.parentStudent.deleteMany();
   await prisma.classTeacher.deleteMany();
@@ -168,6 +170,8 @@ beforeAll(async () => {
 afterAll(async () => {
   // Clean up test data
   await prisma.notification.deleteMany();
+  await prisma.message.deleteMany();
+  await prisma.conversation.deleteMany();
   await prisma.attendance.deleteMany();
   await prisma.parentStudent.deleteMany();
   await prisma.classTeacher.deleteMany();

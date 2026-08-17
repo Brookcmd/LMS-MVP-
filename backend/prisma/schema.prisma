@@ -65,6 +65,7 @@ model User {
   notificationsReceived Notification[] @relation("notification_recipient")
   createdAssessments Assessment[]   @relation("assessment_teacher")
   scheduleSlots  ScheduleSlot[]   @relation("schedule_teacher")
+  studentProfile Student?         @relation("student_user")
   teacherConversations Conversation[] @relation("TeacherConversations")
   parentConversations  Conversation[] @relation("ParentConversations")
   sentMessages   Message[]        @relation("message_sender")
@@ -77,10 +78,12 @@ model Student {
   id        Int       @id @default(autoincrement())
   schoolId  Int       @map("school_id")
   classId   Int       @map("class_id")
+  userId    Int?      @unique @map("user_id")
   name      String
   dob       DateTime?
   createdAt DateTime  @default(now()) @map("created_at")
 
+  user         User?           @relation("student_user", fields: [userId], references: [id], onDelete: SetNull)
   school       School          @relation(fields: [schoolId], references: [id])
   class        Class           @relation(fields: [classId], references: [id], onDelete: Restrict)
   parents      ParentStudent[] @relation("student")

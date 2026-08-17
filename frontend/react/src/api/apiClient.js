@@ -181,3 +181,21 @@ export async function markConversationRead(conversationId) { return request(`/me
 export async function listUserNotifications() { return request('/notifications') }
 export async function markUserNotificationRead(id) { return request(`/notifications/${id}/read`, { method: 'PATCH' }) }
 
+// Student Endpoints
+export async function getStudentGrades({ academicYear, quarter }) {
+  return request(`/grades/student?academicYear=${encodeURIComponent(academicYear)}&quarter=${quarter}`)
+}
+export async function getStudentAttendance({ from, to }) {
+  const query = new URLSearchParams()
+  if (from) query.set("from", from)
+  if (to) query.set("to", to)
+  return request(`/student/attendance?${query.toString()}`)
+}
+export async function getStudentAssessments() {
+  return request('/assessments/student')
+}
+export async function getStudentProfile() {
+  return request('/student/profile')
+}
+
+

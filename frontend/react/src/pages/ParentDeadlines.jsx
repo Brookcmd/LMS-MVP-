@@ -1,5 +1,6 @@
 import React from 'react'
-import { listParentAssessments, listParentStudents } from '../api/apiClient'
+import { getStudentAssessments, listParentAssessments, listParentStudents } from '../api/apiClient'
+import { useAuth } from '../auth/AuthContext'
 
 const TYPE_ICONS = {
   assignment: 'description',
@@ -9,6 +10,8 @@ const TYPE_ICONS = {
 }
 
 export default function ParentDeadlines() {
+  const { user } = useAuth()
+  const isStudent = user?.role === 'student'
   const [children, setChildren] = React.useState([])
   const [selectedStudentId, setSelectedStudentId] = React.useState('')
   const [assessments, setAssessments] = React.useState([])
@@ -17,6 +20,7 @@ export default function ParentDeadlines() {
   const [statusFilter, setStatusFilter] = React.useState('all')
 
   React.useEffect(() => {
+    if (isStudent) return
     listParentStudents()
       .then((data) => {
         const studentList = data?.students || data || []
@@ -26,12 +30,28 @@ export default function ParentDeadlines() {
         }
       })
       .catch((e) => setError(e.message))
-  }, [])
+  }, [isStudent])
 
   React.useEffect(() => {
     let active = true
     setLoading(true)
     setError('')
+
+    if (isStudent) {
+      getStudentAssessments()
+        .then((data) => {
+          if (!active) return
+          setAssessments(data || [])
+        })
+        .catch((e) => {
+          if (active) setError(e.message)
+        })
+        .finally(() => {
+          if (active) setLoading(false)
+        })
+      return () => { active = false }
+    }
+
     listParentAssessments(selectedStudentId)
       .then((data) => {
         if (!active) return
@@ -47,7 +67,7 @@ export default function ParentDeadlines() {
     return () => {
       active = false
     }
-  }, [selectedStudentId])
+  }, [isStudent, selectedStudentId])
 
   const filteredAssessments = assessments.filter((item) => {
     if (statusFilter === 'upcoming') return item.status === 'upcoming'
@@ -75,25 +95,27 @@ export default function ParentDeadlines() {
       {error && <div className="error" style={{ marginBottom: 16 }}>{error}</div>}
 
       {/* Child selector toolbar */}
-      <div className="card section toolbar-card" style={{ padding: 20 }}>
-        <div className="toolbar-actions" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <label className="input-label" style={{ flex: 1, minWidth: 220 }}>
-            <span className="label-caps">Select Child</span>
-            <select
-              className="input-field"
-              value={selectedStudentId}
-              onChange={(e) => setSelectedStudentId(e.target.value)}
-            >
-              <option value="">All Children</option>
-              {children.map((child) => (
-                <option key={child.id} value={child.id}>
-                  {child.name} ({child.class?.name || 'Class Assigned'})
-                </option>
-              ))}
-            </select>
-          </label>
+      {!isStudent && (
+        <div className="card section toolbar-card" style={{ padding: 20 }}>
+          <div className="toolbar-actions" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <label className="input-label" style={{ flex: 1, minWidth: 220 }}>
+              <span className="label-caps">Select Child</span>
+              <select
+                className="input-field"
+                value={selectedStudentId}
+                onChange={(e) => setSelectedStudentId(e.target.value)}
+              >
+                <option value="">All Children</option>
+                {children.map((child) => (
+                  <option key={child.id} value={child.id}>
+                    {child.name} ({child.class?.name || 'Class Assigned'})
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Summary Cards */}
       <div className="stats-grid section">

@@ -16,7 +16,8 @@ import assessmentsRouter from "./routes/assessments";
 import scheduleRouter from "./routes/schedule";
 import messagesRouter from "./routes/messages";
 import notificationsRouter from "./routes/notifications";
-
+import studentRouter from "./routes/student";
+import contactRouter from "./routes/contact";
 
 const app = express();
 
@@ -31,11 +32,14 @@ app.use("/parents", parentsRouter);
 app.use("/parent-students", parentStudentsRouter);
 app.use("/attendance", attendanceRouter);
 app.use("/parent", parentRouter);
+app.use("/student", studentRouter);
 app.use("/grades", gradesRouter);
 app.use("/assessments", assessmentsRouter);
 app.use("/schedule", scheduleRouter);
 app.use("/messages", messagesRouter);
 app.use("/notifications", notificationsRouter);
+app.use("/contact", contactRouter);
+app.use("/api/contact", contactRouter);
 app.use(errorHandler);
 
 export default app;
