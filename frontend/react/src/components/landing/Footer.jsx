@@ -1,5 +1,5 @@
 import React from 'react';
-import { Phone, MapPin, Shield, FileText, Radio } from 'lucide-react';
+import { Phone, MapPin, Shield, FileText, Radio, AlignCenter } from 'lucide-react';
 import sucLogo from '../../assets/SUC_Logo.png';
 
 const TwitterIcon = ({ size = 16 }) => (
@@ -62,11 +62,6 @@ export function Footer({ t, openModal }) {
               alt="Sheba University College Official Emblem"
               className="footer-brand-seal-large"
             />
-
-            <div className="footer-radio-inline">
-              <Radio size={16} className="radio-icon" />
-              <span>Stay Tuned 99.4FM</span>
-            </div>
           </div>
 
           {/* COL 2: Essentials */}
@@ -150,6 +145,9 @@ export function Footer({ t, openModal }) {
 
             <div className="footer-copyright">
               © 2026 Sheba University College. All rights reserved.
+            </div>
+            <div className="footer-contributers">
+              Made by by the collabarative effor of <a href="https://julas.vercel.app">Julas Mohammednur</a> and  <a href="https://github.com/brookcmd">Brook Surafiel</a>
             </div>
           </div>
         </div>

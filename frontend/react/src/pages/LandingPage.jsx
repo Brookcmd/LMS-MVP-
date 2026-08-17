@@ -61,9 +61,9 @@ export default function LandingPage() {
 
       <CampusLife t={t} openModal={openModal} />
 
-      <NewsSection t={t} openModal={openModal} />
-
-      <UpcomingEvents t={t} openModal={openModal} />
+      {/* Temporarily hidden until dedicated personnel is assigned to update them */}
+      {/* <NewsSection t={t} openModal={openModal} /> */}
+      {/* <UpcomingEvents t={t} openModal={openModal} /> */}
 
       <AcademicsHub t={t} openModal={openModal} setSelectedProgram={setSelectedProgram} />
 
