@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Home, ChevronDown, Search, Menu, X, LogIn, Moon, Sun, Radio } from 'lucide-react';
-import logo from '../../assets/SUC_Logo.png';
+import logoDark from '../../assets/SUC_Logo_dark.png';
+import logoLight from '../../assets/SUC_Logo_light.png';
 
 export function Header({ lang, setLang, t, theme, toggleTheme, openModal, setSearchQueryParent }) {
   const navigate = useNavigate();
@@ -86,7 +87,7 @@ export function Header({ lang, setLang, t, theme, toggleTheme, openModal, setSea
           </button>
 
           <img
-            src={logo}
+            src={theme === 'dark' ? logoDark : logoLight}
             alt="Sheba University College Emblem"
             className="aau-nav-logo"
             onClick={() => navigate('/')}

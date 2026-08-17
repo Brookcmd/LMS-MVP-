@@ -544,9 +544,10 @@ html[data-theme="dark"],
 }
 
 .aau-nav-logo {
-  height: 44px;
+  height: 48px;
   width: auto;
   object-fit: contain;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.12));
 }
 
 .aau-brand-text {
@@ -678,7 +679,38 @@ html[data-theme="dark"],
   background-color: var(--navy-deep);
 }
 
+.mobile-toggle-btn {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--navy-primary);
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+}
+
+[data-theme="dark"] .mobile-toggle-btn {
+  color: #60A5FA;
+  border-color: rgba(96, 165, 250, 0.3);
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.mobile-toggle-btn:hover {
+  background: var(--navy-surface);
+}
+
+[data-theme="dark"] .mobile-toggle-btn:hover {
+  background: rgba(96, 165, 250, 0.2);
+}
+
 @media (max-width: 992px) {
+  .mobile-toggle-btn {
+    display: flex !important;
+  }
+
   .aau-nav-menu {
     display: none;
     position: absolute;
@@ -686,15 +718,36 @@ html[data-theme="dark"],
     left: 0;
     right: 0;
     background-color: #FFFFFF;
-    border-bottom: 3px solid var(--red-accent);
+    border-bottom: 3px solid var(--navy-primary);
     flex-direction: column;
     padding: 20px 6%;
     gap: 16px;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+  }
+
+  [data-theme="dark"] .aau-nav-menu {
+    background-color: #0B192C !important;
+    border-bottom: 3px solid #3B82F6 !important;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5) !important;
   }
 
   .aau-nav-menu.active {
     display: flex !important;
+  }
+
+  .aau-nav-menu .aau-nav-link {
+    font-size: 1rem;
+    padding: 8px 0;
+    color: var(--navy-primary);
+  }
+
+  [data-theme="dark"] .aau-nav-menu .aau-nav-link {
+    color: #93C5FD !important;
+  }
+
+  [data-theme="dark"] .aau-nav-menu .aau-nav-link:hover {
+    color: #FBBF24 !important;
   }
 }
 
@@ -2420,25 +2473,16 @@ html[data-theme="dark"],
   .aau-nav-menu {
     display: none;
   }
-
-  .aau-nav-menu.active {
-    display: flex;
-    flex-direction: column;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: #FFFFFF;
-    padding: 20px;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
-    border-bottom: 2px solid #05527D;
-  }
 }
 
 .aau-home-icon-link {
-  color: #05527D;
+  color: var(--navy-primary);
   display: flex;
   align-items: center;
+}
+
+[data-theme="dark"] .aau-home-icon-link {
+  color: #60A5FA;
 }
 
 .aau-nav-link {
@@ -2452,8 +2496,16 @@ html[data-theme="dark"],
   transition: color 0.2s ease;
 }
 
+[data-theme="dark"] .aau-nav-link {
+  color: #93C5FD;
+}
+
 .aau-nav-link:hover {
-  color: #05527D;
+  color: var(--navy-primary);
+}
+
+[data-theme="dark"] .aau-nav-link:hover {
+  color: #FBBF24;
 }
 
 .aau-nav-actions {

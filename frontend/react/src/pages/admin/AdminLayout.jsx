@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
-import logo from '../../assets/sheba-logo.png'
+import logoDark from '../../assets/SUC_Logo_dark.png'
 
 const NAV_ITEMS = [
   { to: '/admin', end: true, icon: 'dashboard', label: 'Dashboard' },
@@ -58,7 +58,7 @@ export default function AdminLayout() {
       <aside className={`admin-sidebar ${drawerOpen ? 'open' : ''}`}>
         <div className="admin-brand">
           <div className="admin-brand-icon">
-            <img src={logo} alt="" aria-hidden="true" />
+            <img src={logoDark} alt="" aria-hidden="true" />
           </div>
           <div>
             <h1>Sheba Estudent</h1>

@@ -28,7 +28,8 @@ import LandingPage from './pages/LandingPage'
 import NotFound from './pages/NotFound'
 import Messages from './pages/Messages'
 import BottomNav from './components/BottomNav'
-import logo from './assets/sheba-logo.png'
+import logoDark from './assets/SUC_Logo_dark.png'
+import logoLight from './assets/SUC_Logo_light.png'
 
 function PrivateRoute({ children, roles }) {
   const { user } = useAuth()
@@ -75,7 +76,7 @@ function Login() {
     <div className="login-page">
       <section className="login-visual-panel" aria-label="Sheba University College and Academy Overview">
         <div className="login-wordmark">
-          <img src={logo} alt="" aria-hidden="true" />
+          <img src={logoDark} alt="" aria-hidden="true" />
           <span>Sheba University College</span>
         </div>
 
@@ -271,7 +272,7 @@ function AppContent() {
       {user && !isAdmin && !isNotFoundRoute && (
         <header className="topbar">
           <div className="brand" onClick={() => navigate('/')}>
-            <img className="brand-logo" src={logo} alt="" aria-hidden="true" />
+            <img className="brand-logo" src={theme === 'dark' ? logoDark : logoLight} alt="" aria-hidden="true" />
             <div>
               <div className="brand-title">
                 Sheba Estudent

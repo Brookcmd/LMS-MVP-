@@ -2,7 +2,8 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { useTheme } from '../context/ThemeContext'
-import logo from '../assets/sheba-logo.png'
+import logoDark from '../assets/SUC_Logo_dark.png'
+import logoLight from '../assets/SUC_Logo_light.png'
 
 export default function NotFound() {
   const navigate = useNavigate()
@@ -19,7 +20,7 @@ export default function NotFound() {
     <div className="notfound-shell">
       <div className="notfound-topbar">
         <div className="notfound-brand" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-          <img src={logo} alt="Sheba University College" />
+          <img src={theme === 'dark' ? logoDark : logoLight} alt="Sheba University College" />
           <span>Sheba University College</span>
         </div>
         <button 

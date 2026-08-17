@@ -1,6 +1,6 @@
 import React from 'react';
 import { Phone, MapPin, Shield, FileText, Radio, AlignCenter } from 'lucide-react';
-import sucLogo from '../../assets/SUC_Logo.png';
+import sucLogo from '../../assets/SUC_Logo_dark.png';
 
 const TwitterIcon = ({ size = 16 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
@@ -62,6 +62,10 @@ export function Footer({ t, openModal }) {
               alt="Sheba University College Official Emblem"
               className="footer-brand-seal-large"
             />
+            <div>
+              <span className='footer-english-title'>Sheba University College </span><br />
+              <span className='footer-amharic-title'>ሽባ ዩኒቨርሲቲ ኮሌጅ</span>
+            </div>
           </div>
 
           {/* COL 2: Essentials */}
