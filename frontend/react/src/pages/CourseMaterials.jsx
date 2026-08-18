@@ -11,6 +11,10 @@ import {
 import { useAuth } from '../auth/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { CardSkeleton } from '../components/SkeletonLoader'
+import FileDropzone from '../components/FileDropzone'
+import FilePreviewModal from '../components/FilePreviewModal'
+import GradeBandTabs from '../components/GradeBandTabs'
+import { groupClassesByGradeBand } from '../utils/gradeBands'
 
 function formatFileSize(bytes) {
   if (!bytes || bytes === 0) return '0 B'
@@ -31,6 +35,25 @@ function getFileIcon(fileName = '', mimeType = '') {
   return { icon: 'draft', color: '#64748B' }
 }
 
+const CATEGORIES = [
+  { id: 'all', label: 'All Resources', icon: 'grid_view' },
+  { id: 'lecture_notes', label: 'Lecture Slides', icon: 'co_present', color: '#2563EB' },
+  { id: 'syllabus', label: 'Syllabus & Guide', icon: 'menu_book', color: '#059669' },
+  { id: 'worksheet', label: 'Worksheets & Labs', icon: 'assignment', color: '#7C3AED' },
+  { id: 'past_exam', label: 'Past Exams & Keys', icon: 'quiz', color: '#DC2626' },
+  { id: 'reading', label: 'Reference Readings', icon: 'auto_stories', color: '#D97706' },
+]
+
+function parseMaterialCategory(description = '') {
+  const match = description.match(/\[category:([^\]]+)\]/i)
+  if (match) return match[1].toLowerCase()
+  return 'general'
+}
+
+function cleanDescription(description = '') {
+  return description.replace(/\[category:[^\]]+\]\s*/i, '').trim()
+}
+
 export default function CourseMaterials() {
   const { user } = useAuth()
   const { toast } = useToast()
@@ -42,14 +65,21 @@ export default function CourseMaterials() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSubject, setSelectedSubject] = useState('all')
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [selectedGradeBand, setSelectedGradeBand] = useState('all')
+
+  // Preview modal state
+  const [previewMaterial, setPreviewMaterial] = useState(null)
 
   // Teacher upload state
   const [teachingAssignments, setTeachingAssignments] = useState([])
   const [selectedAssignmentId, setSelectedAssignmentId] = useState('')
   const [title, setTitle] = useState('')
+  const [category, setCategory] = useState('lecture_notes')
   const [description, setDescription] = useState('')
   const [selectedFile, setSelectedFile] = useState(null)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [deletingId, setDeletingId] = useState(null)
 
   // Parent student selector state
@@ -97,7 +127,7 @@ export default function CourseMaterials() {
   const handleUpload = async (e) => {
     e.preventDefault()
     if (!selectedAssignmentId || !title.trim() || !selectedFile) {
-      toast.warning('Please provide a course assignment, material title, and file.')
+      toast.warning('Please select a course assignment, enter a title, and drop a file.')
       return
     }
 
@@ -109,20 +139,29 @@ export default function CourseMaterials() {
 
     try {
       setUploading(true)
+      setUploadProgress(15)
+
+      const interval = setInterval(() => {
+        setUploadProgress((p) => (p < 85 ? p + 15 : p))
+      }, 120)
+
       await uploadMaterial({
         title: title.trim(),
         description: description.trim() || undefined,
+        category,
         classId: chosen.class.id,
         subjectId: chosen.subject.id,
         file: selectedFile,
       })
-      toast.success(`Uploaded "${title}" successfully!`)
+
+      clearInterval(interval)
+      setUploadProgress(100)
+      toast.success(`Published "${title}" successfully!`)
+
       setTitle('')
       setDescription('')
       setSelectedFile(null)
-      // Reset file input
-      const fileInput = document.getElementById('material-file-input')
-      if (fileInput) fileInput.value = ''
+      setUploadProgress(0)
       await loadData()
     } catch (err) {
       toast.error(err.message || 'Failed to upload material')
@@ -147,21 +186,37 @@ export default function CourseMaterials() {
 
   // Filtered materials
   const subjects = Array.from(new Set(materials.map((m) => m.subject?.name).filter(Boolean)))
+
   const filteredMaterials = materials.filter((m) => {
+    const itemCat = parseMaterialCategory(m.description)
     const matchesSearch =
       m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (m.description && m.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (m.fileName && m.fileName.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (m.subject?.name && m.subject.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    
     const matchesSubject = selectedSubject === 'all' || m.subject?.name === selectedSubject
-    return matchesSearch && matchesSubject
+    const matchesCategory = selectedCategory === 'all' || itemCat === selectedCategory
+    return matchesSearch && matchesSubject && matchesCategory
   })
+
+  // Group teaching assignments for optgroup
+  const groupedAssignments = React.useMemo(() => {
+    const map = {}
+    teachingAssignments.forEach((a) => {
+      const clsName = a.class?.name || 'Class'
+      if (!map[clsName]) map[clsName] = []
+      map[clsName].push(a)
+    })
+    return map
+  }, [teachingAssignments])
 
   return (
     <div className="container" style={{ paddingBottom: '60px' }}>
       {/* Header Banner */}
-      <div className="section-header" style={{ marginBottom: '24px' }}>
+      <div className="section-header" style={{ marginBottom: '20px' }}>
         <div>
-          <span className="subtitle">Digital Learning Repository</span>
+          <span className="subtitle">Official Academic Repository</span>
           <h1 className="title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '2rem', color: 'var(--navy-primary)' }}>
               menu_book
@@ -173,7 +228,7 @@ export default function CourseMaterials() {
 
       {/* Parent Child Switcher */}
       {isParent && children.length > 0 && (
-        <div className="card toolbar-card" style={{ padding: '16px 20px', marginBottom: '20px' }}>
+        <div className="card toolbar-card" style={{ padding: '14px 20px', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             <span className="label-caps" style={{ margin: 0 }}>Select Child:</span>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -200,8 +255,41 @@ export default function CourseMaterials() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: isTeacher ? 'repeat(auto-fit, minmax(320px, 1fr))' : '1fr', gap: '24px' }}>
-        {/* Teacher Upload Form */}
+      {/* Category Filter Pills Strip */}
+      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '14px', marginBottom: '16px' }}>
+        {CATEGORIES.map((cat) => {
+          const isSelected = selectedCategory === cat.id
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              className={`btn-ghost ${isSelected ? 'active' : ''}`}
+              onClick={() => setSelectedCategory(cat.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: 'var(--radius-pill)',
+                background: isSelected ? 'var(--navy-primary)' : 'var(--bg-surface)',
+                color: isSelected ? '#FFFFFF' : 'var(--text-secondary)',
+                border: '1px solid var(--border-color)',
+                fontSize: '0.82rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap',
+                fontWeight: isSelected ? '600' : '400',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '17px', color: isSelected ? '#FFFFFF' : cat.color || 'inherit' }}>
+                {cat.icon}
+              </span>
+              {cat.label}
+            </button>
+          )
+        })}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: isTeacher ? 'repeat(auto-fit, minmax(340px, 1fr))' : '1fr', gap: '24px' }}>
+        {/* Teacher Upload Form Panel */}
         {isTeacher && (
           <div className="card" style={{ padding: '24px', height: 'fit-content' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -211,7 +299,7 @@ export default function CourseMaterials() {
                   Upload Learning Material
                 </h2>
               </div>
-              <span className="chip" style={{ background: 'var(--navy-surface)', color: 'var(--navy-primary)' }}>Faculty</span>
+              <span className="chip" style={{ background: 'var(--navy-surface)', color: 'var(--navy-primary)' }}>Faculty Hub</span>
             </div>
 
             <form onSubmit={handleUpload}>
@@ -223,24 +311,45 @@ export default function CourseMaterials() {
                   onChange={(e) => setSelectedAssignmentId(e.target.value)}
                   required
                 >
-                  {teachingAssignments.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.class.name} · {a.subject.name}
-                    </option>
+                  {Object.entries(groupedAssignments).map(([className, items]) => (
+                    <optgroup key={className} label={`Class: ${className}`}>
+                      {items.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.subject?.name} ({a.class?.name})
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>
 
-              <div className="input-label">
-                <span className="label-caps">Material Title</span>
-                <input
-                  type="text"
-                  className="input-field"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Chapter 4 Lecture Slides & Worksheet"
-                  required
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="input-label">
+                  <span className="label-caps">Material Title</span>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="e.g. Chapter 4 Slides"
+                    required
+                  />
+                </div>
+
+                <div className="input-label">
+                  <span className="label-caps">Resource Category</span>
+                  <select
+                    className="select-field"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                  >
+                    <option value="lecture_notes">Lecture Slides</option>
+                    <option value="syllabus">Syllabus & Guide</option>
+                    <option value="worksheet">Worksheet / Lab</option>
+                    <option value="past_exam">Past Exam / Key</option>
+                    <option value="reading">Reference Reading</option>
+                  </select>
+                </div>
               </div>
 
               <div className="input-label">
@@ -249,36 +358,30 @@ export default function CourseMaterials() {
                   className="textarea-field"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Additional context or recommended reading before class..."
-                  style={{ minHeight: '70px' }}
+                  placeholder="Key concepts or instructions for students..."
+                  style={{ minHeight: '60px' }}
                 />
               </div>
 
-              <div className="input-label">
-                <span className="label-caps">Attachment File (PDF, DOCX, PPTX, ZIP, Image)</span>
-                <input
-                  id="material-file-input"
-                  type="file"
-                  className="input-field"
-                  onChange={(e) => setSelectedFile(e.target.files[0] || null)}
-                  required
-                  style={{ padding: '8px' }}
+              {/* Drag and Drop File Dropzone */}
+              <div className="input-label" style={{ marginBottom: '8px' }}>
+                <span className="label-caps">File Attachment</span>
+                <FileDropzone
+                  file={selectedFile}
+                  onFileSelect={setSelectedFile}
+                  uploading={uploading}
+                  uploadProgress={uploadProgress}
                 />
-                {selectedFile && (
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-                    Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
-                  </span>
-                )}
               </div>
 
               <button
                 type="submit"
                 className="btn-primary"
-                disabled={uploading}
-                style={{ width: '100%', marginTop: '12px' }}
+                disabled={uploading || !selectedFile}
+                style={{ width: '100%', marginTop: '8px' }}
               >
                 <span className="material-symbols-outlined">upload_file</span>
-                {uploading ? 'Uploading Resource…' : 'Publish Material'}
+                {uploading ? 'Publishing File…' : 'Publish to Students'}
               </button>
             </form>
           </div>
@@ -286,8 +389,8 @@ export default function CourseMaterials() {
 
         {/* Materials List Panel */}
         <div>
-          {/* Search & Subject Filter Bar */}
-          <div className="card" style={{ padding: '16px 20px', marginBottom: '16px' }}>
+          {/* Search & Subject Bar */}
+          <div className="card" style={{ padding: '14px 18px', marginBottom: '16px' }}>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
               <div style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
                 <span className="material-symbols-outlined" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '18px' }}>
@@ -298,7 +401,7 @@ export default function CourseMaterials() {
                   className="input-field"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search materials by title or topic..."
+                  placeholder="Search materials by title, topic, or file..."
                   style={{ paddingLeft: '38px' }}
                 />
               </div>
@@ -311,7 +414,7 @@ export default function CourseMaterials() {
                     onClick={() => setSelectedSubject('all')}
                     style={{
                       fontSize: '0.8rem',
-                      padding: '6px 12px',
+                      padding: '5px 12px',
                       borderRadius: 'var(--radius-pill)',
                       background: selectedSubject === 'all' ? 'var(--navy-primary)' : 'transparent',
                       color: selectedSubject === 'all' ? '#FFFFFF' : 'var(--text-secondary)',
@@ -327,7 +430,7 @@ export default function CourseMaterials() {
                       onClick={() => setSelectedSubject(sub)}
                       style={{
                         fontSize: '0.8rem',
-                        padding: '6px 12px',
+                        padding: '5px 12px',
                         borderRadius: 'var(--radius-pill)',
                         background: selectedSubject === sub ? 'var(--navy-primary)' : 'transparent',
                         color: selectedSubject === sub ? '#FFFFFF' : 'var(--text-secondary)',
@@ -344,21 +447,24 @@ export default function CourseMaterials() {
           {loading ? (
             <CardSkeleton lines={3} />
           ) : filteredMaterials.length > 0 ? (
-            <div style={{ display: 'grid', gap: '14px' }}>
+            <div style={{ display: 'grid', gap: '12px' }}>
               {filteredMaterials.map((item) => {
                 const { icon, color } = getFileIcon(item.fileName, item.mimeType)
+                const itemCat = parseMaterialCategory(item.description)
+                const catObj = CATEGORIES.find((c) => c.id === itemCat) || { label: 'Resource', icon: 'description', color: '#64748B' }
                 const uploadDate = new Date(item.createdAt).toLocaleDateString([], {
                   month: 'short',
                   day: 'numeric',
                   year: 'numeric',
                 })
+                const displayDesc = cleanDescription(item.description)
 
                 return (
                   <div
                     key={item.id}
                     className="card"
                     style={{
-                      padding: '18px 20px',
+                      padding: '16px 20px',
                       transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                       borderLeft: `4px solid ${color}`,
                     }}
@@ -376,7 +482,10 @@ export default function CourseMaterials() {
                             alignItems: 'center',
                             justifyContent: 'center',
                             flexShrink: 0,
+                            cursor: 'pointer',
                           }}
+                          onClick={() => setPreviewMaterial(item)}
+                          title="Click to Preview File"
                         >
                           <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
                             {icon}
@@ -388,43 +497,77 @@ export default function CourseMaterials() {
                             <span className="chip" style={{ fontSize: '0.72rem', background: 'var(--navy-surface)', color: 'var(--navy-primary)' }}>
                               {item.subject?.name || 'Subject'}
                             </span>
-                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                              {item.class?.name} · By {item.teacher?.name || 'Instructor'}
+                            <span
+                              className="chip"
+                              style={{
+                                fontSize: '0.72rem',
+                                background: `${catObj.color || '#64748B'}18`,
+                                color: catObj.color || 'var(--text-primary)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>{catObj.icon}</span>
+                              {catObj.label}
+                            </span>
+                            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                              {item.class?.name} · By {item.teacher?.name || 'Faculty'}
                             </span>
                           </div>
 
-                          <h3 style={{ margin: '0 0 6px', fontFamily: 'var(--font-headline)', fontSize: '1.1rem', color: 'var(--text-heading)' }}>
+                          <h3
+                            style={{
+                              margin: '0 0 4px',
+                              fontFamily: 'var(--font-headline)',
+                              fontSize: '1.05rem',
+                              color: 'var(--text-heading)',
+                              cursor: 'pointer',
+                            }}
+                            onClick={() => setPreviewMaterial(item)}
+                          >
                             {item.title}
                           </h3>
 
-                          {item.description && (
-                            <p style={{ margin: '0 0 10px', fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                              {item.description}
+                          {displayDesc && (
+                            <p style={{ margin: '0 0 8px', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                              {displayDesc}
                             </p>
                           )}
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                             <span>{item.fileName}</span>
                             <span>•</span>
                             <span>{formatFileSize(item.fileSize)}</span>
                             <span>•</span>
-                            <span>Uploaded {uploadDate}</span>
+                            <span>{uploadDate}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {/* Action Buttons */}
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          onClick={() => setPreviewMaterial(item)}
+                          title="Interactive In-Browser Preview"
+                          style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>visibility</span>
+                          Preview
+                        </button>
+
                         <a
                           href={item.fileUrl}
                           download={item.fileName}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="btn-primary"
-                          style={{ padding: '6px 14px', fontSize: '0.82rem', textDecoration: 'none' }}
+                          style={{ padding: '6px 12px', fontSize: '0.8rem', textDecoration: 'none' }}
                           title="Download Resource"
                         >
                           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>download</span>
-                          Download
                         </a>
 
                         {isTeacher && (
@@ -451,17 +594,26 @@ export default function CourseMaterials() {
                 folder_open
               </span>
               <h3 style={{ margin: '12px 0 4px', fontFamily: 'var(--font-headline)', color: 'var(--text-heading)' }}>
-                No Course Materials Found
+                No Materials Found
               </h3>
               <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
                 {isTeacher
                   ? 'Publish study materials, slides, and syllabus files using the upload panel.'
-                  : 'Your teachers have not uploaded learning materials for this selection yet.'}
+                  : 'Your instructors have not published learning materials matching your filter.'}
               </p>
             </div>
           )}
         </div>
       </div>
+
+      {/* In-Browser File Preview Modal */}
+      {previewMaterial && (
+        <FilePreviewModal
+          material={previewMaterial}
+          onClose={() => setPreviewMaterial(null)}
+        />
+      )}
     </div>
   )
 }
+

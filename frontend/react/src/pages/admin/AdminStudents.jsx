@@ -12,6 +12,8 @@ import {
   updateStudent,
   listParents,
   upsertParentStudentLink,
+  provisionStudentAccount,
+  deleteStudentAccount,
 } from '../../api/apiClient'
 import { useToast } from '../../context/ToastContext'
 import { groupClassesByGradeBand } from '../../utils/gradeBands'
@@ -53,6 +55,13 @@ export default function AdminStudents() {
   const [selectedParentId, setSelectedParentId] = useState('')
   const [relationship, setRelationship] = useState('parent')
   const [savingLink, setSavingLink] = useState(false)
+
+  // Student Account Modal State
+  const [accountModalOpen, setAccountModalOpen] = useState(false)
+  const [managingAccountStudent, setManagingAccountStudent] = useState(null)
+  const [accountEmail, setAccountEmail] = useState('')
+  const [accountPassword, setAccountPassword] = useState('Student@123')
+  const [savingAccount, setSavingAccount] = useState(false)
 
   // Sync top navbar search
   useEffect(() => {
@@ -226,6 +235,62 @@ export default function AdminStudents() {
     }
   }
 
+  function generateStudentEmail(name) {
+    const clean = (name || 'student')
+      .toLowerCase()
+      .trim()
+      .replace(/\s*\(\d+\)\s*/g, '')
+      .replace(/[^a-z0-9]+/g, '.')
+      .replace(/^\.+|\.+$/g, '')
+    return `${clean || 'student'}@student.sheba.edu`
+  }
+
+  function openAccountModal(student) {
+    setManagingAccountStudent(student)
+    setAccountEmail(student.user?.email || generateStudentEmail(student.name))
+    setAccountPassword('Student@123')
+    setAccountModalOpen(true)
+  }
+
+  async function submitAccount(e) {
+    e.preventDefault()
+    if (!managingAccountStudent || !accountEmail.trim()) {
+      toast.warning('Please provide an email address.')
+      return
+    }
+    try {
+      setSavingAccount(true)
+      await provisionStudentAccount(managingAccountStudent.id, {
+        email: accountEmail.trim(),
+        password: accountPassword || 'Student@123',
+        name: managingAccountStudent.name,
+      })
+      toast.success(`Login credentials saved for ${managingAccountStudent.name}.`)
+      setAccountModalOpen(false)
+      loadStudents()
+    } catch (err) {
+      toast.error(err?.message ?? 'Unable to provision student account')
+    } finally {
+      setSavingAccount(false)
+    }
+  }
+
+  async function handleDeactivateAccount() {
+    if (!managingAccountStudent) return
+    if (!window.confirm(`Deactivate login account for ${managingAccountStudent.name}?`)) return
+    try {
+      setSavingAccount(true)
+      await deleteStudentAccount(managingAccountStudent.id)
+      toast.success(`Login account deactivated for ${managingAccountStudent.name}.`)
+      setAccountModalOpen(false)
+      loadStudents()
+    } catch (err) {
+      toast.error(err?.message ?? 'Unable to deactivate account')
+    } finally {
+      setSavingAccount(false)
+    }
+  }
+
   const groupedClasses = groupClassesByGradeBand(classes)
 
   return (
@@ -322,6 +387,7 @@ export default function AdminStudents() {
                   <th>Section / Class</th>
                   <th>Date of Birth</th>
                   <th>Guardians</th>
+                  <th>Login Account</th>
                   <th>ID</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
@@ -329,7 +395,7 @@ export default function AdminStudents() {
               <tbody>
                 {students.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="admin-empty-cell" style={{ padding: '40px 20px' }}>
+                    <td colSpan={7} className="admin-empty-cell" style={{ padding: '40px 20px' }}>
                       <span className="material-symbols-outlined" style={{ fontSize: '40px', color: 'var(--text-muted)' }}>
                         person_off
                       </span>
@@ -342,6 +408,7 @@ export default function AdminStudents() {
                   students.map((student) => {
                     const parentLinks = student.parents ?? []
                     const hasParents = parentLinks.length > 0
+                    const hasUserAccount = Boolean(student.user)
 
                     return (
                       <tr key={student.id}>
@@ -397,10 +464,53 @@ export default function AdminStudents() {
                           )}
                         </td>
                         <td>
+                          {hasUserAccount ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              <span className="status-pill present" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '4px', width: 'fit-content' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>check_circle</span>
+                                Active
+                              </span>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={student.user.email}>
+                                {student.user.email}
+                              </span>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => openAccountModal(student)}
+                              style={{
+                                border: '1px dashed var(--border-color, #cbd5e1)',
+                                background: 'transparent',
+                                color: 'var(--navy-primary, #0f2744)',
+                                padding: '3px 8px',
+                                borderRadius: '6px',
+                                fontSize: '0.75rem',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>key</span>
+                              Create Login
+                            </button>
+                          )}
+                        </td>
+                        <td>
                           <span className="admin-tag-pill" style={{ fontFamily: 'monospace' }}>#{student.id}</span>
                         </td>
                         <td>
                           <div className="admin-table-actions">
+                            <button
+                              type="button"
+                              className="admin-icon-btn"
+                              onClick={() => openAccountModal(student)}
+                              title={hasUserAccount ? 'Manage Student Credentials' : 'Provision Student Login Account'}
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: hasUserAccount ? 'var(--status-present-text)' : undefined }}>
+                                {hasUserAccount ? 'manage_accounts' : 'person_add'}
+                              </span>
+                            </button>
                             <button
                               type="button"
                               className="admin-icon-btn"
@@ -558,6 +668,84 @@ export default function AdminStudents() {
             <button type="submit" className="admin-primary-button" disabled={savingLink || !selectedParentId}>
               <span className="material-symbols-outlined">link</span>
               {savingLink ? 'Linking…' : 'Establish Link'}
+            </button>
+          </div>
+        </form>
+      </AdminModal>
+
+      {/* Student Account Provisioning Modal */}
+      <AdminModal
+        open={accountModalOpen}
+        title={`Student Login Account: ${managingAccountStudent?.name ?? 'Student'}`}
+        subtitle={managingAccountStudent?.user ? `Active account: ${managingAccountStudent.user.email}` : 'Provision student portal login credentials'}
+        onClose={() => setAccountModalOpen(false)}
+      >
+        <form className="admin-form" onSubmit={submitAccount}>
+          {managingAccountStudent?.user && (
+            <div style={{ padding: '12px 14px', borderRadius: '8px', background: 'var(--navy-surface)', border: '1px solid var(--border-color)', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span className="status-pill present" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>verified_user</span>
+                  Student Portal Enabled
+                </span>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: '600' }}>
+                  {managingAccountStudent.user.email}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={handleDeactivateAccount}
+                style={{ color: 'var(--status-absent-text)', fontSize: '0.78rem', padding: '4px 8px' }}
+                disabled={savingAccount}
+              >
+                Deactivate
+              </button>
+            </div>
+          )}
+
+          <div className="input-label">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span className="label-caps">Student Email</span>
+              <button
+                type="button"
+                className="btn-ghost"
+                style={{ fontSize: '0.75rem', padding: '2px 6px', color: 'var(--navy-primary)' }}
+                onClick={() => setAccountEmail(generateStudentEmail(managingAccountStudent?.name))}
+              >
+                Auto-Format Standard Email
+              </button>
+            </div>
+            <input
+              type="email"
+              className="input-field"
+              value={accountEmail}
+              onChange={(e) => setAccountEmail(e.target.value)}
+              placeholder="e.g. nathan.worku@student.sheba.edu"
+              required
+            />
+          </div>
+
+          <div className="input-label">
+            <span className="label-caps">
+              {managingAccountStudent?.user ? 'Reset Password (or leave blank to keep unchanged)' : 'Initial Password'}
+            </span>
+            <input
+              type="text"
+              className="input-field"
+              value={accountPassword}
+              onChange={(e) => setAccountPassword(e.target.value)}
+              placeholder="Default: Student@123"
+            />
+          </div>
+
+          <div className="admin-form-actions">
+            <button type="button" className="admin-secondary-button" onClick={() => setAccountModalOpen(false)}>
+              Cancel
+            </button>
+            <button type="submit" className="admin-primary-button" disabled={savingAccount || !accountEmail.trim()}>
+              <span className="material-symbols-outlined">key</span>
+              {savingAccount ? 'Saving…' : managingAccountStudent?.user ? 'Update Credentials' : 'Provision Student Account'}
             </button>
           </div>
         </form>

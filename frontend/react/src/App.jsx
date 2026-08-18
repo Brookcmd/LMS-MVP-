@@ -8,6 +8,7 @@ import Notifications from './pages/Notifications'
 import TeacherAttendance from './pages/TeacherAttendance'
 import ParentAttendance from './pages/ParentAttendance'
 import ParentDashboard from './pages/ParentDashboard'
+import StudentDashboard from './pages/StudentDashboard'
 import Profile from './pages/Profile'
 import TeacherGrades from './pages/TeacherGrades'
 import ParentGrades from './pages/ParentGrades'
@@ -25,6 +26,7 @@ import AdminSchedule from './pages/admin/AdminSchedule'
 import AdminSubjects from './pages/admin/AdminSubjects'
 import AdminParentLinks from './pages/admin/AdminParentLinks'
 import AdminAnalytics from './pages/admin/AdminAnalytics'
+import AdminMaterials from './pages/admin/AdminMaterials'
 import CourseMaterials from './pages/CourseMaterials'
 import LandingPage from './pages/LandingPage'
 import NotFound from './pages/NotFound'
@@ -45,6 +47,7 @@ function HomeRedirect() {
 
   if (user?.role === 'teacher') return <Navigate to="/teacher" replace />
   if (user?.role === 'admin') return <Navigate to="/admin" replace />
+  if (user?.role === 'student') return <StudentDashboard />
 
   return <ParentDashboard />
 }
@@ -190,6 +193,14 @@ function Login() {
               Quick Demo Persona Fill
             </span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center' }}>
+              <button 
+                type="button" 
+                className="btn-ghost" 
+                style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                onClick={() => { setEmail('nathan.worku@student.sheba.edu'); setPassword('Student@123') }}
+              >
+                Student
+              </button>
               <button 
                 type="button" 
                 className="btn-ghost" 
@@ -341,6 +352,7 @@ function AppContent() {
           <Route path="/admin" element={<PrivateRoute roles={['admin']}><AdminLayout /></PrivateRoute>}>
             <Route index element={<AdminDashboard />} />
             <Route path="analytics" element={<AdminAnalytics />} />
+            <Route path="materials" element={<AdminMaterials />} />
             <Route path="classes" element={<AdminClasses />} />
             <Route path="schedule" element={<AdminSchedule />} />
             <Route path="students" element={<AdminStudents />} />

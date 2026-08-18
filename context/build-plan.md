@@ -31,9 +31,9 @@ This is the source of truth for what to build and in what order. If a session's 
 
 ## Phase 5 — Stretch (only if time allows after Phase 2 is solid)
 
-14. [ ] Course materials upload/download (MuStudyHub UI reuse fits here)
+14. [x] Course materials upload/download (MuStudyHub UI reuse fits here)
 15. [x] Teacher-parent messaging
-16. [ ] Assignment submission
+16. [x] Assignment submission
 17. [x] Admin analytics (attendance rate trends, grade averages)
 18. [ ] A game where users can play games that sharpen the mind.
 19. [x] A schedule where parents and students can see their daily schedule that reflects realtime schedule changes
@@ -49,6 +49,10 @@ SCORM/xAPI, e-commerce/payments, gamification/badges, AI chatbots, BI tool integ
 ---
 
 ## Progress log
+
+- 2026-08-18 — Student Accounts & Portal Experience done. Added dedicated `StudentDashboard.jsx` featuring today's live class timetable, quick homework submission modal with file upload, real-time attendance ring summary, subject report card breakdown, and class course materials library. Implemented backend `GET /student/overview` and `GET /student/profile` aggregated service endpoints. Added admin student credential provisioning (`POST /students/:studentId/account` & `DELETE /students/:studentId/account`) in `student-service.ts` and `AdminStudents.jsx` with auto-generation and status badges. Added Quick Demo student login button (`nathan.worku@student.sheba.edu`). Added unit test suite `student-portal.test.ts` (9/9 tests passed). Frontend production build passed cleanly in 1.39s.
+
+- 2026-08-18 — Feature 14 & Feature 16 confirmed done. Feature 14 (Course Materials): Added Material Prisma model, `/materials` endpoints for teacher publishing, student/parent class materials, admin repository with pagination, `CourseMaterials.jsx` with category filter pills, drag-and-drop dropzone, and `FilePreviewModal.jsx`. Feature 16 (Assignment Submission): Added Submission Prisma model, `/submissions` endpoints for student/parent homework submissions, `ParentDeadlines.jsx` submission modal, `TeacherDeadlines.jsx` submissions roster drawer with on-the-fly score grading (0-100) and teacher feedback. All 63 backend unit tests pass.
 
 - 2026-08-17 — Feature 17 done. Built full institutional Admin Analytics Dashboard with executive KPIs, attendance status trends, class attendance rates, letter grade distribution histograms (Bands A-F), subject performance leaderboard, and at-risk student monitoring roster. Added `GET /analytics/admin` backend route and `analytics-service.ts`. Added `AdminAnalytics.jsx`, filter bar controls, topbar search shortcuts, and test suite `analytics.test.ts` (4/4 tests passed). Frontend build passed clean in 2.18s.
 

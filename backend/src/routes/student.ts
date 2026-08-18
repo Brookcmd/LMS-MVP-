@@ -4,12 +4,22 @@ import { authMiddleware } from "../middleware/auth";
 import { roleMiddleware } from "../middleware/role";
 import { prisma } from "../lib/prisma";
 import { AppError, appErrors } from "../lib/app-error";
+import { getStudentOverview } from "../services/student-portal-service";
 
 const studentRouter = express.Router();
 
 studentRouter.use(authMiddleware, roleMiddleware(["student"]));
 
 studentRouter.get("/attendance", getStudentAttendanceHistoryHandler);
+
+studentRouter.get("/overview", async (req, res, next) => {
+  try {
+    const data = await getStudentOverview(req.user!.userId, req.user!.schoolId);
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
 
 studentRouter.get("/profile", async (req, res, next) => {
   try {
@@ -20,6 +30,7 @@ studentRouter.get("/profile", async (req, res, next) => {
       },
       include: {
         class: { select: { id: true, name: true } },
+        user: { select: { id: true, name: true, email: true, avatarUrl: true } },
         parents: {
           include: {
             parent: { select: { id: true, name: true, email: true, phone: true } },

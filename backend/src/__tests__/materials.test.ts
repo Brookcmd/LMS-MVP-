@@ -51,4 +51,16 @@ describe("Course Materials Routes (/materials)", () => {
 
     expect(res.status).toBe(403);
   });
+
+  it("allows admin to query school-wide materials repository", async () => {
+    const res = await request(app)
+      .get("/materials/admin?page=1&limit=10")
+      .set("Authorization", `Bearer ${testData.adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(Array.isArray(res.body.data.items)).toBe(true);
+    expect(typeof res.body.data.total).toBe("number");
+  });
 });
+

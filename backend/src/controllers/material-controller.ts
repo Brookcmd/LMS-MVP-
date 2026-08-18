@@ -5,6 +5,7 @@ import fs from "fs";
 import {
   createMaterial,
   deleteMaterial,
+  listAdminMaterials,
   listClassMaterials,
   listStudentMaterials,
   listTeacherMaterials,
@@ -65,7 +66,7 @@ export async function uploadMaterialHandler(req: Request, res: Response): Promis
         return;
       }
 
-      const { title, description, classId, subjectId } = req.body;
+      const { title, description, classId, subjectId, category } = req.body;
       if (!title || !classId || !subjectId) {
         res.status(400).json({
           success: false,
@@ -79,6 +80,7 @@ export async function uploadMaterialHandler(req: Request, res: Response): Promis
       const material = await createMaterial({
         title: String(title),
         description: description ? String(description) : undefined,
+        category: category ? String(category) : undefined,
         classId: Number(classId),
         subjectId: Number(subjectId),
         teacherId: auth.userId,
@@ -87,6 +89,7 @@ export async function uploadMaterialHandler(req: Request, res: Response): Promis
         fileUrl,
         fileSize: req.file.size,
         mimeType: req.file.mimetype,
+        isAdmin: auth.role === "admin",
       });
 
       res.status(201).json({
@@ -99,6 +102,38 @@ export async function uploadMaterialHandler(req: Request, res: Response): Promis
       res.status(statusCode).json({ success: false, error: { message: error.message, code } });
     }
   });
+}
+
+export async function listAdminMaterialsHandler(req: Request, res: Response): Promise<void> {
+  try {
+    const auth = getAuthUser(req);
+    if (!auth || auth.role !== "admin") {
+      res.status(403).json({ success: false, error: { message: "Admin access required", code: "FORBIDDEN" } });
+      return;
+    }
+
+    const page = req.query.page ? Number(req.query.page) : undefined;
+    const limit = req.query.limit ? Number(req.query.limit) : undefined;
+    const search = req.query.search ? String(req.query.search) : undefined;
+    const classId = req.query.classId ? Number(req.query.classId) : undefined;
+    const subjectId = req.query.subjectId ? Number(req.query.subjectId) : undefined;
+    const gradeBand = req.query.gradeBand ? String(req.query.gradeBand) : undefined;
+
+    const result = await listAdminMaterials(auth.schoolId, {
+      page,
+      limit,
+      search,
+      classId,
+      subjectId,
+      gradeBand,
+    });
+
+    res.status(200).json({ success: true, data: result });
+  } catch (error: any) {
+    console.error("Error in listAdminMaterialsHandler:", error);
+    const statusCode = error instanceof AppError ? error.statusCode : 500;
+    res.status(statusCode).json({ success: false, error: { message: error.message, code: error.code || "SERVER_ERROR" } });
+  }
 }
 
 export async function listTeacherMaterialsHandler(req: Request, res: Response): Promise<void> {

@@ -324,11 +324,12 @@ async function main() {
   console.log("⏳ Seeding 2,625 parent accounts and links...");
   const parentUserData: Array<{ schoolId: number; role: string; name: string; email: string; passwordHash: string }> = [];
   for (let i = 0; i < students.length; i++) {
+    const isDemoParent = i === 0;
     parentUserData.push({
       schoolId: SCHOOL_ID,
       role: "parent",
-      name: `Parent of ${students[i].name}`,
-      email: `parent${i + 1}@parent.com`,
+      name: isDemoParent ? "Worku Abebe" : `Parent of ${students[i].name}`,
+      email: isDemoParent ? "workuabebe@parent.com" : `parent${i + 1}@parent.com`,
       passwordHash: parentPasswordHash,
     });
   }
@@ -357,6 +358,28 @@ async function main() {
     skipDuplicates: true,
   });
   console.log(`✅ Linked ${parentStudentData.length} parents to students.`);
+
+  // 8b. Seed Demo Student User Account (Nathan Worku)
+  console.log("⏳ Seeding demo student login account...");
+  const studentPasswordHash = await hashPassword("Student@123");
+  const demoStudentUser = await prisma.user.create({
+    data: {
+      schoolId: SCHOOL_ID,
+      role: "student",
+      name: "Nathan Worku",
+      email: "nathan.worku@student.sheba.edu",
+      passwordHash: studentPasswordHash,
+    },
+  });
+
+  await prisma.student.update({
+    where: { id: students[0].id },
+    data: {
+      name: "Nathan Worku",
+      userId: demoStudentUser.id,
+    },
+  });
+  console.log(`✅ Provisioned student account: nathan.worku@student.sheba.edu (ID: ${demoStudentUser.id})`);
 
   // 9. Attendance (Today + Past 5 Days = 6 Days ~15,750 records)
   console.log("⏳ Generating 6 days of attendance history...");
@@ -464,6 +487,82 @@ async function main() {
 
   await prisma.submission.createMany({
     data: submissionsData,
+    skipDuplicates: true,
+  });
+
+  // 11. Sample Course Materials across Grade Bands
+  console.log("⏳ Seeding sample course materials across all grade tiers...");
+  const sampleMaterials = [
+    {
+      title: "Kindergarten English Alphabet & Phonics Pack",
+      description: "[category:worksheet] Early literacy flashcards, tracing guides, and daily pronunciation drills.",
+      fileName: "KG_Phonics_Activities.pdf",
+      fileUrl: "/uploads/materials/sample_phonics.pdf",
+      fileSize: 2450000,
+      mimeType: "application/pdf",
+      classId: classes[0].id, // KG1 A
+      subjectId: subjectMap.get("English Literacy") || subjects[0].id,
+      teacherId: teachers[0].id,
+    },
+    {
+      title: "Grade 5 Mathematics - Fractions & Decimals Review",
+      description: "[category:lecture_notes] Lecture slides explaining fractional reduction, common denominators, and word problem scenarios.",
+      fileName: "G5_Math_Fractions_Lesson.pptx",
+      fileUrl: "/uploads/materials/sample_fractions.pptx",
+      fileSize: 4820000,
+      mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      classId: classes[20]?.id || classes[0].id, // Grade 5 A
+      subjectId: subjectMap.get("Mathematics") || subjects[0].id,
+      teacherId: teachers[1]?.id || teachers[0].id,
+    },
+    {
+      title: "Grade 8 Integrated Science Lab Manual",
+      description: "[category:syllabus] Comprehensive term curriculum guide, safety standards, and experimental worksheets for chemistry units.",
+      fileName: "G8_Science_Lab_Manual_2026.pdf",
+      fileUrl: "/uploads/materials/sample_lab_manual.pdf",
+      fileSize: 7150000,
+      mimeType: "application/pdf",
+      classId: classes[35]?.id || classes[0].id, // Grade 8 A
+      subjectId: subjectMap.get("Integrated Science") || subjects[0].id,
+      teacherId: teachers[2]?.id || teachers[0].id,
+    },
+    {
+      title: "Grade 10 National Physics Model Examination & Answer Key",
+      description: "[category:past_exam] Official sample national examination questions covering mechanics, optics, and thermodynamics with complete solutions.",
+      fileName: "G10_Physics_Model_Exam_2026.pdf",
+      fileUrl: "/uploads/materials/sample_physics_exam.pdf",
+      fileSize: 3200000,
+      mimeType: "application/pdf",
+      classId: classes[45]?.id || classes[0].id, // Grade 10 A
+      subjectId: subjectMap.get("Physics") || subjects[0].id,
+      teacherId: teachers[3]?.id || teachers[0].id,
+    },
+    {
+      title: "Grade 12 Natural Science - Advanced Organic Chemistry Reference",
+      description: "[category:reading] Supplementary academic textbook chapters on reaction mechanisms, polymers, and biomolecules.",
+      fileName: "G12_Organic_Chemistry_Reference.pdf",
+      fileUrl: "/uploads/materials/sample_chemistry.pdf",
+      fileSize: 12500000,
+      mimeType: "application/pdf",
+      classId: classes[65]?.id || classes[0].id, // Grade 12 Natural Science
+      subjectId: subjectMap.get("Chemistry") || subjects[0].id,
+      teacherId: teachers[4]?.id || teachers[0].id,
+    },
+    {
+      title: "Grade 12 Social Science - Microeconomics Case Studies",
+      description: "[category:worksheet] Macro and Micro market structure analysis, inflation data sheets, and fiscal policy review questions.",
+      fileName: "G12_Economics_Case_Studies.docx",
+      fileUrl: "/uploads/materials/sample_economics.docx",
+      fileSize: 1850000,
+      mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      classId: classes[70]?.id || classes[0].id, // Grade 12 Social Science
+      subjectId: subjectMap.get("Economics") || subjects[0].id,
+      teacherId: teachers[5]?.id || teachers[0].id,
+    },
+  ];
+
+  await prisma.material.createMany({
+    data: sampleMaterials,
     skipDuplicates: true,
   });
 

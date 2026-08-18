@@ -1,9 +1,11 @@
 import type { Request, Response } from "express";
 import {
   createStudent,
+  deactivateStudentAccount,
   deleteStudent,
   getStudentById,
   listStudents,
+  provisionStudentAccount,
   updateStudent,
 } from "../services/student-service";
 import { AuthError } from "../lib/auth-errors";
@@ -111,6 +113,47 @@ export async function deleteStudentHandler(request: Request, response: Response)
     }
 
     const result = await deleteStudent(request.user.schoolId, readParam(request.params.studentId));
+    response.status(200).json({ success: true, data: result });
+  } catch (error) {
+    handleError(error, response);
+  }
+}
+
+export async function provisionStudentAccountHandler(request: Request, response: Response): Promise<void> {
+  try {
+    if (!request.user) {
+      response.status(401).json({ success: false, error: { message: "Unauthorized", code: "UNAUTHORIZED" } });
+      return;
+    }
+
+    const result = await provisionStudentAccount(
+      request.user.schoolId,
+      readParam(request.params.studentId),
+      {
+        email: request.body.email,
+        password: request.body.password,
+        name: request.body.name,
+      }
+    );
+
+    response.status(200).json({ success: true, data: result });
+  } catch (error) {
+    handleError(error, response);
+  }
+}
+
+export async function deactivateStudentAccountHandler(request: Request, response: Response): Promise<void> {
+  try {
+    if (!request.user) {
+      response.status(401).json({ success: false, error: { message: "Unauthorized", code: "UNAUTHORIZED" } });
+      return;
+    }
+
+    const result = await deactivateStudentAccount(
+      request.user.schoolId,
+      readParam(request.params.studentId)
+    );
+
     response.status(200).json({ success: true, data: result });
   } catch (error) {
     handleError(error, response);

@@ -221,10 +221,26 @@ export async function listUserNotifications() { return request('/notifications')
 export async function markUserNotificationRead(id) { return request(`/notifications/${id}/read`, { method: 'PATCH' }) }
 
 // Student Endpoints
-export async function getStudentGrades({ academicYear, quarter }) {
-  return request(`/grades/student?academicYear=${encodeURIComponent(academicYear)}&quarter=${quarter}`)
+export async function getStudentOverview() {
+  return request('/student/overview')
 }
-export async function getStudentAttendance({ from, to }) {
+export async function getStudentProfile() {
+  return request('/student/profile')
+}
+export async function provisionStudentAccount(studentId, body) {
+  return request(`/students/${studentId}/account`, { method: 'POST', body })
+}
+export async function deleteStudentAccount(studentId) {
+  return request(`/students/${studentId}/account`, { method: 'DELETE' })
+}
+export async function getStudentGrades({ academicYear, quarter } = {}) {
+  const query = new URLSearchParams()
+  if (academicYear) query.set('academicYear', academicYear)
+  if (quarter) query.set('quarter', quarter)
+  const qs = query.toString()
+  return request(`/grades/student${qs ? `?${qs}` : ''}`)
+}
+export async function getStudentAttendance({ from, to } = {}) {
   const query = new URLSearchParams()
   if (from) query.set("from", from)
   if (to) query.set("to", to)
@@ -284,6 +300,18 @@ export async function uploadMaterial({ title, description, classId, subjectId, f
 
 export async function listTeacherMaterials() {
   return request('/materials/teacher')
+}
+
+export async function listAdminMaterials(params = {}) {
+  const query = new URLSearchParams()
+  if (params.page) query.set('page', params.page)
+  if (params.limit) query.set('limit', params.limit)
+  if (params.search) query.set('search', params.search)
+  if (params.classId) query.set('classId', params.classId)
+  if (params.subjectId) query.set('subjectId', params.subjectId)
+  if (params.gradeBand) query.set('gradeBand', params.gradeBand)
+  const queryString = query.toString()
+  return request(`/materials/admin${queryString ? `?${queryString}` : ''}`)
 }
 
 export async function listStudentMaterials({ studentId, subjectId } = {}) {

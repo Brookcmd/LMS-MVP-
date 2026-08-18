@@ -7,6 +7,7 @@ import logoDark from '../../assets/SUC_Logo_dark.png'
 const NAV_ITEMS = [
   { to: '/admin', end: true, icon: 'dashboard', label: 'Dashboard' },
   { to: '/admin/analytics', icon: 'analytics', label: 'Analytics' },
+  { to: '/admin/materials', icon: 'menu_book', label: 'Materials' },
   { to: '/admin/classes', icon: 'school', label: 'Classes' },
   { to: '/admin/schedule', icon: 'calendar_view_week', label: 'Schedule' },
   { to: '/admin/students', icon: 'person', label: 'Students' },
@@ -37,6 +38,8 @@ export default function AdminLayout() {
 
     if (query.includes('analytic') || query.includes('trend') || query.includes('chart') || query.includes('metric') || query.includes('stat')) {
       navigate('/admin/analytics')
+    } else if (query.includes('material') || query.includes('resource') || query.includes('document') || query.includes('file') || query.includes('slide')) {
+      navigate('/admin/materials')
     } else if (query.includes('student')) navigate('/admin/students')
     else if (query.includes('teacher')) navigate('/admin/teachers')
     else if (query.includes('parent')) navigate('/admin/parents')

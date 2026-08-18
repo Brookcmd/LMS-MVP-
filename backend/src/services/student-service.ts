@@ -1,11 +1,18 @@
 import { prisma } from "../lib/prisma";
 import { appErrors } from "../lib/app-error";
+import { hashPassword } from "../lib/auth-utils";
 
 export interface CreateStudentPayload {
   schoolId: string;
   name: string;
   classId: string;
   dob?: string | null;
+}
+
+export interface ProvisionStudentAccountPayload {
+  email: string;
+  password?: string;
+  name?: string;
 }
 
 export interface UpdateStudentPayload {
@@ -143,6 +150,14 @@ export async function listStudents(schoolIdValue: string, options: ListStudentsO
             name: true,
           },
         },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
         parents: {
           include: {
             parent: {
@@ -183,6 +198,14 @@ export async function getStudentById(schoolIdValue: string, studentIdValue: stri
         select: {
           id: true,
           name: true,
+        },
+      },
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatarUrl: true,
         },
       },
       parents: {
@@ -260,4 +283,124 @@ export async function deleteStudent(schoolIdValue: string, studentIdValue: strin
   await prisma.student.delete({ where: { id: studentId } });
 
   return { deleted: true };
+}
+
+export async function provisionStudentAccount(
+  schoolIdValue: string,
+  studentIdValue: string,
+  payload: ProvisionStudentAccountPayload
+) {
+  const schoolId = parseId(schoolIdValue, "schoolId");
+  const studentId = parseId(studentIdValue, "studentId");
+  const email = payload.email?.trim().toLowerCase();
+  const rawPassword = payload.password || "Student@123";
+  const name = payload.name?.trim();
+
+  if (!email) {
+    throw appErrors.badRequest("Email is required to provision student account");
+  }
+
+  const student = await prisma.student.findFirst({
+    where: { id: studentId, schoolId },
+    include: { user: true },
+  });
+
+  if (!student) {
+    throw appErrors.notFound("Student not found");
+  }
+
+  // Check if email is already taken by another user in this school
+  const existingUserWithEmail = await prisma.user.findFirst({
+    where: {
+      schoolId,
+      email,
+      NOT: student.userId ? { id: student.userId } : undefined,
+    },
+  });
+
+  if (existingUserWithEmail) {
+    throw appErrors.conflict("An account with this email already exists in this school");
+  }
+
+  const passwordHash = await hashPassword(rawPassword);
+
+  let userRecord;
+  if (student.userId && student.user) {
+    // Update existing user account
+    userRecord = await prisma.user.update({
+      where: { id: student.userId },
+      data: {
+        email,
+        name: name || student.name,
+        passwordHash,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+      },
+    });
+  } else {
+    // Create new user account & link to student
+    userRecord = await prisma.user.create({
+      data: {
+        schoolId,
+        role: "student",
+        name: name || student.name,
+        email,
+        passwordHash,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+      },
+    });
+
+    await prisma.student.update({
+      where: { id: studentId },
+      data: { userId: userRecord.id },
+    });
+  }
+
+  return {
+    studentId,
+    user: userRecord,
+    message: "Student login account provisioned successfully",
+  };
+}
+
+export async function deactivateStudentAccount(schoolIdValue: string, studentIdValue: string) {
+  const schoolId = parseId(schoolIdValue, "schoolId");
+  const studentId = parseId(studentIdValue, "studentId");
+
+  const student = await prisma.student.findFirst({
+    where: { id: studentId, schoolId },
+  });
+
+  if (!student) {
+    throw appErrors.notFound("Student not found");
+  }
+
+  if (student.userId) {
+    const userIdToDelete = student.userId;
+    // Unlink first
+    await prisma.student.update({
+      where: { id: studentId },
+      data: { userId: null },
+    });
+
+    // Delete user record
+    await prisma.user.delete({
+      where: { id: userIdToDelete },
+    }).catch(() => null);
+  }
+
+  return {
+    studentId,
+    unlinked: true,
+    message: "Student login account deactivated successfully",
+  };
 }

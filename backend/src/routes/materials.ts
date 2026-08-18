@@ -3,6 +3,7 @@ import { authMiddleware } from "../middleware/auth";
 import { roleMiddleware } from "../middleware/role";
 import {
   deleteMaterialHandler,
+  listAdminMaterialsHandler,
   listClassMaterialsHandler,
   listStudentMaterialsHandler,
   listTeacherMaterialsHandler,
@@ -12,6 +13,9 @@ import {
 const materialsRouter = express.Router();
 
 materialsRouter.use(authMiddleware);
+
+// Admin school-wide material listing
+materialsRouter.get("/admin", roleMiddleware(["admin"]), listAdminMaterialsHandler);
 
 // Teacher/Admin upload course materials
 materialsRouter.post("/", roleMiddleware(["teacher", "admin"]), uploadMaterialHandler);
@@ -29,3 +33,4 @@ materialsRouter.get("/class/:classId", listClassMaterialsHandler);
 materialsRouter.delete("/:id", roleMiddleware(["teacher", "admin"]), deleteMaterialHandler);
 
 export default materialsRouter;
+
