@@ -1,6 +1,14 @@
-import React from 'react'
-import { getStudentAssessments, listParentAssessments, listParentStudents } from '../api/apiClient'
+import React, { useState, useEffect, useCallback } from 'react'
+import {
+  getMySubmission,
+  getStudentAssessments,
+  listParentAssessments,
+  listParentStudents,
+  submitAssignment,
+} from '../api/apiClient'
 import { useAuth } from '../auth/AuthContext'
+import { useToast } from '../context/ToastContext'
+import { CardSkeleton } from '../components/SkeletonLoader'
 
 const TYPE_ICONS = {
   assignment: 'description',
@@ -9,65 +17,113 @@ const TYPE_ICONS = {
   project: 'folder',
 }
 
+function formatFileSize(bytes) {
+  if (!bytes || bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+}
+
 export default function ParentDeadlines() {
   const { user } = useAuth()
+  const { toast } = useToast()
   const isStudent = user?.role === 'student'
-  const [children, setChildren] = React.useState([])
-  const [selectedStudentId, setSelectedStudentId] = React.useState('')
-  const [assessments, setAssessments] = React.useState([])
-  const [loading, setLoading] = React.useState(true)
-  const [error, setError] = React.useState('')
-  const [statusFilter, setStatusFilter] = React.useState('all')
+  const [children, setChildren] = useState([])
+  const [selectedStudentId, setSelectedStudentId] = useState('')
+  const [assessments, setAssessments] = useState([])
+  const [submissionsMap, setSubmissionsMap] = useState({}) // { [assessmentId]: submission }
+  const [loading, setLoading] = useState(true)
+  const [statusFilter, setStatusFilter] = useState('all')
 
-  React.useEffect(() => {
-    if (isStudent) return
-    listParentStudents()
-      .then((data) => {
-        const studentList = data?.students || data || []
-        setChildren(studentList)
-        if (studentList.length > 0) {
-          setSelectedStudentId(String(studentList[0].id))
+  // Submission Modal State
+  const [activeSubmissionModal, setActiveSubmissionModal] = useState(null) // assessment object
+  const [submissionFile, setSubmissionFile] = useState(null)
+  const [submissionContent, setSubmissionContent] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true)
+      let assessmentData = []
+      let studentIdForQuery = selectedStudentId
+
+      if (isStudent) {
+        assessmentData = (await getStudentAssessments()) || []
+      } else {
+        const kids = await listParentStudents()
+        const kidList = kids?.students || kids || []
+        setChildren(kidList)
+        if (kidList.length > 0 && !selectedStudentId) {
+          studentIdForQuery = String(kidList[0].id)
+          setSelectedStudentId(studentIdForQuery)
         }
-      })
-      .catch((e) => setError(e.message))
-  }, [isStudent])
+        assessmentData = (await listParentAssessments(studentIdForQuery)) || []
+      }
 
-  React.useEffect(() => {
-    let active = true
-    setLoading(true)
-    setError('')
+      setAssessments(assessmentData)
 
-    if (isStudent) {
-      getStudentAssessments()
-        .then((data) => {
-          if (!active) return
-          setAssessments(data || [])
+      // Fetch student submissions for assignments and projects
+      const subMap = {}
+      const relevant = assessmentData.filter((a) => a.type === 'assignment' || a.type === 'project')
+      await Promise.all(
+        relevant.map(async (a) => {
+          try {
+            const sub = await getMySubmission(a.id, isStudent ? undefined : studentIdForQuery)
+            if (sub) subMap[a.id] = sub
+          } catch {
+            // No submission found or error
+          }
         })
-        .catch((e) => {
-          if (active) setError(e.message)
-        })
-        .finally(() => {
-          if (active) setLoading(false)
-        })
-      return () => { active = false }
-    }
-
-    listParentAssessments(selectedStudentId)
-      .then((data) => {
-        if (!active) return
-        setAssessments(data || [])
-      })
-      .catch((e) => {
-        if (active) setError(e.message)
-      })
-      .finally(() => {
-        if (active) setLoading(false)
-      })
-
-    return () => {
-      active = false
+      )
+      setSubmissionsMap(subMap)
+    } catch (e) {
+      toast.error(e.message || 'Failed to load deadlines')
+    } finally {
+      setLoading(false)
     }
   }, [isStudent, selectedStudentId])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  const handleOpenSubmitModal = (item) => {
+    const existing = submissionsMap[item.id]
+    setActiveSubmissionModal(item)
+    setSubmissionContent(existing?.content || '')
+    setSubmissionFile(null)
+  }
+
+  const handleSubmitHomework = async (e) => {
+    e.preventDefault()
+    if (!activeSubmissionModal) return
+
+    if (!submissionFile && !submissionContent.trim() && !submissionsMap[activeSubmissionModal.id]?.fileUrl) {
+      toast.warning('Please select a solution file or enter your submission text.')
+      return
+    }
+
+    try {
+      setSubmitting(true)
+      const res = await submitAssignment(activeSubmissionModal.id, {
+        file: submissionFile || undefined,
+        content: submissionContent.trim() || undefined,
+        studentId: isStudent ? undefined : selectedStudentId,
+      })
+
+      toast.success(`Work submitted for "${activeSubmissionModal.title}"!`)
+      setSubmissionsMap((prev) => ({
+        ...prev,
+        [activeSubmissionModal.id]: res,
+      }))
+      setActiveSubmissionModal(null)
+    } catch (err) {
+      toast.error(err.message || 'Failed to submit assignment')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const filteredAssessments = assessments.filter((item) => {
     if (statusFilter === 'upcoming') return item.status === 'upcoming'
@@ -84,165 +140,242 @@ export default function ParentDeadlines() {
   }
 
   return (
-    <div>
-      <div className="section-header">
+    <div className="container" style={{ paddingBottom: '60px' }}>
+      <div className="section-header" style={{ marginBottom: '20px' }}>
         <div>
-          <span className="subtitle">Deadlines & Schedule</span>
-          <h1 className="title">Upcoming Deadlines & Schedule</h1>
+          <span className="subtitle">Curriculum Deadlines & Homework</span>
+          <h1 className="title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '2rem', color: 'var(--navy-primary)' }}>
+              event_available
+            </span>
+            Assessments & Submissions
+          </h1>
         </div>
       </div>
 
-      {error && <div className="error" style={{ marginBottom: 16 }}>{error}</div>}
-
-      {/* Child selector toolbar */}
-      {!isStudent && (
-        <div className="card section toolbar-card" style={{ padding: 20 }}>
-          <div className="toolbar-actions" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <label className="input-label" style={{ flex: 1, minWidth: 220 }}>
-              <span className="label-caps">Select Child</span>
-              <select
-                className="input-field"
-                value={selectedStudentId}
-                onChange={(e) => setSelectedStudentId(e.target.value)}
-              >
-                <option value="">All Children</option>
-                {children.map((child) => (
-                  <option key={child.id} value={child.id}>
-                    {child.name} ({child.class?.name || 'Class Assigned'})
-                  </option>
-                ))}
-              </select>
-            </label>
+      {/* Child selector toolbar for parents */}
+      {!isStudent && children.length > 0 && (
+        <div className="card toolbar-card" style={{ padding: '16px 20px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <span className="label-caps" style={{ margin: 0 }}>Select Child:</span>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {children.map((child) => (
+                <button
+                  key={child.id}
+                  type="button"
+                  className={`btn-ghost ${selectedStudentId === String(child.id) ? 'active' : ''}`}
+                  onClick={() => setSelectedStudentId(String(child.id))}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 'var(--radius-pill)',
+                    background: selectedStudentId === String(child.id) ? 'var(--navy-primary)' : 'var(--bg-surface-elevated)',
+                    color: selectedStudentId === String(child.id) ? '#FFFFFF' : 'var(--text-primary)',
+                    border: '1px solid var(--border-color)',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>face</span>
+                  {child.name} ({child.class?.name || 'Class Assigned'})
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
 
       {/* Summary Cards */}
-      <div className="stats-grid section">
+      <div className="stats-grid" style={{ marginBottom: '20px' }}>
         <div className="stat-card">
-          <span className="label-caps">Total Deadlines</span>
+          <span>Total Deadlines</span>
           <strong>{stats.total}</strong>
         </div>
-        <div className="stat-card" style={{ borderLeft: '4px solid #f59e0b' }}>
-          <span className="label-caps">Due Today</span>
-          <strong style={{ color: '#d97706' }}>{stats.today}</strong>
+        <div className="stat-card">
+          <span>Due Today</span>
+          <strong style={{ color: 'var(--gold-accent)' }}>{stats.today}</strong>
         </div>
-        <div className="stat-card" style={{ borderLeft: '4px solid #3b82f6' }}>
-          <span className="label-caps">Upcoming</span>
-          <strong style={{ color: '#2563eb' }}>{stats.upcoming}</strong>
+        <div className="stat-card">
+          <span>Upcoming</span>
+          <strong style={{ color: 'var(--navy-primary)' }}>{stats.upcoming}</strong>
         </div>
-        <div className="stat-card" style={{ borderLeft: '4px solid #ef4444' }}>
-          <span className="label-caps">Past Due</span>
-          <strong style={{ color: '#dc2626' }}>{stats.overdue}</strong>
+        <div className="stat-card">
+          <span>Past Due</span>
+          <strong style={{ color: 'var(--red-accent)' }}>{stats.overdue}</strong>
         </div>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="card section toolbar-card" style={{ padding: 14, marginBottom: 20 }}>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button
-            className={`btn-secondary ${statusFilter === 'all' ? 'active-filter' : ''}`}
-            type="button"
-            onClick={() => setStatusFilter('all')}
-            style={{ fontWeight: statusFilter === 'all' ? '700' : 'normal' }}
-          >
-            All ({stats.total})
-          </button>
-          <button
-            className={`btn-secondary ${statusFilter === 'today' ? 'active-filter' : ''}`}
-            type="button"
-            onClick={() => setStatusFilter('today')}
-            style={{ fontWeight: statusFilter === 'today' ? '700' : 'normal', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>schedule</span> Due Today ({stats.today})
-          </button>
-          <button
-            className={`btn-secondary ${statusFilter === 'upcoming' ? 'active-filter' : ''}`}
-            type="button"
-            onClick={() => setStatusFilter('upcoming')}
-            style={{ fontWeight: statusFilter === 'upcoming' ? '700' : 'normal', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>event</span> Upcoming ({stats.upcoming})
-          </button>
-          <button
-            className={`btn-secondary ${statusFilter === 'overdue' ? 'active-filter' : ''}`}
-            type="button"
-            onClick={() => setStatusFilter('overdue')}
-            style={{ fontWeight: statusFilter === 'overdue' ? '700' : 'normal', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>warning</span> Past Due ({stats.overdue})
-          </button>
+      <div className="card" style={{ padding: '12px 16px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {['all', 'today', 'upcoming', 'overdue'].map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              className={`btn-ghost ${statusFilter === tab ? 'active' : ''}`}
+              onClick={() => setStatusFilter(tab)}
+              style={{
+                padding: '6px 14px',
+                fontSize: '0.82rem',
+                textTransform: 'capitalize',
+                borderRadius: 'var(--radius-pill)',
+                background: statusFilter === tab ? 'var(--navy-primary)' : 'transparent',
+                color: statusFilter === tab ? '#FFFFFF' : 'var(--text-secondary)',
+              }}
+            >
+              {tab === 'all'
+                ? `All (${stats.total})`
+                : tab === 'today'
+                ? `Due Today (${stats.today})`
+                : tab === 'upcoming'
+                ? `Upcoming (${stats.upcoming})`
+                : `Past Due (${stats.overdue})`}
+            </button>
+          ))}
         </div>
       </div>
 
       {loading ? (
-        <div className="loader">Loading student deadlines…</div>
+        <CardSkeleton lines={3} />
       ) : filteredAssessments.length > 0 ? (
-        <div className="space-y-3" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'grid', gap: '16px' }}>
           {filteredAssessments.map((item) => {
             const due = new Date(item.dueDate)
             const iconName = TYPE_ICONS[item.type] || 'description'
-
-            let statusBadge = (
-              <span className="chip" style={{ background: '#dbeafe', color: '#1e40af' }}>
-                Upcoming ({item.daysRemaining} {item.daysRemaining === 1 ? 'day' : 'days'})
-              </span>
-            )
-            if (item.status === 'today') {
-              statusBadge = (
-                <span className="chip" style={{ background: '#fef3c7', color: '#92400e', fontWeight: 'bold' }}>
-                  Due Today
-                </span>
-              )
-            } else if (item.status === 'overdue') {
-              statusBadge = (
-                <span className="chip" style={{ background: '#fee2e2', color: '#991b1b' }}>
-                  Past Due
-                </span>
-              )
-            }
+            const isSubmittable = item.type === 'assignment' || item.type === 'project'
+            const submission = submissionsMap[item.id]
 
             return (
-              <div className="card" key={item.id} style={{ padding: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '1.4rem', color: 'var(--text-secondary, #475569)' }}>{iconName}</span>
-                      <h3 className="title" style={{ fontSize: '1.1rem', margin: 0 }}>{item.title}</h3>
-                      <span className="chip" style={{ textTransform: 'capitalize' }}>{item.type}</span>
-                      {statusBadge}
+              <div
+                key={item.id}
+                className="card"
+                style={{
+                  padding: '20px 24px',
+                  borderLeft: `4px solid ${
+                    submission?.status === 'graded'
+                      ? '#059669'
+                      : item.type === 'exam'
+                      ? 'var(--red-accent)'
+                      : item.type === 'quiz'
+                      ? 'var(--gold-accent)'
+                      : 'var(--navy-primary)'
+                  }`,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+                  <div style={{ flex: 1, minWidth: '260px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                      <span className="chip" style={{ background: 'var(--navy-surface)', color: 'var(--navy-primary)', textTransform: 'capitalize' }}>
+                        {item.type}
+                      </span>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                        {item.class?.name} · {item.subject?.name} · Instructor: {item.teacher?.name || 'Faculty'}
+                      </span>
                     </div>
 
-                    <p className="summary" style={{ margin: '4px 0 8px 0' }}>
-                      <strong>{item.class?.name}</strong> · {item.subject?.name} · Teacher: {item.teacher?.name}
-                    </p>
-
-                    {item.students && item.students.length > 0 && (
-                      <div style={{ margin: '6px 0', display: 'flex', gap: 6, alignItems: 'center' }}>
-                        <span className="label-caps" style={{ fontSize: '0.75rem' }}>For:</span>
-                        {item.students.map((s) => (
-                          <span key={s.id} className="chip" style={{ background: '#f1f5f9', color: '#334155', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            <span className="material-symbols-outlined" style={{ fontSize: '0.9rem' }}>person</span> {s.name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    <h3 style={{ margin: '0 0 6px', fontFamily: 'var(--font-headline)', fontSize: '1.2rem', color: 'var(--text-heading)' }}>
+                      {item.title}
+                    </h3>
 
                     {item.description && (
-                      <p style={{ color: 'var(--text-secondary, #64748b)', fontSize: '0.9rem', marginTop: 8 }}>
+                      <p style={{ margin: '0 0 12px', color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.4 }}>
                         {item.description}
                       </p>
                     )}
+
+                    {/* Submission Status & Feedback Box */}
+                    {isSubmittable && (
+                      <div
+                        style={{
+                          marginTop: '12px',
+                          padding: '12px 16px',
+                          borderRadius: '8px',
+                          background: submission ? 'var(--bg-surface-elevated)' : 'var(--bg-surface)',
+                          border: '1px solid var(--border-color)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span className="label-caps" style={{ margin: 0, fontSize: '0.72rem' }}>Submission Status:</span>
+                            {submission ? (
+                              <span
+                                className={`status-pill ${
+                                  submission.status === 'graded' ? 'present' : submission.status === 'late' ? 'late' : 'present'
+                                }`}
+                                style={{ fontSize: '0.75rem' }}
+                              >
+                                {submission.status === 'graded'
+                                  ? `Graded (${submission.gradeScore} / 100)`
+                                  : submission.status === 'late'
+                                  ? 'Submitted Late'
+                                  : 'Submitted On-Time'}
+                              </span>
+                            ) : (
+                              <span className="status-pill absent" style={{ fontSize: '0.75rem' }}>
+                                Not Submitted
+                              </span>
+                            )}
+                          </div>
+
+                          {submission?.fileUrl && (
+                            <a
+                              href={submission.fileUrl}
+                              download={submission.fileName || 'submission'}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn-ghost"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '0.78rem',
+                                color: 'var(--navy-primary)',
+                                padding: '4px 8px',
+                                textDecoration: 'none',
+                              }}
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>attach_file</span>
+                              {submission.fileName} {submission.fileSize ? `(${formatFileSize(submission.fileSize)})` : ''}
+                            </a>
+                          )}
+                        </div>
+
+                        {/* Teacher Feedback Notes */}
+                        {submission?.feedback && (
+                          <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid var(--border-color)' }}>
+                            <span style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--navy-primary)', marginBottom: '2px' }}>
+                              Teacher Feedback:
+                            </span>
+                            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-primary)', fontStyle: 'italic' }}>
+                              "{submission.feedback}"
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
-                  <div style={{ textAlign: 'right' }}>
-                    <p className="label-caps" style={{ fontSize: '0.75rem', color: '#64748b' }}>Due Date</p>
-                    <p style={{ fontWeight: 'bold', margin: '2px 0 0 0', color: 'var(--text-primary, #0f172a)' }}>
-                      {due.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                    </p>
-                    <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>
-                      {due.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
+                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
+                    <div>
+                      <span className="label-caps" style={{ fontSize: '0.72rem', display: 'block', marginBottom: '2px' }}>Due Date</span>
+                      <strong style={{ display: 'block', fontSize: '0.95rem', color: 'var(--text-heading)' }}>
+                        {due.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                      </strong>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                        {due.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+
+                    {isSubmittable && (
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        onClick={() => handleOpenSubmitModal(item)}
+                        style={{ padding: '6px 14px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                          {submission ? 'edit_document' : 'upload_file'}
+                        </span>
+                        {submission ? 'Update Submission' : 'Submit Homework'}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -250,8 +383,117 @@ export default function ParentDeadlines() {
           })}
         </div>
       ) : (
-        <div className="empty-state">No deadlines or exams found for this selection.</div>
+        <div className="empty-state" style={{ padding: '48px 24px', textAlign: 'center' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '48px', color: 'var(--text-muted)' }}>
+            assignment_turned_in
+          </span>
+          <h3 style={{ margin: '12px 0 4px', fontFamily: 'var(--font-headline)', color: 'var(--text-heading)' }}>
+            No Assessments Found
+          </h3>
+          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+            There are no deadlines scheduled for this category.
+          </p>
+        </div>
+      )}
+
+      {/* Submission Upload Modal */}
+      {activeSubmissionModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+          }}
+          onClick={() => setActiveSubmissionModal(null)}
+        >
+          <div
+            className="card"
+            style={{
+              width: '100%',
+              maxWidth: '560px',
+              padding: '28px',
+              position: 'relative',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
+              <div>
+                <span className="subtitle">Submit Solution</span>
+                <h2 style={{ margin: 0, fontFamily: 'var(--font-headline)', fontSize: '1.25rem', color: 'var(--text-heading)' }}>
+                  {activeSubmissionModal.title}
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="icon-button"
+                onClick={() => setActiveSubmissionModal(null)}
+                style={{ width: '32px', height: '32px' }}
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitHomework}>
+              <div className="input-label">
+                <span className="label-caps">Attach Solution File (PDF, DOCX, ZIP, Image)</span>
+                <input
+                  type="file"
+                  className="input-field"
+                  onChange={(e) => setSubmissionFile(e.target.files[0] || null)}
+                  style={{ padding: '8px' }}
+                />
+                {submissionsMap[activeSubmissionModal.id]?.fileName && !submissionFile && (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--navy-primary)', marginTop: '4px', display: 'block' }}>
+                    Currently submitted: {submissionsMap[activeSubmissionModal.id].fileName}
+                  </span>
+                )}
+                {submissionFile && (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                    Selected: {submissionFile.name} ({formatFileSize(submissionFile.size)})
+                  </span>
+                )}
+              </div>
+
+              <div className="input-label">
+                <span className="label-caps">Student Notes & Comments (Optional)</span>
+                <textarea
+                  className="textarea-field"
+                  value={submissionContent}
+                  onChange={(e) => setSubmissionContent(e.target.value)}
+                  placeholder="Notes for your teacher regarding your work..."
+                  style={{ minHeight: '80px' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '16px' }}>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => setActiveSubmissionModal(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={submitting}
+                >
+                  <span className="material-symbols-outlined">send</span>
+                  {submitting ? 'Submitting…' : 'Hand in Assignment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   )
 }
+

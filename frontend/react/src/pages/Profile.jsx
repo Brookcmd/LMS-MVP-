@@ -346,7 +346,7 @@ export default function Profile() {
             <div className="stat-card">
               <span>Campus Institution</span>
               <strong style={{ fontSize: '1rem', marginTop: '4px' }}>Sheba University College</strong>
-              <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '2px', display: 'block' }}>Campus ID #{user.schoolId || '12'}</small>
+              <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '2px', display: 'block' }}>Campus ID #{user.schoolId ?? ''}</small>
             </div>
           </div>
 

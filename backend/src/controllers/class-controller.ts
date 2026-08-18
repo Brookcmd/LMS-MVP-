@@ -60,7 +60,10 @@ export async function listClassesHandler(request: Request, response: Response): 
       return;
     }
 
-    const result = await listClasses(request.user.schoolId);
+    const search = request.query.search ? String(request.query.search) : undefined;
+    const gradeBand = request.query.gradeBand ? String(request.query.gradeBand) : undefined;
+
+    const result = await listClasses(request.user.schoolId, { search, gradeBand });
     response.status(200).json({ success: true, data: result });
   } catch (error) {
     handleError(error, response);

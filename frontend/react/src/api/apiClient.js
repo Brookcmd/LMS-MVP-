@@ -48,7 +48,7 @@ export async function request(path, { method = "GET", body } = {}) {
 export async function login({ email, password, schoolId }) {
   return request("/auth/login", {
     method: "POST",
-    body: { email, password, schoolId },
+    body: { email, password, ...(schoolId ? { schoolId } : {}) },
   });
 }
 
@@ -135,26 +135,65 @@ export async function uploadGradeFile({ assignmentId, academicYear, quarter, fil
   return payload
 }
 
-export async function listClasses() { return request('/classes') }
+export async function listClasses(params = {}) {
+  const query = new URLSearchParams()
+  if (params.search) query.set('search', params.search)
+  if (params.gradeBand) query.set('gradeBand', params.gradeBand)
+  const qs = query.toString()
+  return request(`/classes${qs ? `?${qs}` : ''}`)
+}
 export async function createClass(body) { return request('/classes', { method: 'POST', body }) }
 export async function updateClass(classId, body) { return request(`/classes/${classId}`, { method: 'PUT', body }) }
 export async function deleteClass(classId) { return request(`/classes/${classId}`, { method: 'DELETE' }) }
 export async function getClassSchedule(classId) { return request(`/schedule/class/${classId}`) }
 
-export async function listStudents() { return request('/students') }
+export async function listStudents(params = {}) {
+  const query = new URLSearchParams()
+  if (params.page) query.set('page', params.page)
+  if (params.limit) query.set('limit', params.limit)
+  if (params.search) query.set('search', params.search)
+  if (params.classId) query.set('classId', params.classId)
+  if (params.gradeBand) query.set('gradeBand', params.gradeBand)
+  const qs = query.toString()
+  return request(`/students${qs ? `?${qs}` : ''}`)
+}
 export async function createStudent(body) { return request('/students', { method: 'POST', body }) }
 export async function updateStudent(studentId, body) { return request(`/students/${studentId}`, { method: 'PUT', body }) }
 export async function deleteStudent(studentId) { return request(`/students/${studentId}`, { method: 'DELETE' }) }
 
-export async function listTeachers() { return request('/teachers') }
-export async function listParents() { return request('/parents') }
+export async function listTeachers(params = {}) {
+  const query = new URLSearchParams()
+  if (params.page) query.set('page', params.page)
+  if (params.limit) query.set('limit', params.limit)
+  if (params.search) query.set('search', params.search)
+  const qs = query.toString()
+  return request(`/teachers${qs ? `?${qs}` : ''}`)
+}
+
+export async function listParents(params = {}) {
+  const query = new URLSearchParams()
+  if (params.page) query.set('page', params.page)
+  if (params.limit) query.set('limit', params.limit)
+  if (params.search) query.set('search', params.search)
+  const qs = query.toString()
+  return request(`/parents${qs ? `?${qs}` : ''}`)
+}
 
 export async function listSubjects() { return request('/grades/subjects') }
 export async function createSubject(body) { return request('/grades/subjects', { method: 'POST', body }) }
 export async function createTeachingAssignment(body) { return request('/grades/teaching-assignments', { method: 'POST', body }) }
 export async function listAllTeachingAssignments() { return request('/grades/teaching-assignments') }
 
-export async function listParentStudentLinks() { return request('/parent-students') }
+export async function listParentStudentLinks(params = {}) {
+  const query = new URLSearchParams()
+  if (params.page) query.set('page', params.page)
+  if (params.limit) query.set('limit', params.limit)
+  if (params.search) query.set('search', params.search)
+  if (params.studentId) query.set('studentId', params.studentId)
+  if (params.parentUserId) query.set('parentUserId', params.parentUserId)
+  const qs = query.toString()
+  return request(`/parent-students${qs ? `?${qs}` : ''}`)
+}
 export async function upsertParentStudentLink(body) { return request('/parent-students', { method: 'POST', body }) }
 export async function deleteParentStudentLink(parentUserId, studentId) { return request(`/parent-students/${parentUserId}/${studentId}`, { method: 'DELETE' }) }
 
@@ -208,13 +247,104 @@ export async function changeMyPassword(body) {
 }
 
 // Admin Analytics (Feature 17)
-export async function getAdminAnalytics({ classId, quarter, academicYear } = {}) {
+export async function getAdminAnalytics({ classId, quarter, academicYear, gradeBand } = {}) {
   const query = new URLSearchParams()
   if (classId) query.set('classId', classId)
   if (quarter) query.set('quarter', quarter)
   if (academicYear) query.set('academicYear', academicYear)
+  if (gradeBand) query.set('gradeBand', gradeBand)
   const queryString = query.toString()
   return request(`/analytics/admin${queryString ? `?${queryString}` : ''}`)
 }
+
+// Course Materials (Feature 14)
+export async function uploadMaterial({ title, description, classId, subjectId, file }) {
+  const formData = new FormData()
+  formData.append('title', title)
+  if (description) formData.append('description', description)
+  formData.append('classId', classId)
+  formData.append('subjectId', subjectId)
+  if (file) formData.append('file', file)
+
+  const response = await fetch(`${BASE_URL}/materials`, {
+    method: 'POST',
+    headers: buildHeaders(false),
+    body: formData,
+  })
+  const text = await response.text()
+  let payload = null
+  if (text) {
+    try { payload = JSON.parse(text) } catch { payload = { message: text } }
+  }
+  if (!response.ok || payload?.success === false) {
+    throw new Error(payload?.error?.message || payload?.message || 'Failed to upload course material')
+  }
+  return payload?.data
+}
+
+export async function listTeacherMaterials() {
+  return request('/materials/teacher')
+}
+
+export async function listStudentMaterials({ studentId, subjectId } = {}) {
+  const query = new URLSearchParams()
+  if (studentId) query.set('studentId', studentId)
+  if (subjectId) query.set('subjectId', subjectId)
+  const queryString = query.toString()
+  return request(`/materials/student${queryString ? `?${queryString}` : ''}`)
+}
+
+export async function listClassMaterials(classId, subjectId) {
+  const query = new URLSearchParams()
+  if (subjectId) query.set('subjectId', subjectId)
+  const queryString = query.toString()
+  return request(`/materials/class/${classId}${queryString ? `?${queryString}` : ''}`)
+}
+
+export async function deleteMaterial(materialId) {
+  return request(`/materials/${materialId}`, { method: 'DELETE' })
+}
+
+// Assignment Submissions (Feature 16)
+export async function submitAssignment(assessmentId, { content, file, studentId }) {
+  const formData = new FormData()
+  if (content) formData.append('content', content)
+  if (studentId) formData.append('studentId', studentId)
+  if (file) formData.append('file', file)
+
+  const response = await fetch(`${BASE_URL}/submissions/assessment/${assessmentId}`, {
+    method: 'POST',
+    headers: buildHeaders(false),
+    body: formData,
+  })
+  const text = await response.text()
+  let payload = null
+  if (text) {
+    try { payload = JSON.parse(text) } catch { payload = { message: text } }
+  }
+  if (!response.ok || payload?.success === false) {
+    throw new Error(payload?.error?.message || payload?.message || 'Failed to submit assignment')
+  }
+  return payload?.data
+}
+
+export async function getMySubmission(assessmentId, studentId) {
+  const query = new URLSearchParams()
+  if (studentId) query.set('studentId', studentId)
+  const queryString = query.toString()
+  return request(`/submissions/assessment/${assessmentId}/my${queryString ? `?${queryString}` : ''}`)
+}
+
+export async function listAssessmentSubmissions(assessmentId) {
+  return request(`/submissions/assessment/${assessmentId}`)
+}
+
+export async function gradeSubmission(submissionId, { gradeScore, feedback }) {
+  return request(`/submissions/${submissionId}/grade`, {
+    method: 'PATCH',
+    body: { gradeScore, feedback },
+  })
+}
+
 
 

@@ -18,7 +18,7 @@ describe("Teacher attendance routes", () => {
             status: "absent",
             student: expect.objectContaining({
               id: testData.studentId,
-              name: "Test Student",
+              name: "Student One",
             }),
           }),
         ]),
@@ -41,7 +41,7 @@ describe("Teacher attendance routes", () => {
             status: null,
             student: expect.objectContaining({
               id: testData.studentId,
-              name: "Test Student",
+              name: "Student One",
             }),
           }),
         ],

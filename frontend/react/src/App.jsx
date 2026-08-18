@@ -25,6 +25,7 @@ import AdminSchedule from './pages/admin/AdminSchedule'
 import AdminSubjects from './pages/admin/AdminSubjects'
 import AdminParentLinks from './pages/admin/AdminParentLinks'
 import AdminAnalytics from './pages/admin/AdminAnalytics'
+import CourseMaterials from './pages/CourseMaterials'
 import LandingPage from './pages/LandingPage'
 import NotFound from './pages/NotFound'
 import Messages from './pages/Messages'
@@ -54,7 +55,6 @@ function Login() {
   const navigate = useNavigate()
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
-  const [schoolId] = React.useState('12')
   const [error, setError] = React.useState(null)
   const [submitting, setSubmitting] = React.useState(false)
   const [showPassword, setShowPassword] = React.useState(false)
@@ -64,7 +64,7 @@ function Login() {
     setError(null)
     setSubmitting(true)
     try {
-      const user = await login({ email, password, schoolId })
+      const user = await login({ email, password })
       navigate(user?.role === 'admin' ? '/admin' : '/')
     } catch (err) {
       setError(err?.message ?? 'Login failed')
@@ -248,6 +248,7 @@ function AppContent() {
     '/login',
     '/notifications',
     '/messages',
+    '/materials',
     '/attendance',
     '/teacher',
     '/teacher/grades',
@@ -328,6 +329,7 @@ function AppContent() {
           <Route path="/" element={user ? <HomeRedirect /> : <LandingPage />} />
           <Route path="/notifications" element={<PrivateRoute roles={['parent', 'teacher', 'student']}><Notifications /></PrivateRoute>} />
           <Route path="/messages" element={<PrivateRoute roles={['parent', 'teacher']}><Messages /></PrivateRoute>} />
+          <Route path="/materials" element={<PrivateRoute roles={['parent', 'teacher', 'student', 'admin']}><CourseMaterials /></PrivateRoute>} />
           <Route path="/attendance" element={<PrivateRoute roles={['parent', 'student']}><ParentAttendance /></PrivateRoute>} />
           <Route path="/teacher" element={<PrivateRoute roles={['teacher']}><TeacherAttendance /></PrivateRoute>} />
           <Route path="/teacher/grades" element={<PrivateRoute roles={['teacher']}><TeacherGrades /></PrivateRoute>} />

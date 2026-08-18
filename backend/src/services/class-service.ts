@@ -107,12 +107,47 @@ export async function createClass(payload: CreateClassPayload) {
   });
 }
 
-export async function listClasses(schoolIdValue: string) {
+export interface ListClassesOptions {
+  search?: string;
+  gradeBand?: string;
+}
+
+export async function listClasses(schoolIdValue: string, options: ListClassesOptions = {}) {
   const schoolId = parseId(schoolIdValue, "schoolId");
+  const { search, gradeBand } = options;
+
+  const where: any = { schoolId };
+
+  if (search && search.trim()) {
+    const term = search.trim();
+    where.OR = [
+      { name: { contains: term, mode: "insensitive" } },
+      { teachers: { some: { teacher: { name: { contains: term, mode: "insensitive" } } } } },
+    ];
+  }
+
+  if (gradeBand) {
+    const gb = gradeBand.toLowerCase();
+    if (gb === "kg") {
+      where.name = { startsWith: "KG", mode: "insensitive" };
+    } else if (gb === "primary") {
+      where.OR = [1, 2, 3, 4, 5, 6, 7, 8].map((g) => ({
+        name: { startsWith: `Grade ${g}`, mode: "insensitive" },
+      }));
+    } else if (gb === "high") {
+      where.OR = [9, 10].map((g) => ({
+        name: { startsWith: `Grade ${g}`, mode: "insensitive" },
+      }));
+    } else if (gb === "prep") {
+      where.OR = [11, 12].map((g) => ({
+        name: { startsWith: `Grade ${g}`, mode: "insensitive" },
+      }));
+    }
+  }
 
   return prisma.class.findMany({
-    where: { schoolId },
-    orderBy: { createdAt: "desc" },
+    where,
+    orderBy: { name: "asc" },
     include: {
       teachers: {
         include: {

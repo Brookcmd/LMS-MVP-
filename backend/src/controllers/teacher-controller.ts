@@ -29,7 +29,11 @@ export async function listTeachersHandler(request: Request, response: Response):
       return;
     }
 
-    const result = await listTeachers(request.user.schoolId);
+    const page = request.query.page ? Number(request.query.page) : undefined;
+    const limit = request.query.limit ? Number(request.query.limit) : undefined;
+    const search = request.query.search ? String(request.query.search) : undefined;
+
+    const result = await listTeachers(request.user.schoolId, { page, limit, search });
     response.status(200).json({ success: true, data: result });
   } catch (error) {
     handleError(error, response);

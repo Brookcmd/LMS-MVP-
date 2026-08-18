@@ -44,6 +44,18 @@ describe("Admin Analytics Routes (/analytics)", () => {
       classId: testData.classId,
       quarter: 1,
       academicYear: null,
+      gradeBand: null,
     });
+    expect(response.body.data).toHaveProperty("gradeBandBreakdown");
+  });
+
+  it("accepts gradeBand query filter", async () => {
+    const response = await request(app)
+      .get("/analytics/admin?gradeBand=primary")
+      .set("Authorization", `Bearer ${testData.adminToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.filtersApplied.gradeBand).toBe("primary");
   });
 });

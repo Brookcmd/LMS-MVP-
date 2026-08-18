@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { getAdminAnalytics, listClasses } from '../../api/apiClient'
 import { StatsSkeleton } from '../../components/SkeletonLoader'
+import GradeBandTabs from '../../components/GradeBandTabs'
+import Pagination from '../../components/Pagination'
 import { useToast } from '../../context/ToastContext'
+import { GRADE_BANDS, groupClassesByGradeBand } from '../../utils/gradeBands'
 
 export default function AdminAnalytics() {
   const { addToast } = useToast()
@@ -14,10 +17,15 @@ export default function AdminAnalytics() {
   const [activeTab, setActiveTab] = useState('overview')
 
   // Filter states
+  const [selectedGradeBand, setSelectedGradeBand] = useState('all')
   const [selectedClassId, setSelectedClassId] = useState('')
   const [selectedQuarter, setSelectedQuarter] = useState('')
   const [selectedAcademicYear, setSelectedAcademicYear] = useState('2025/26')
   const [riskSearchQuery, setRiskSearchQuery] = useState('')
+
+  // Pagination for at-risk table
+  const [riskPage, setRiskPage] = useState(1)
+  const [riskLimit, setRiskLimit] = useState(25)
 
   const fetchAnalytics = useCallback(async () => {
     try {
@@ -29,6 +37,7 @@ export default function AdminAnalytics() {
           classId: selectedClassId || undefined,
           quarter: selectedQuarter || undefined,
           academicYear: selectedAcademicYear || undefined,
+          gradeBand: selectedGradeBand !== 'all' ? selectedGradeBand : undefined,
         }),
         classes.length === 0 ? listClasses().catch(() => []) : Promise.resolve(classes),
       ])
@@ -43,16 +52,23 @@ export default function AdminAnalytics() {
     } finally {
       setLoading(false)
     }
-  }, [selectedClassId, selectedQuarter, selectedAcademicYear, classes, addToast])
+  }, [selectedClassId, selectedQuarter, selectedAcademicYear, selectedGradeBand, classes, addToast])
 
   useEffect(() => {
     fetchAnalytics()
   }, [fetchAnalytics])
 
+  function handleGradeBandChange(bandId) {
+    setSelectedGradeBand(bandId)
+    setSelectedClassId('') // reset specific class filter when changing band
+    setRiskPage(1)
+  }
+
   const kpis = data?.kpis || {}
   const attendance = data?.attendance || {}
   const grades = data?.grades || {}
   const atRiskStudents = data?.atRiskStudents || []
+  const gradeBandBreakdown = data?.gradeBandBreakdown || []
 
   // Status totals
   const totalStatus = (attendance.statusCounts?.present || 0) + (attendance.statusCounts?.late || 0) + (attendance.statusCounts?.absent || 0)
@@ -72,12 +88,20 @@ export default function AdminAnalytics() {
     )
   }, [atRiskStudents, riskSearchQuery])
 
+  // Paginated at-risk students
+  const paginatedRiskStudents = useMemo(() => {
+    const start = (riskPage - 1) * riskLimit
+    return filteredRiskStudents.slice(start, start + riskLimit)
+  }, [filteredRiskStudents, riskPage, riskLimit])
+
+  const totalRiskPages = Math.ceil(filteredRiskStudents.length / riskLimit) || 1
+
   // Export report to CSV
   function handleExportCSV() {
     if (!data) return
     const csvRows = [
-      ['Sheba University College - Executive Analytics Report'],
-      [`Scope: Academic Year ${selectedAcademicYear}, Quarter: ${selectedQuarter || 'All'}, Class: ${selectedClassId || 'All'}`],
+      ['Sheba Academy - Executive Analytics Report'],
+      [`Scope: Academic Year ${selectedAcademicYear}, Quarter: ${selectedQuarter || 'All'}, Tier: ${selectedGradeBand}, Class: ${selectedClassId || 'All'}`],
       [`Generated: ${new Date().toLocaleString()}`],
       [''],
       ['--- EXECUTIVE KPIS ---'],
@@ -116,13 +140,15 @@ export default function AdminAnalytics() {
   const attendanceOffset = circumference - (circumference * (kpis.overallAttendanceRate || 100)) / 100
   const gradeOffset = circumference - (circumference * (kpis.overallGradeAverage || 0)) / 100
 
+  const groupedClasses = groupClassesByGradeBand(classes)
+
   return (
     <div className="admin-analytics-page" style={{ paddingBottom: '32px' }}>
       {/* Institutional Hero Banner */}
-      <section className="academic-hero-banner">
+      <section className="academic-hero-banner" style={{ marginBottom: '20px' }}>
         <div className="academic-hero-top">
           <span className="academic-hero-kicker">
-            Sheba University College • Institutional Registrar
+            Sheba Academy • Institutional Registrar
           </span>
           <span className="academic-hero-date">
             Executive Analytics Console
@@ -135,7 +161,7 @@ export default function AdminAnalytics() {
               Institutional Performance & Analytics Radar
             </h1>
             <p className="academic-hero-subtitle">
-              Aggregated institutional intelligence covering daily attendance trends, quarterly grade distributions, curriculum mastery, and student early warning indicators.
+              Aggregated analytics across 15 grades and 75 sections covering attendance rates, quarterly grade distributions, curriculum mastery, and early intervention indicators.
             </p>
           </div>
 
@@ -168,18 +194,24 @@ export default function AdminAnalytics() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.15)' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', background: 'rgba(255, 255, 255, 0.1)', padding: '4px 12px', borderRadius: 'var(--radius-pill)', color: '#FFFFFF' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#93C5FD' }}>school</span>
-            {kpis.totalClasses || 0} Classes
+            {kpis.totalClasses || 0} Class Sections
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', background: 'rgba(255, 255, 255, 0.1)', padding: '4px 12px', borderRadius: 'var(--radius-pill)', color: '#FFFFFF' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#86EFAC' }}>person</span>
-            {kpis.totalStudents || 0} Students
+            {(kpis.totalStudents || 0).toLocaleString()} Enrolled Students
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', background: 'rgba(255, 255, 255, 0.1)', padding: '4px 12px', borderRadius: 'var(--radius-pill)', color: '#FFFFFF' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#FDE047' }}>menu_book</span>
-            {kpis.totalSubjects || 0} Subjects
+            {kpis.totalSubjects || 0} Curriculum Subjects
           </span>
         </div>
       </section>
+
+      {/* Grade-Band Filter Tabs */}
+      <GradeBandTabs
+        activeBand={selectedGradeBand}
+        onSelectBand={handleGradeBandChange}
+      />
 
       {/* Filter & View Navigation Toolbar */}
       <div className="analytics-filter-bar">
@@ -212,11 +244,19 @@ export default function AdminAnalytics() {
             value={selectedClassId}
             onChange={(e) => setSelectedClassId(e.target.value)}
             aria-label="Filter by class"
+            style={{ minWidth: '180px' }}
           >
-            <option value="">All Classes</option>
-            {classes.map((cls) => (
-              <option key={cls.id} value={cls.id}>{cls.name}</option>
-            ))}
+            <option value="">All Class Sections</option>
+            {Object.entries(groupedClasses).map(([bandKey, group]) => {
+              if (group.classes.length === 0) return null
+              return (
+                <optgroup key={bandKey} label={group.label}>
+                  {group.classes.map((cls) => (
+                    <option key={cls.id} value={cls.id}>{cls.name}</option>
+                  ))}
+                </optgroup>
+              )
+            })}
           </select>
 
           <select
@@ -319,7 +359,7 @@ export default function AdminAnalytics() {
                   <span className="material-symbols-outlined">analytics</span>
                 </div>
                 <span className="badge badge-info" style={{ fontSize: '0.72rem' }}>
-                  Campus Mean
+                  Academic Mean
                 </span>
               </div>
               <div className="analytics-kpi-body">
@@ -361,12 +401,12 @@ export default function AdminAnalytics() {
                   <span className="material-symbols-outlined">groups</span>
                 </div>
                 <span className="badge" style={{ fontSize: '0.72rem', background: 'rgba(99, 102, 241, 0.12)', color: '#6366F1' }}>
-                  Active Enrolments
+                  Active Roster
                 </span>
               </div>
               <div className="analytics-kpi-body">
                 <div>
-                  <h3>{(kpis.totalStudents || 0) + (kpis.totalTeachers || 0)}</h3>
+                  <h3>{(kpis.totalStudents || 0).toLocaleString()}</h3>
                   <p>{kpis.totalStudents || 0} Students • {kpis.totalTeachers || 0} Faculty</p>
                 </div>
               </div>
@@ -382,7 +422,9 @@ export default function AdminAnalytics() {
                     color: kpis.atRiskCount > 0 ? 'var(--status-absent-text)' : 'var(--status-present-text)',
                   }}
                 >
-                  <span className="material-symbols-outlined">{kpis.atRiskCount > 0 ? 'warning' : 'task_alt'}</span>
+                  <span className="material-symbols-outlined">
+                    {kpis.atRiskCount > 0 ? 'error' : 'task_alt'}
+                  </span>
                 </div>
                 <span
                   className="badge"
@@ -392,111 +434,136 @@ export default function AdminAnalytics() {
                     color: kpis.atRiskCount > 0 ? 'var(--status-absent-text)' : 'var(--status-present-text)',
                   }}
                 >
-                  {kpis.atRiskCount > 0 ? 'Intervention' : 'Optimal'}
+                  {kpis.atRiskCount > 0 ? 'Action Needed' : 'All Clear'}
                 </span>
               </div>
               <div className="analytics-kpi-body">
                 <div>
-                  <h3 style={{ color: kpis.atRiskCount > 0 ? 'var(--status-absent-text)' : 'var(--text-heading)' }}>
+                  <h3 style={{ color: kpis.atRiskCount > 0 ? 'var(--status-absent-text)' : 'inherit' }}>
                     {kpis.atRiskCount || 0}
                   </h3>
-                  <p>At-Risk Students</p>
+                  <p>Students Flagged</p>
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Grade-Band Comparative Breakdown (in Overview tab) */}
+          {activeTab === 'overview' && gradeBandBreakdown.length > 0 && (
+            <section className="card" style={{ padding: '20px 24px', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div>
+                  <span className="subtitle">Tier Comparison</span>
+                  <h3 style={{ margin: 0, fontFamily: 'var(--font-headline)', fontSize: '1.15rem', color: 'var(--text-heading)' }}>
+                    Educational Tier Benchmarks
+                  </h3>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+                {gradeBandBreakdown.map((tier) => {
+                  const bandMeta = GRADE_BANDS.find(b => b.id === tier.bandId) || { label: tier.bandId, icon: 'school' }
+                  return (
+                    <div
+                      key={tier.bandId}
+                      className="admin-grade-tier-card"
+                      style={{ cursor: 'default' }}
+                    >
+                      <div className="tier-header">
+                        <span className="material-symbols-outlined">
+                          {bandMeta.icon}
+                        </span>
+                        <strong>{bandMeta.shortLabel || bandMeta.label}</strong>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.82rem' }}>
+                        <div>
+                          <span style={{ color: 'var(--text-muted)', display: 'block' }}>Sections:</span>
+                          <strong style={{ color: 'var(--text-primary)' }}>{tier.sections} Classes</strong>
+                        </div>
+                        <div>
+                          <span style={{ color: 'var(--text-muted)', display: 'block' }}>Students:</span>
+                          <strong style={{ color: 'var(--text-primary)' }}>{tier.students.toLocaleString()}</strong>
+                        </div>
+                        <div>
+                          <span style={{ color: 'var(--text-muted)', display: 'block' }}>Attendance:</span>
+                          <strong style={{ color: 'var(--status-present-text)' }}>{tier.attendanceRate}%</strong>
+                        </div>
+                        <div>
+                          <span style={{ color: 'var(--text-muted)', display: 'block' }}>Grade Mean:</span>
+                          <strong style={{ color: 'var(--navy-primary)' }}>{tier.averageGrade}%</strong>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )}
+
           {/* TAB 1: EXECUTIVE OVERVIEW or TAB 2: ATTENDANCE RADAR */}
           {(activeTab === 'overview' || activeTab === 'attendance') && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', marginBottom: '28px' }}>
-              {/* Attendance Status Ratio Card */}
+              {/* Daily Attendance Trend */}
               <div className="card" style={{ padding: '24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
                   <div>
-                    <span className="subtitle">Attendance Records</span>
+                    <span className="subtitle">Time-Series Monitor</span>
                     <h3 style={{ margin: '2px 0 0', fontFamily: 'var(--font-headline)', fontSize: '1.15rem', color: 'var(--text-heading)' }}>
-                      Overall Attendance Distribution
+                      14-Day Attendance Velocity
                     </h3>
                   </div>
-                  <div className="icon-button" style={{ background: 'var(--bg-surface-muted)', cursor: 'default' }}>
-                    <span className="material-symbols-outlined" style={{ color: 'var(--navy-primary)' }}>donut_small</span>
-                  </div>
+                  <span className="material-symbols-outlined" style={{ color: 'var(--navy-primary)' }}>timeline</span>
                 </div>
 
-                {totalStatus === 0 ? (
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No attendance records found for this scope.</p>
+                {(attendance.dailyTrends || []).length === 0 ? (
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No attendance roll logs found.</p>
                 ) : (
-                  <>
-                    {/* Visual Segment Bar */}
-                    <div style={{ height: '18px', borderRadius: '9px', overflow: 'hidden', display: 'flex', background: 'var(--bg-surface-strong)', marginBottom: '20px', border: '1px solid var(--border-color)' }}>
-                      <div style={{ width: `${presentPct}%`, background: 'var(--status-present-text)', transition: 'width 0.6s ease' }} title={`Present: ${presentPct}%`} />
-                      <div style={{ width: `${latePct}%`, background: 'var(--gold-accent)', transition: 'width 0.6s ease' }} title={`Late: ${latePct}%`} />
-                      <div style={{ width: `${absentPct}%`, background: 'var(--status-absent-text)', transition: 'width 0.6s ease' }} title={`Absent: ${absentPct}%`} />
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                      <div style={{ padding: '12px', background: 'var(--status-present-bg)', borderRadius: 'var(--radius-card)', border: '1px solid var(--status-present-border)', textAlign: 'center' }}>
-                        <span style={{ fontSize: '1.35rem', fontWeight: '800', color: 'var(--status-present-text)', display: 'block' }}>
-                          {attendance.statusCounts?.present || 0}
-                        </span>
-                        <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Present ({presentPct}%)</span>
-                      </div>
-
-                      <div style={{ padding: '12px', background: 'var(--status-late-bg)', borderRadius: 'var(--radius-card)', border: '1px solid var(--status-late-border)', textAlign: 'center' }}>
-                        <span style={{ fontSize: '1.35rem', fontWeight: '800', color: 'var(--gold-accent)', display: 'block' }}>
-                          {attendance.statusCounts?.late || 0}
-                        </span>
-                        <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Late ({latePct}%)</span>
-                      </div>
-
-                      <div style={{ padding: '12px', background: 'var(--status-absent-bg)', borderRadius: 'var(--radius-card)', border: '1px solid var(--status-absent-border)', textAlign: 'center' }}>
-                        <span style={{ fontSize: '1.35rem', fontWeight: '800', color: 'var(--status-absent-text)', display: 'block' }}>
-                          {attendance.statusCounts?.absent || 0}
-                        </span>
-                        <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Absent ({absentPct}%)</span>
-                      </div>
-                    </div>
-                  </>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {(attendance.dailyTrends || []).map((day) => {
+                      const dayRate = day.total > 0 ? Math.round(((day.present + day.late) / day.total) * 100) : 100
+                      return (
+                        <div key={day.date} style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.85rem' }}>
+                          <span style={{ minWidth: '85px', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{day.date}</span>
+                          <div style={{ flex: 1, height: '10px', background: 'var(--border-color)', borderRadius: '5px', overflow: 'hidden', display: 'flex' }}>
+                            <div style={{ width: `${(day.present / (day.total || 1)) * 100}%`, background: 'var(--status-present-text)' }} title={`Present: ${day.present}`} />
+                            <div style={{ width: `${(day.late / (day.total || 1)) * 100}%`, background: 'var(--gold-accent)' }} title={`Late: ${day.late}`} />
+                            <div style={{ width: `${(day.absent / (day.total || 1)) * 100}%`, background: 'var(--status-absent-text)' }} title={`Absent: ${day.absent}`} />
+                          </div>
+                          <span style={{ minWidth: '40px', textAlign: 'right', fontWeight: '700', color: 'var(--text-heading)' }}>{dayRate}%</span>
+                        </div>
+                      )
+                    })}
+                  </div>
                 )}
               </div>
 
-              {/* Class Attendance Comparison Leaderboard */}
+              {/* Status Composition Breakdown */}
               <div className="card" style={{ padding: '24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
                   <div>
-                    <span className="subtitle">Class Performance</span>
+                    <span className="subtitle">Roll Breakdown</span>
                     <h3 style={{ margin: '2px 0 0', fontFamily: 'var(--font-headline)', fontSize: '1.15rem', color: 'var(--text-heading)' }}>
-                      Class Attendance Leaderboard
+                      Attendance Status Mix
                     </h3>
                   </div>
-                  <span className="material-symbols-outlined" style={{ color: 'var(--navy-primary)' }}>leaderboard</span>
+                  <span className="material-symbols-outlined" style={{ color: 'var(--navy-primary)' }}>pie_chart</span>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {(attendance.classRates || []).map((cls, idx) => (
-                    <div key={cls.classId} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.88rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: idx === 0 ? 'var(--status-late-bg)' : 'var(--bg-surface-strong)', color: idx === 0 ? 'var(--status-late-text)' : 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '700', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {idx + 1}
-                          </span>
-                          <span style={{ fontWeight: '600', color: 'var(--text-heading)' }}>{cls.className}</span>
-                        </div>
-                        <span style={{ fontWeight: '700', color: cls.rate >= 90 ? 'var(--status-present-text)' : cls.rate >= 80 ? 'var(--gold-accent)' : 'var(--status-absent-text)' }}>
-                          {cls.rate}%
-                        </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {[
+                    { label: 'Present', count: attendance.statusCounts?.present || 0, pct: presentPct, color: 'var(--status-present-text)', bg: 'var(--status-present-bg)', icon: 'check_circle' },
+                    { label: 'Late Arrival', count: attendance.statusCounts?.late || 0, pct: latePct, color: 'var(--gold-accent)', bg: 'rgba(217, 119, 6, 0.12)', icon: 'schedule' },
+                    { label: 'Absent', count: attendance.statusCounts?.absent || 0, pct: absentPct, color: 'var(--status-absent-text)', bg: 'var(--status-absent-bg)', icon: 'cancel' },
+                  ].map((s) => (
+                    <div key={s.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: 'var(--radius-btn)', background: s.bg, border: `1px solid ${s.color}22` }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span className="material-symbols-outlined" style={{ color: s.color, fontSize: '20px' }}>{s.icon}</span>
+                        <strong style={{ color: 'var(--text-heading)', fontSize: '0.9rem' }}>{s.label}</strong>
                       </div>
-                      <div style={{ height: '8px', background: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
-                        <div
-                          style={{
-                            height: '100%',
-                            width: `${cls.rate}%`,
-                            background: cls.rate >= 90 ? 'var(--status-present-text)' : cls.rate >= 80 ? 'var(--gold-accent)' : 'var(--status-absent-text)',
-                            borderRadius: '4px',
-                            transition: 'width 0.6s ease',
-                          }}
-                        />
-                      </div>
+                      <span style={{ fontWeight: '700', color: s.color, fontSize: '0.95rem' }}>
+                        {(s.count).toLocaleString()} ({s.pct}%)
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -538,7 +605,7 @@ export default function AdminAnalytics() {
                               <span className="material-symbols-outlined" style={{ fontSize: '18px', color: band.color }}>{band.icon}</span>
                               <span>{band.label}</span>
                             </div>
-                            <span style={{ fontWeight: '700', color: band.color }}>{band.count} ({pct}%)</span>
+                            <span style={{ fontWeight: '700', color: band.color }}>{band.count.toLocaleString()} ({pct}%)</span>
                           </div>
                           <div style={{ height: '8px', background: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
                             <div style={{ height: '100%', width: `${pct}%`, background: band.color, borderRadius: '4px', transition: 'width 0.6s ease' }} />
@@ -600,7 +667,7 @@ export default function AdminAnalytics() {
                     Early Intervention Protocol
                   </span>
                   <h3 style={{ margin: '2px 0 0', fontFamily: 'var(--font-headline)', fontSize: '1.2rem', color: 'var(--text-heading)' }}>
-                    At-Risk Student Monitoring Roster
+                    At-Risk Student Monitoring Roster ({filteredRiskStudents.length.toLocaleString()})
                   </h3>
                 </div>
 
@@ -611,7 +678,7 @@ export default function AdminAnalytics() {
                     <input
                       style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.85rem', color: 'var(--text-primary)' }}
                       value={riskSearchQuery}
-                      onChange={(e) => setRiskSearchQuery(e.target.value)}
+                      onChange={(e) => { setRiskSearchQuery(e.target.value); setRiskPage(1) }}
                       placeholder="Search student or class..."
                     />
                   </div>
@@ -633,103 +700,115 @@ export default function AdminAnalytics() {
                   </p>
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>Student Name</th>
-                        <th>Class</th>
-                        <th>Attendance Rate</th>
-                        <th>Grade Average</th>
-                        <th>Risk Indicators</th>
-                        <th>Guardian Contacts</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredRiskStudents.map((st) => (
-                        <tr key={st.studentId}>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <span
-                                style={{
-                                  width: '32px',
-                                  height: '32px',
-                                  borderRadius: '50%',
-                                  background: 'var(--status-absent-bg)',
-                                  color: 'var(--status-absent-text)',
-                                  fontWeight: '700',
-                                  fontSize: '0.8rem',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  justify: 'center',
-                                  border: '1px solid var(--status-absent-border)',
-                                }}
-                              >
-                                {st.studentName[0]}
-                              </span>
-                              <strong style={{ color: 'var(--text-heading)' }}>{st.studentName}</strong>
-                            </div>
-                          </td>
-                          <td>
-                            <span className="badge" style={{ background: 'var(--bg-surface-strong)', color: 'var(--text-primary)', fontSize: '0.78rem' }}>
-                              {st.className}
-                            </span>
-                          </td>
-                          <td>
-                            <span style={{ fontWeight: '700', color: st.attendanceRate !== null && st.attendanceRate < 85 ? 'var(--status-absent-text)' : 'var(--text-primary)' }}>
-                              {st.attendanceRate !== null ? `${st.attendanceRate}%` : 'N/A'}
-                            </span>
-                          </td>
-                          <td>
-                            <span style={{ fontWeight: '700', color: st.gradeAverage !== null && st.gradeAverage < 60 ? 'var(--status-absent-text)' : 'var(--text-primary)' }}>
-                              {st.gradeAverage !== null ? `${st.gradeAverage}%` : 'N/A'}
-                            </span>
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                              {st.riskFactors.map((rf, i) => (
-                                <span key={i} className="badge badge-absent" style={{ fontSize: '0.74rem' }}>
-                                  {rf}
-                                </span>
-                              ))}
-                            </div>
-                          </td>
-                          <td>
-                            {st.parents && st.parents.length > 0 ? (
-                              st.parents.map((p) => (
-                                <div key={p.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                                  <strong style={{ color: 'var(--text-heading)', fontSize: '0.84rem' }}>{p.name}</strong>
-                                  {p.phone && (
-                                    <a
-                                      href={`tel:${p.phone}`}
-                                      className="analytics-contact-link"
-                                      title={`Call ${p.name}`}
-                                    >
-                                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>call</span>
-                                      {p.phone}
-                                    </a>
-                                  )}
-                                  {p.email && (
-                                    <a
-                                      href={`mailto:${p.email}`}
-                                      className="analytics-contact-link"
-                                      title={`Email ${p.name}`}
-                                    >
-                                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>mail</span>
-                                      Email
-                                    </a>
-                                  )}
-                                </div>
-                              ))
-                            ) : (
-                              <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>No guardian linked</span>
-                            )}
-                          </td>
+                <>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Student Name</th>
+                          <th>Class</th>
+                          <th>Attendance Rate</th>
+                          <th>Grade Average</th>
+                          <th>Risk Indicators</th>
+                          <th>Guardian Contacts</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {paginatedRiskStudents.map((st) => (
+                          <tr key={st.studentId}>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <span
+                                  style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '50%',
+                                    background: 'var(--status-absent-bg)',
+                                    color: 'var(--status-absent-text)',
+                                    fontWeight: '700',
+                                    fontSize: '0.8rem',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    border: '1px solid var(--status-absent-border)',
+                                  }}
+                                >
+                                  {st.studentName[0]}
+                                </span>
+                                <strong style={{ color: 'var(--text-heading)' }}>{st.studentName}</strong>
+                              </div>
+                            </td>
+                            <td>
+                              <span className="badge" style={{ background: 'var(--bg-surface-strong)', color: 'var(--text-primary)', fontSize: '0.78rem' }}>
+                                {st.className}
+                              </span>
+                            </td>
+                            <td>
+                              <span style={{ fontWeight: '700', color: st.attendanceRate !== null && st.attendanceRate < 85 ? 'var(--status-absent-text)' : 'var(--text-primary)' }}>
+                                {st.attendanceRate !== null ? `${st.attendanceRate}%` : 'N/A'}
+                              </span>
+                            </td>
+                            <td>
+                              <span style={{ fontWeight: '700', color: st.gradeAverage !== null && st.gradeAverage < 60 ? 'var(--status-absent-text)' : 'var(--text-primary)' }}>
+                                {st.gradeAverage !== null ? `${st.gradeAverage}%` : 'N/A'}
+                              </span>
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {st.riskFactors.map((rf, i) => (
+                                  <span key={i} className="badge badge-absent" style={{ fontSize: '0.74rem' }}>
+                                    {rf}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                            <td>
+                              {st.parents && st.parents.length > 0 ? (
+                                st.parents.map((p) => (
+                                  <div key={p.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                                    <strong style={{ color: 'var(--text-heading)', fontSize: '0.84rem' }}>{p.name}</strong>
+                                    {p.phone && (
+                                      <a
+                                        href={`tel:${p.phone}`}
+                                        className="analytics-contact-link"
+                                        title={`Call ${p.name}`}
+                                      >
+                                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>call</span>
+                                        {p.phone}
+                                      </a>
+                                    )}
+                                    {p.email && (
+                                      <a
+                                        href={`mailto:${p.email}`}
+                                        className="analytics-contact-link"
+                                        title={`Email ${p.name}`}
+                                      >
+                                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>mail</span>
+                                        Email
+                                      </a>
+                                    )}
+                                  </div>
+                                ))
+                              ) : (
+                                <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>No guardian linked</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <Pagination
+                    page={riskPage}
+                    limit={riskLimit}
+                    total={filteredRiskStudents.length}
+                    totalPages={totalRiskPages}
+                    itemLabel="at-risk students"
+                    onPageChange={(p) => setRiskPage(p)}
+                    onLimitChange={(l) => { setRiskLimit(l); setRiskPage(1) }}
+                  />
+                </>
               )}
             </section>
           )}

@@ -5,6 +5,43 @@ export interface AnalyticsQueryOptions {
   classId?: string | number;
   quarter?: string | number;
   academicYear?: string;
+  gradeBand?: string;
+}
+
+function getGradeBandWhere(gradeBand?: string) {
+  if (!gradeBand || gradeBand === "all") return undefined;
+  const gb = gradeBand.toLowerCase();
+  if (gb === "kg") {
+    return { name: { startsWith: "KG", mode: "insensitive" as const } };
+  } else if (gb === "primary") {
+    return {
+      OR: [1, 2, 3, 4, 5, 6, 7, 8].map((g) => ({
+        name: { startsWith: `Grade ${g}`, mode: "insensitive" as const },
+      })),
+    };
+  } else if (gb === "high") {
+    return {
+      OR: [9, 10].map((g) => ({
+        name: { startsWith: `Grade ${g}`, mode: "insensitive" as const },
+      })),
+    };
+  } else if (gb === "prep") {
+    return {
+      OR: [11, 12].map((g) => ({
+        name: { startsWith: `Grade ${g}`, mode: "insensitive" as const },
+      })),
+    };
+  }
+  return undefined;
+}
+
+function classifyGradeBand(name: string): "kg" | "primary" | "high" | "prep" | "other" {
+  const n = String(name || "").trim().toUpperCase();
+  if (n.startsWith("KG")) return "kg";
+  if (/^GRADE\s*([1-8])([^\d]|$)/i.test(n)) return "primary";
+  if (/^GRADE\s*(9|10)([^\d]|$)/i.test(n)) return "high";
+  if (/^GRADE\s*(11|12)([^\d]|$)/i.test(n)) return "prep";
+  return "other";
 }
 
 export async function getAdminAnalytics(schoolIdNum: number, options: AnalyticsQueryOptions = {}) {
@@ -16,6 +53,19 @@ export async function getAdminAnalytics(schoolIdNum: number, options: AnalyticsQ
   const filterClassId = options.classId ? Number(options.classId) : undefined;
   const filterQuarter = options.quarter ? Number(options.quarter) : undefined;
   const filterAcademicYear = options.academicYear ? String(options.academicYear).trim() : undefined;
+  const filterGradeBand = options.gradeBand ? String(options.gradeBand).trim() : undefined;
+  const gradeBandWhere = getGradeBandWhere(filterGradeBand);
+
+  // Class filtering where
+  const classFilterWhere: any = { schoolId };
+  if (filterClassId) classFilterWhere.id = filterClassId;
+  if (gradeBandWhere) {
+    if (gradeBandWhere.OR) {
+      classFilterWhere.OR = gradeBandWhere.OR;
+    } else if (gradeBandWhere.name) {
+      classFilterWhere.name = gradeBandWhere.name;
+    }
+  }
 
   // 1. Executive Total Counts
   const [
@@ -27,23 +77,32 @@ export async function getAdminAnalytics(schoolIdNum: number, options: AnalyticsQ
     totalAssessments,
     classesList,
   ] = await Promise.all([
-    prisma.student.count({ where: { schoolId, ...(filterClassId ? { classId: filterClassId } : {}) } }),
+    prisma.student.count({
+      where: {
+        schoolId,
+        ...(filterClassId ? { classId: filterClassId } : {}),
+        ...(gradeBandWhere ? { class: gradeBandWhere } : {}),
+      },
+    }),
     prisma.user.count({ where: { schoolId, role: "teacher" } }),
     prisma.user.count({ where: { schoolId, role: "parent" } }),
-    prisma.class.count({ where: { schoolId } }),
+    prisma.class.count({ where: classFilterWhere }),
     prisma.subject.count({ where: { schoolId } }),
-    prisma.assessment.count({ where: { class: { schoolId }, ...(filterClassId ? { classId: filterClassId } : {}) } }),
+    prisma.assessment.count({
+      where: {
+        class: classFilterWhere,
+      },
+    }),
     prisma.class.findMany({
-      where: { schoolId, ...(filterClassId ? { id: filterClassId } : {}) },
+      where: classFilterWhere,
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
   ]);
 
   // 2. Attendance Analytics
-  const attendanceWhere = {
-    class: { schoolId },
-    ...(filterClassId ? { classId: filterClassId } : {}),
+  const attendanceWhere: any = {
+    class: classFilterWhere,
   };
 
   const attendances = await prisma.attendance.findMany({
@@ -126,8 +185,12 @@ export async function getAdminAnalytics(schoolIdNum: number, options: AnalyticsQ
     .slice(-14); // Last 14 days of records
 
   // 3. Grade & Academic Performance Analytics
-  const gradeWhere = {
-    student: { schoolId, ...(filterClassId ? { classId: filterClassId } : {}) },
+  const gradeWhere: any = {
+    student: {
+      schoolId,
+      ...(filterClassId ? { classId: filterClassId } : {}),
+      ...(gradeBandWhere ? { class: gradeBandWhere } : {}),
+    },
     ...(filterQuarter ? { quarter: filterQuarter } : {}),
     ...(filterAcademicYear ? { academicYear: filterAcademicYear } : {}),
   };
@@ -225,7 +288,11 @@ export async function getAdminAnalytics(schoolIdNum: number, options: AnalyticsQ
 
   // 4. At-Risk Student Identification
   const allStudents = await prisma.student.findMany({
-    where: { schoolId, ...(filterClassId ? { classId: filterClassId } : {}) },
+    where: {
+      schoolId,
+      ...(filterClassId ? { classId: filterClassId } : {}),
+      ...(gradeBandWhere ? { class: gradeBandWhere } : {}),
+    },
     select: {
       id: true,
       name: true,
@@ -294,6 +361,50 @@ export async function getAdminAnalytics(schoolIdNum: number, options: AnalyticsQ
     }
   }
 
+  // 5. Grade-Band Tier Performance Breakdown
+  const tierMap: Record<string, { sections: number; students: number; attPresent: number; attTotal: number; gradeSum: number; gradeCount: number; atRisk: number }> = {
+    kg: { sections: 0, students: 0, attPresent: 0, attTotal: 0, gradeSum: 0, gradeCount: 0, atRisk: 0 },
+    primary: { sections: 0, students: 0, attPresent: 0, attTotal: 0, gradeSum: 0, gradeCount: 0, atRisk: 0 },
+    high: { sections: 0, students: 0, attPresent: 0, attTotal: 0, gradeSum: 0, gradeCount: 0, atRisk: 0 },
+    prep: { sections: 0, students: 0, attPresent: 0, attTotal: 0, gradeSum: 0, gradeCount: 0, atRisk: 0 },
+  };
+
+  classesList.forEach((c) => {
+    const band = classifyGradeBand(c.name);
+    if (tierMap[band]) tierMap[band].sections++;
+  });
+
+  allStudents.forEach((s) => {
+    const band = classifyGradeBand(s.class.name);
+    if (tierMap[band]) {
+      tierMap[band].students++;
+      const att = studentAttendanceMap[s.id];
+      if (att) {
+        tierMap[band].attPresent += (att.present + att.late);
+        tierMap[band].attTotal += att.total;
+      }
+      const gr = studentGradeMap[s.id];
+      if (gr) {
+        tierMap[band].gradeSum += gr.scoreSum;
+        tierMap[band].gradeCount += gr.count;
+      }
+    }
+  });
+
+  atRiskStudents.forEach((st) => {
+    const band = classifyGradeBand(st.className);
+    if (tierMap[band]) tierMap[band].atRisk++;
+  });
+
+  const gradeBandBreakdown = Object.entries(tierMap).map(([bandId, d]) => ({
+    bandId,
+    sections: d.sections,
+    students: d.students,
+    attendanceRate: d.attTotal > 0 ? Math.round((d.attPresent / d.attTotal) * 1000) / 10 : 100,
+    averageGrade: d.gradeCount > 0 ? Math.round((d.gradeSum / d.gradeCount) * 10) / 10 : 0,
+    atRiskCount: d.atRisk,
+  }));
+
   return {
     kpis: {
       totalStudents,
@@ -306,6 +417,7 @@ export async function getAdminAnalytics(schoolIdNum: number, options: AnalyticsQ
       overallGradeAverage,
       atRiskCount: atRiskStudents.length,
     },
+    gradeBandBreakdown,
     attendance: {
       totalRecords: totalAttendanceRecords,
       statusCounts: {
@@ -328,6 +440,7 @@ export async function getAdminAnalytics(schoolIdNum: number, options: AnalyticsQ
       classId: filterClassId ?? null,
       quarter: filterQuarter ?? null,
       academicYear: filterAcademicYear ?? null,
+      gradeBand: filterGradeBand ?? null,
     },
   };
 }

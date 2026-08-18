@@ -1,5 +1,5 @@
-import express, { Response } from "express";
-import { authMiddleware, AuthRequest } from "../middleware/auth";
+import express, { Request, Response } from "express";
+import { authMiddleware } from "../middleware/auth";
 import { roleMiddleware } from "../middleware/role";
 import { getAdminAnalytics } from "../services/analytics-service";
 
@@ -7,7 +7,7 @@ const analyticsRouter = express.Router();
 
 analyticsRouter.use(authMiddleware, roleMiddleware(["admin"]));
 
-analyticsRouter.get("/admin", async (req: AuthRequest, res: Response, next) => {
+analyticsRouter.get("/admin", async (req: Request, res: Response, next) => {
   try {
     const schoolId = req.user?.schoolId;
     if (!schoolId) {
@@ -15,11 +15,12 @@ analyticsRouter.get("/admin", async (req: AuthRequest, res: Response, next) => {
       return;
     }
 
-    const { classId, quarter, academicYear } = req.query;
-    const analyticsData = await getAdminAnalytics(schoolId, {
+    const { classId, quarter, academicYear, gradeBand } = req.query;
+    const analyticsData = await getAdminAnalytics(Number(schoolId), {
       classId: classId ? String(classId) : undefined,
       quarter: quarter ? String(quarter) : undefined,
       academicYear: academicYear ? String(academicYear) : undefined,
+      gradeBand: gradeBand ? String(gradeBand) : undefined,
     });
 
     res.json({

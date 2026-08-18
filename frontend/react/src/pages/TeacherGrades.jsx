@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { getGradeRoster, listTeachingAssignments, saveGrades, downloadGradeTemplate, uploadGradeFile } from '../api/apiClient'
 import { getGradeStats, filterRosterBySearch, applyPreviousQuarterScores } from './gradeUtils.mjs'
 import { useToast } from '../context/ToastContext'
-import { CardSkeleton, StatsSkeleton } from '../components/SkeletonLoader'
+import { CardSkeleton } from '../components/SkeletonLoader'
 
 const currentYear = `${new Date().getFullYear()}/${String((new Date().getFullYear() + 1) % 100).padStart(2, '0')}`
 const quarterOptions = [1, 2, 3, 4]
@@ -80,6 +80,22 @@ export default function TeacherGrades() {
   const visibleRoster = filterRosterBySearch(roster, searchTerm)
   const stats = getGradeStats(roster)
 
+  // Grade breakdown distribution
+  const gradeDistribution = useMemo(() => {
+    const dist = { A: 0, B: 0, C: 0, D: 0, F: 0 }
+    roster.forEach((r) => {
+      if (r.score === '') return
+      const s = Number(r.score)
+      if (isNaN(s)) return
+      if (s >= 85) dist.A++
+      else if (s >= 75) dist.B++
+      else if (s >= 60) dist.C++
+      else if (s >= 50) dist.D++
+      else dist.F++
+    })
+    return dist
+  }, [roster])
+
   const applyFillValue = () => {
     if (fillValue === '') return
     const val = Number(fillValue)
@@ -88,7 +104,7 @@ export default function TeacherGrades() {
       return
     }
     setRoster((rows) => rows.map((row) => ({ ...row, score: fillValue })))
-    toast.info(`Filled score ${fillValue} across visible students.`)
+    toast.info(`Filled score ${fillValue} across all students.`)
   }
 
   const handleDownloadTemplate = async () => {
@@ -156,7 +172,48 @@ export default function TeacherGrades() {
         </div>
       </div>
 
-      {/* 2. Assignment & Quarter Selectors */}
+      {/* 2. Quick Course Switcher Pills */}
+      {assignments.length > 1 && (
+        <div style={{
+          display: 'flex',
+          gap: '8px',
+          overflowX: 'auto',
+          paddingBottom: '8px',
+          marginBottom: '16px',
+        }}>
+          {assignments.map((a) => {
+            const isSelected = String(a.id) === String(assignmentId)
+            return (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => setAssignmentId(String(a.id))}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  border: isSelected ? '1.5px solid var(--navy-primary, #0f2744)' : '1px solid var(--border-color, #cbd5e1)',
+                  background: isSelected ? 'var(--navy-primary, #0f2744)' : 'var(--bg-surface, #ffffff)',
+                  color: isSelected ? '#ffffff' : 'var(--text-primary, #0f172a)',
+                  fontWeight: isSelected ? '600' : '500',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  boxShadow: isSelected ? '0 2px 6px rgba(15, 39, 68, 0.15)' : 'none',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: isSelected ? '#93C5FD' : 'inherit' }}>menu_book</span>
+                <span>{a.class.name}</span>
+                <span style={{ fontSize: '0.75rem', opacity: 0.85 }}>({a.subject.name})</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {/* 3. Assignment & Quarter Selectors */}
       <div className="card" style={{ marginBottom: '20px', padding: '16px 20px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', alignItems: 'flex-end' }}>
           <div className="input-label" style={{ margin: 0 }}>
@@ -198,14 +255,14 @@ export default function TeacherGrades() {
         </div>
       </div>
 
-      {/* 3. Live Stats KPI Cards */}
+      {/* 4. Live Stats KPI Cards */}
       <div className="stats-grid" style={{ marginBottom: '20px' }}>
         <div className="stat-card">
           <span>Entered Scores</span>
           <strong>{stats.enteredCount} / {stats.totalStudents}</strong>
         </div>
         <div className="stat-card">
-          <span>Unmarked Students</span>
+          <span>Pending Scores</span>
           <strong style={{ color: stats.blankCount > 0 ? 'var(--gold-accent)' : 'var(--status-present-text)' }}>
             {stats.blankCount}
           </strong>
@@ -214,9 +271,18 @@ export default function TeacherGrades() {
           <span>Class Average</span>
           <strong>{stats.average !== null ? `${stats.average.toFixed(1)}%` : '—'}</strong>
         </div>
+        <div className="stat-card">
+          <span>Score Distribution</span>
+          <div style={{ display: 'flex', gap: '6px', marginTop: '4px', fontSize: '0.78rem' }}>
+            <span style={{ color: 'var(--status-present-text)', fontWeight: '600' }}>A: {gradeDistribution.A}</span>
+            <span style={{ color: '#3B82F6', fontWeight: '600' }}>B: {gradeDistribution.B}</span>
+            <span style={{ color: 'var(--gold-accent)', fontWeight: '600' }}>C: {gradeDistribution.C}</span>
+            <span style={{ color: 'var(--status-absent-text)', fontWeight: '600' }}>F: {gradeDistribution.F}</span>
+          </div>
+        </div>
       </div>
 
-      {/* 4. Batch Operations & Excel Toolbar */}
+      {/* 5. Batch Operations & Excel Toolbar */}
       {roster.length > 0 && (
         <div className="card" style={{ marginBottom: '20px', padding: '16px 20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
@@ -228,6 +294,16 @@ export default function TeacherGrades() {
                 onChange={(e) => setSearchTerm(e.target.value)} 
                 placeholder="Search student in roster..." 
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="admin-icon-btn"
+                  style={{ width: '24px', height: '24px', position: 'absolute', right: '10px' }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
+                </button>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -298,7 +374,7 @@ export default function TeacherGrades() {
         </div>
       )}
 
-      {/* 5. Grades Roster Grid */}
+      {/* 6. Grades Roster Grid */}
       {loading ? (
         <CardSkeleton lines={5} />
       ) : visibleRoster.length > 0 ? (
@@ -315,27 +391,27 @@ export default function TeacherGrades() {
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'space-between', 
-                  padding: '14px 20px',
+                  padding: '12px 18px',
                   flexWrap: 'wrap',
                   gap: '14px'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div className="avatar">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div className="avatar" style={{ width: '38px', height: '38px', fontSize: '0.85rem' }}>
                     <span style={{ fontFamily: 'var(--font-headline)', fontWeight: '700', color: 'var(--navy-primary)' }}>
                       {(student.name || 'S')[0].toUpperCase()}
                     </span>
                   </div>
                   <div>
-                    <h3 className="student-name" style={{ margin: 0 }}>{student.name}</h3>
+                    <h3 className="student-name" style={{ margin: 0, fontSize: '0.95rem' }}>{student.name}</h3>
                     <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Student ID #{student.id}</span>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   {isValid && (
-                    <span className={`status-pill ${scoreNum >= 80 ? 'present' : scoreNum >= 60 ? 'late' : 'absent'}`} style={{ fontSize: '0.75rem' }}>
-                      {scoreNum >= 90 ? 'A+' : scoreNum >= 80 ? 'A' : scoreNum >= 70 ? 'B' : scoreNum >= 60 ? 'C' : 'F'}
+                    <span className={`status-pill ${scoreNum >= 80 ? 'present' : scoreNum >= 60 ? 'late' : 'absent'}`} style={{ fontSize: '0.75rem', fontWeight: '700' }}>
+                      {scoreNum >= 90 ? 'A+' : scoreNum >= 80 ? 'A' : scoreNum >= 70 ? 'B' : scoreNum >= 60 ? 'C' : scoreNum >= 50 ? 'D' : 'F'}
                     </span>
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -350,7 +426,7 @@ export default function TeacherGrades() {
                         setRoster((prev) => prev.map((r) => r.id === student.id ? { ...r, score: val } : r))
                       }}
                       placeholder="0 - 100"
-                      style={{ width: '90px', textAlign: 'center', fontWeight: '700', fontSize: '1rem' }}
+                      style={{ width: '85px', textAlign: 'center', fontWeight: '700', fontSize: '0.95rem', padding: '6px 8px' }}
                     />
                     <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>/ 100</span>
                   </div>
@@ -370,17 +446,17 @@ export default function TeacherGrades() {
         </div>
       )}
 
-      {/* 6. Bottom Sticky Save Toolbar */}
+      {/* 7. Bottom Sticky Save Toolbar */}
       {roster.length > 0 && (
         <div className="submit-panel" style={{ marginTop: '24px' }}>
           <div className="summary">
             {stats.blankCount === 0 ? (
-              <span style={{ color: 'var(--status-present-text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ color: 'var(--status-present-text)', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>check_circle</span>
                 All {stats.totalStudents} grades entered
               </span>
             ) : (
-              <span style={{ color: 'var(--gold-accent)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ color: 'var(--gold-accent)', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>info</span>
                 {stats.blankCount} students still pending scores
               </span>

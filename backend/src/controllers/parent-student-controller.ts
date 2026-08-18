@@ -34,7 +34,13 @@ export async function listParentStudentLinksHandler(request: Request, response: 
       return;
     }
 
-    const result = await listParentStudentLinks(request.user.schoolId);
+    const page = request.query.page ? Number(request.query.page) : undefined;
+    const limit = request.query.limit ? Number(request.query.limit) : undefined;
+    const search = request.query.search ? String(request.query.search) : undefined;
+    const studentId = request.query.studentId ? Number(request.query.studentId) : undefined;
+    const parentUserId = request.query.parentUserId ? Number(request.query.parentUserId) : undefined;
+
+    const result = await listParentStudentLinks(request.user.schoolId, { page, limit, search, studentId, parentUserId });
     response.status(200).json({ success: true, data: result });
   } catch (error) {
     handleError(error, response);

@@ -19,17 +19,25 @@ import notificationsRouter from "./routes/notifications";
 import studentRouter from "./routes/student";
 import contactRouter from "./routes/contact";
 import profileRouter from "./routes/profile";
+import path from "path";
 import analyticsRouter from "./routes/analytics";
+import materialsRouter from "./routes/materials";
+import submissionsRouter from "./routes/submissions";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json({ limit: "10mb" })); // Support avatar uploads
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use("/health", healthRouter);
 app.use("/auth", authRouter);
 app.use("/profile", profileRouter);
 app.use("/analytics", analyticsRouter);
 app.use("/api/analytics", analyticsRouter);
+app.use("/materials", materialsRouter);
+app.use("/api/materials", materialsRouter);
+app.use("/submissions", submissionsRouter);
+app.use("/api/submissions", submissionsRouter);
 app.use("/classes", classesRouter);
 app.use("/students", studentsRouter);
 app.use("/teachers", teachersRouter);

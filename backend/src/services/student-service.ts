@@ -70,33 +70,106 @@ export async function createStudent(payload: CreateStudentPayload) {
   });
 }
 
-export async function listStudents(schoolIdValue: string) {
-  const schoolId = parseId(schoolIdValue, "schoolId");
+export interface ListStudentsOptions {
+  page?: number;
+  limit?: number;
+  search?: string;
+  classId?: number;
+  gradeBand?: string;
+}
 
-  return prisma.student.findMany({
-    where: { schoolId },
-    orderBy: { createdAt: "desc" },
-    include: {
-      class: {
-        select: {
-          id: true,
-          name: true,
+export async function listStudents(schoolIdValue: string, options: ListStudentsOptions = {}) {
+  const schoolId = parseId(schoolIdValue, "schoolId");
+  const { page, limit, search, classId, gradeBand } = options;
+
+  const where: any = { schoolId };
+
+  if (classId) {
+    where.classId = classId;
+  }
+
+  if (search && search.trim()) {
+    const term = search.trim();
+    where.OR = [
+      { name: { contains: term, mode: "insensitive" } },
+      { class: { name: { contains: term, mode: "insensitive" } } },
+      { parents: { some: { parent: { name: { contains: term, mode: "insensitive" } } } } },
+    ];
+  }
+
+  if (gradeBand) {
+    const gb = gradeBand.toLowerCase();
+    if (gb === "kg") {
+      where.class = { ...where.class, name: { startsWith: "KG", mode: "insensitive" } };
+    } else if (gb === "primary") {
+      where.class = {
+        ...where.class,
+        OR: [1, 2, 3, 4, 5, 6, 7, 8].map((g) => ({
+          name: { startsWith: `Grade ${g}`, mode: "insensitive" },
+        })),
+      };
+    } else if (gb === "high") {
+      where.class = {
+        ...where.class,
+        OR: [9, 10].map((g) => ({
+          name: { startsWith: `Grade ${g}`, mode: "insensitive" },
+        })),
+      };
+    } else if (gb === "prep") {
+      where.class = {
+        ...where.class,
+        OR: [11, 12].map((g) => ({
+          name: { startsWith: `Grade ${g}`, mode: "insensitive" },
+        })),
+      };
+    }
+  }
+
+  const isPaginated = page !== undefined || limit !== undefined;
+  const pageNum = Math.max(1, page || 1);
+  const takeLimit = limit ? Math.min(100, Math.max(1, limit)) : (isPaginated ? 50 : undefined);
+  const skip = isPaginated ? (pageNum - 1) * (takeLimit || 50) : undefined;
+
+  const [items, total] = await Promise.all([
+    prisma.student.findMany({
+      where,
+      orderBy: { name: "asc" },
+      skip,
+      take: takeLimit,
+      include: {
+        class: {
+          select: {
+            id: true,
+            name: true,
+          },
         },
-      },
-      parents: {
-        include: {
-          parent: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: true,
+        parents: {
+          include: {
+            parent: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+              },
             },
           },
         },
       },
-    },
-  });
+    }),
+    prisma.student.count({ where }),
+  ]);
+
+  const effectiveLimit = takeLimit || total || 1;
+  const totalPages = Math.ceil(total / effectiveLimit) || 1;
+
+  return {
+    items,
+    total,
+    page: pageNum,
+    limit: effectiveLimit,
+    totalPages,
+  };
 }
 
 export async function getStudentById(schoolIdValue: string, studentIdValue: string) {

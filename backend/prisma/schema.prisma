@@ -70,6 +70,7 @@ model User {
   teacherConversations Conversation[] @relation("TeacherConversations")
   parentConversations  Conversation[] @relation("ParentConversations")
   sentMessages   Message[]        @relation("message_sender")
+  materialsCreated Material[]     @relation("material_teacher")
 
   @@unique([email, schoolId])
   @@map("users")
@@ -92,6 +93,7 @@ model Student {
   notifications Notification[]
   grades        Grade[]
   conversations Conversation[]
+  submissions   Submission[]
 
   @@map("students")
 }
@@ -124,6 +126,7 @@ model Class {
   attendances Attendance[]
   assessments Assessment[]
   scheduleSlots ScheduleSlot[]
+  materials   Material[]
 
   @@map("classes")
 }
@@ -149,6 +152,7 @@ model Subject {
   teachingAssignments TeachingAssignment[]
   assessments         Assessment[]
   scheduleSlots       ScheduleSlot[]
+  materials           Material[]
 
   @@unique([schoolId, name])
   @@map("subjects")
@@ -242,9 +246,10 @@ model Assessment {
   createdAt   DateTime       @default(now()) @map("created_at")
   updatedAt   DateTime       @updatedAt @map("updated_at")
 
-  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
-  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  teacher User    @relation("assessment_teacher", fields: [teacherId], references: [id], onDelete: Cascade)
+  class       Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject     Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher     User         @relation("assessment_teacher", fields: [teacherId], references: [id], onDelete: Cascade)
+  submissions Submission[]
 
   @@index([classId, dueDate])
   @@index([teacherId])
@@ -303,4 +308,51 @@ model Message {
   notifications Notification[]
 
   @@map("messages")
+}
+
+model Material {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  fileUrl     String   @map("file_url")
+  fileName    String   @map("file_name")
+  fileSize    Int      @map("file_size")
+  mimeType    String?  @map("mime_type")
+  classId     Int      @map("class_id")
+  subjectId   Int      @map("subject_id")
+  teacherId   Int      @map("teacher_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher User    @relation("material_teacher", fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([classId, subjectId])
+  @@index([teacherId])
+  @@map("materials")
+}
+
+model Submission {
+  id           Int       @id @default(autoincrement())
+  assessmentId Int       @map("assessment_id")
+  studentId    Int       @map("student_id")
+  content      String?
+  fileUrl      String?   @map("file_url")
+  fileName     String?   @map("file_name")
+  fileSize     Int?      @map("file_size")
+  mimeType     String?   @map("mime_type")
+  gradeScore   Int?      @map("grade_score")
+  feedback     String?
+  submittedAt  DateTime  @default(now()) @map("submitted_at")
+  gradedAt     DateTime? @map("graded_at")
+  status       String    @default("submitted") // 'submitted' | 'graded' | 'late'
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  student    Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, studentId])
+  @@index([assessmentId])
+  @@index([studentId])
+  @@map("submissions")
 }

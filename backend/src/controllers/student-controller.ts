@@ -55,7 +55,13 @@ export async function listStudentsHandler(request: Request, response: Response):
       return;
     }
 
-    const result = await listStudents(request.user.schoolId);
+    const page = request.query.page ? Number(request.query.page) : undefined;
+    const limit = request.query.limit ? Number(request.query.limit) : undefined;
+    const search = request.query.search ? String(request.query.search) : undefined;
+    const classId = request.query.classId ? Number(request.query.classId) : undefined;
+    const gradeBand = request.query.gradeBand ? String(request.query.gradeBand) : undefined;
+
+    const result = await listStudents(request.user.schoolId, { page, limit, search, classId, gradeBand });
     response.status(200).json({ success: true, data: result });
   } catch (error) {
     handleError(error, response);

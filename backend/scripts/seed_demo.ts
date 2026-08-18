@@ -2,296 +2,477 @@ import { prisma } from "../src/lib/prisma";
 import { hashPassword } from "../src/lib/auth-utils";
 
 /**
- * Seed demo data for ICT department demo.
- * Uses school ID 12 (the school the developer has been testing with).
- * Creates 2 classes, 2 teachers, 10 students (5 per class), 2 parents,
- * parent-student links, and sample attendance records.
+ * Seed full K-12 demo school data:
+ * - 1 School
+ * - 1 Admin User
+ * - 100 Teachers (75 Homeroom Teachers, 25 Specialist Floaters)
+ * - 75 Classes (KG1-3, G1-10, G11-12 Natural/Social Streams)
+ * - 2,625 Students (35 students per class)
+ * - 2,625 Parent Users linked to students
+ * - Grade-band tailored subjects (KG: 4, G1-8: 12, G9-10: 10, G11-12 Nat: 10, G11-12 Soc: 10)
+ * - Teaching Assignments & Weekly Schedule Slots
+ * - 6 days of Attendance history (~15,750 records) + Notifications
+ * - Sample Assessments & Submissions
  */
 async function main() {
-  const SCHOOL_ID = 12;
-
-  // Verify or create school
-  let school = await prisma.school.findUnique({ where: { id: SCHOOL_ID } });
+  console.log("Starting Full K-12 Demo Seeding...");
+  const startTime = Date.now();
+  // 1. School
+  let school = await prisma.school.findFirst();
   if (!school) {
     school = await prisma.school.create({
-      data: {
-        id: SCHOOL_ID,
-        name: "Test School",
-      },
+      data: { name: "Sheba Academy" },
     });
-    console.log(`Created school: ${school.name} (ID: ${school.id})`);
+    console.log(`Created School: ${school.name} (ID: ${school.id})`);
   } else {
-    console.log(`Using school: ${school.name} (ID: ${school.id})`);
+    console.log(`Using existing School: ${school.name} (ID: ${school.id})`);
   }
+  const SCHOOL_ID = school.id;
 
-  // ── Admin User ──
-  let admin = await prisma.user.findUnique({
+  // Cleanup any old records for school ID to ensure clean idempotent state
+  console.log(`Cleaning up old data for School ID ${SCHOOL_ID}...`);
+  await prisma.submission.deleteMany({ where: { student: { schoolId: SCHOOL_ID } } });
+  await prisma.material.deleteMany({ where: { class: { schoolId: SCHOOL_ID } } });
+  await prisma.grade.deleteMany({ where: { student: { schoolId: SCHOOL_ID } } });
+  await prisma.notification.deleteMany({ where: { student: { schoolId: SCHOOL_ID } } });
+  await prisma.message.deleteMany({ where: { sender: { schoolId: SCHOOL_ID } } });
+  await prisma.conversation.deleteMany({ where: { student: { schoolId: SCHOOL_ID } } });
+  await prisma.attendance.deleteMany({ where: { class: { schoolId: SCHOOL_ID } } });
+  await prisma.scheduleSlot.deleteMany({ where: { class: { schoolId: SCHOOL_ID } } });
+  await prisma.assessment.deleteMany({ where: { class: { schoolId: SCHOOL_ID } } });
+  await prisma.parentStudent.deleteMany({ where: { student: { schoolId: SCHOOL_ID } } });
+  await prisma.classTeacher.deleteMany({ where: { class: { schoolId: SCHOOL_ID } } });
+  await prisma.student.deleteMany({ where: { schoolId: SCHOOL_ID } });
+  await prisma.teachingAssignment.deleteMany({ where: { class: { schoolId: SCHOOL_ID } } });
+  await prisma.class.deleteMany({ where: { schoolId: SCHOOL_ID } });
+  await prisma.subject.deleteMany({ where: { schoolId: SCHOOL_ID } });
+  await prisma.user.deleteMany({ where: { schoolId: SCHOOL_ID } });
+
+  const defaultPasswordHash = await hashPassword("Teacher@123");
+  const parentPasswordHash = await hashPassword("Parent@123");
+  const adminPasswordHash = await hashPassword("Admin@123");
+
+  // 2. Admin User
+  await prisma.user.upsert({
     where: { email_schoolId: { email: "admin@testschool.com", schoolId: SCHOOL_ID } },
+    update: {},
+    create: {
+      schoolId: SCHOOL_ID,
+      name: "Admin User",
+      email: "admin@testschool.com",
+      role: "admin",
+      passwordHash: adminPasswordHash,
+    },
   });
-  if (!admin) {
-    const adminHash = await hashPassword("Admin@123");
-    admin = await prisma.user.create({
-      data: {
-        schoolId: SCHOOL_ID,
-        name: "Admin User",
-        email: "admin@testschool.com",
-        role: "admin",
-        passwordHash: adminHash,
-      },
-    });
-    console.log(`Created admin user: admin@testschool.com`);
-  }
 
-  // ── Teachers ──
-  const teacherData = [
-    { name: "Alemayehu Bekele", email: "alembekele@school.edu", password: "Teacher@123" },
-    { name: "Birtukan Tadesse", email: "birtadesse@school.edu", password: "Teacher@123" },
+  // 3. Teachers (100 total)
+  console.log("⏳ Seeding 100 teachers...");
+  const teacherNames = [
+    "Alemayehu Bekele", "Birtukan Tadesse", "Solomon Girma", "Tigist Hailu", "Worku Abebe",
+    "Meseret Alemu", "Dawit Eshetu", "Hanna Wondimu", "Yonas Girma", "Betelhem Hailu",
+    "Ephrem Solomon", "Meron Assefa", "Kassahun Fikre", "Rahel Getachew", "Tewodros Kassaye",
+    "Saba Mulugeta", "Berhanu Zewde", "Genet Desta", "Samuel Tsegaye", "Kidist Haile",
   ];
 
-  const teachers: any[] = [];
-  for (const t of teacherData) {
-    let user = await prisma.user.findUnique({
-      where: { email_schoolId: { email: t.email, schoolId: SCHOOL_ID } },
-    });
-    if (!user) {
-      const passwordHash = await hashPassword(t.password);
-      user = await prisma.user.create({
-        data: {
-          schoolId: SCHOOL_ID,
-          name: t.name,
-          email: t.email,
-          role: "teacher",
-          passwordHash,
-          phone: null,
-        },
-      });
-      console.log(`Created teacher: ${t.name} (${t.email})`);
+  const teacherData: Array<{ schoolId: number; role: string; name: string; email: string; passwordHash: string }> = [];
+  for (let i = 1; i <= 100; i++) {
+    let name: string;
+    let email: string;
+
+    if (i === 1) {
+      name = "Alemayehu Bekele";
+      email = "alembekele@school.edu";
+    } else if (i === 2) {
+      name = "Birtukan Tadesse";
+      email = "birtadesse@school.edu";
+    } else if (i === 3) {
+      name = "Solomon Girma";
+      email = "solomongirma@school.edu";
     } else {
-      console.log(`Teacher already exists: ${t.name} (${t.email})`);
+      const baseName = teacherNames[(i - 1) % teacherNames.length];
+      name = `${baseName} ${Math.floor((i - 1) / teacherNames.length) + 1}`;
+      email = `teacher${i}@school.edu`;
     }
-    teachers.push(user);
+
+    teacherData.push({
+      schoolId: SCHOOL_ID,
+      role: "teacher",
+      name,
+      email,
+      passwordHash: defaultPasswordHash,
+    });
   }
 
-  // ── Classes ──
-  const classData = [
-    { name: "Grade 10A", homeroomTeacherId: teachers[0].id },
-    { name: "Grade 10B", homeroomTeacherId: teachers[1].id },
-  ];
+  await prisma.user.createMany({
+    data: teacherData,
+    skipDuplicates: true,
+  });
+
+  const teachers = await prisma.user.findMany({
+    where: { schoolId: SCHOOL_ID, role: "teacher" },
+    orderBy: { id: "asc" },
+  });
+
+  console.log(`✅ Loaded ${teachers.length} teachers.`);
+
+  // 4. Define 75 Classes & Assign 75 Homeroom Teachers
+  console.log("⏳ Creating 75 classes across 15 grades...");
+  const gradeDefs: Array<{ grade: string; section: string }> = [];
+
+  // KG 1 to KG 3 (3 grades x 5 sections = 15 classes)
+  for (const kg of ["KG1", "KG2", "KG3"]) {
+    for (const sec of ["A", "B", "C", "D", "E"]) {
+      gradeDefs.push({ grade: kg, section: sec });
+    }
+  }
+
+  // Grade 1 to Grade 10 (10 grades x 5 sections = 50 classes)
+  for (let g = 1; g <= 10; g++) {
+    for (const sec of ["A", "B", "C", "D", "E"]) {
+      gradeDefs.push({ grade: `Grade ${g}`, section: sec });
+    }
+  }
+
+  // Grade 11 & 12 (2 grades x 5 sections: 3 Natural Science, 2 Social Science = 10 classes)
+  for (const g of [11, 12]) {
+    gradeDefs.push({ grade: `Grade ${g}`, section: "Natural Science A" });
+    gradeDefs.push({ grade: `Grade ${g}`, section: "Natural Science B" });
+    gradeDefs.push({ grade: `Grade ${g}`, section: "Natural Science C" });
+    gradeDefs.push({ grade: `Grade ${g}`, section: "Social Science A" });
+    gradeDefs.push({ grade: `Grade ${g}`, section: "Social Science B" });
+  }
 
   const classes: any[] = [];
-  for (const c of classData) {
-    let cls = await prisma.class.findFirst({
-      where: { schoolId: SCHOOL_ID, name: c.name },
+  for (let i = 0; i < gradeDefs.length; i++) {
+    const className = `${gradeDefs[i].grade} ${gradeDefs[i].section}`;
+    const homeroomTeacherId = teachers[i % 75].id;
+    const cls = await prisma.class.create({
+      data: {
+        schoolId: SCHOOL_ID,
+        name: className,
+        homeroomTeacherId,
+      },
     });
-    if (!cls) {
-      cls = await prisma.class.create({
-        data: {
-          schoolId: SCHOOL_ID,
-          name: c.name,
-          homeroomTeacherId: c.homeroomTeacherId,
-        },
-      });
-      console.log(`Created class: ${c.name}`);
-    } else {
-      console.log(`Class already exists: ${c.name}`);
-    }
-
-    // Assign teacher to class via ClassTeacher
-    const existingCT = await prisma.classTeacher.findFirst({
-      where: { classId: cls.id, teacherId: c.homeroomTeacherId },
-    });
-    if (!existingCT) {
-      await prisma.classTeacher.create({
-        data: { classId: cls.id, teacherId: c.homeroomTeacherId },
-      });
-    }
-
     classes.push(cls);
   }
+  console.log(`✅ Created ${classes.length} classes.`);
 
-  // ── Students (5 per class) ──
-  const studentNames = [
-    ["Abebe Kebede", "Meseret Alemu", "Tekle Berhan", "Hanna Wondimu", "Dawit Eshetu"],
-    ["Selam Tesfaye", "Yonas Girma", "Betelhem Hailu", "Ephrem Solomon", "Meron Assefa"],
+  // Link ClassTeachers for homeroom
+  const classTeachersData = classes.map((c) => ({
+    classId: c.id,
+    teacherId: c.homeroomTeacherId!,
+  }));
+  await prisma.classTeacher.createMany({
+    data: classTeachersData,
+    skipDuplicates: true,
+  });
+
+  // 5. Subjects per Grade Band
+  console.log("⏳ Seeding subjects for all grade tiers...");
+  const subjectList = Array.from(
+    new Set([
+      // KG (4 subjects)
+      "English Literacy", "Early Numeracy", "General Knowledge", "Arts & Crafts",
+      // Primary / Middle G1-G8 (12 subjects)
+      "Mathematics", "English Language", "Amharic Language", "Integrated Science",
+      "Physics", "Chemistry", "Biology", "Social Studies", "Civics & Ethics",
+      "Information Technology", "Visual Arts", "Physical Education",
+      // High School G9-10 & G11-12 Streams
+      "Advanced Mathematics", "Social Mathematics", "History", "Geography",
+      "Economics", "Business Studies", "Technical Drawing", "Scholastic Aptitude",
+    ])
+  );
+
+  await prisma.subject.createMany({
+    data: subjectList.map((name) => ({ schoolId: SCHOOL_ID, name })),
+    skipDuplicates: true,
+  });
+
+  const subjects = await prisma.subject.findMany({
+    where: { schoolId: SCHOOL_ID },
+  });
+  const subjectMap = new Map(subjects.map((s) => [s.name, s.id]));
+
+  // Helper to map subjects by grade class name
+  function getSubjectsForClass(className: string): number[] {
+    if (className.startsWith("KG")) {
+      return ["English Literacy", "Early Numeracy", "General Knowledge", "Arts & Crafts"]
+        .map((name) => subjectMap.get(name)!);
+    }
+    if (className.includes("Natural Science")) {
+      return ["Advanced Mathematics", "Physics", "Chemistry", "Biology", "English Language", "Civics & Ethics", "Information Technology", "Technical Drawing", "Scholastic Aptitude", "Physical Education"]
+        .map((name) => subjectMap.get(name)!);
+    }
+    if (className.includes("Social Science")) {
+      return ["Social Mathematics", "History", "Geography", "Economics", "Business Studies", "English Language", "Civics & Ethics", "Information Technology", "Integrated Science", "Physical Education"]
+        .map((name) => subjectMap.get(name)!);
+    }
+    if (className.startsWith("Grade 9") || className.startsWith("Grade 10")) {
+      return ["Mathematics", "Physics", "Chemistry", "Biology", "English Language", "Civics & Ethics", "History", "Geography", "Information Technology", "Physical Education"]
+        .map((name) => subjectMap.get(name)!);
+    }
+    // Grade 1 to 8 (12 subjects)
+    return ["Mathematics", "English Language", "Amharic Language", "Integrated Science", "Physics", "Chemistry", "Biology", "Social Studies", "Civics & Ethics", "Information Technology", "Visual Arts", "Physical Education"]
+      .map((name) => subjectMap.get(name)!);
+  }
+
+  // 6. Teaching Assignments & Schedule Slots
+  console.log("⏳ Assigning subjects and generating schedule slots...");
+  const teachingAssignmentsData: Array<{ classId: number; teacherId: number; subjectId: number }> = [];
+  const scheduleSlotsData: Array<{
+    classId: number;
+    subjectId: number;
+    teacherId: number;
+    dayOfWeek: "monday" | "tuesday" | "wednesday" | "thursday" | "friday";
+    startTime: string;
+    endTime: string;
+    room: string;
+  }> = [];
+
+  const days: Array<"monday" | "tuesday" | "wednesday" | "thursday" | "friday"> = [
+    "monday", "tuesday", "wednesday", "thursday", "friday"
   ];
-
-  const students: any[] = [];
-  for (let ci = 0; ci < classes.length; ci++) {
-    for (const name of studentNames[ci]) {
-      let student = await prisma.student.findFirst({
-        where: { schoolId: SCHOOL_ID, classId: classes[ci].id, name },
-      });
-      if (!student) {
-        student = await prisma.student.create({
-          data: {
-            schoolId: SCHOOL_ID,
-            classId: classes[ci].id,
-            name,
-            dob: new Date(2007, 0, 1),
-          },
-        });
-        console.log(`Created student: ${name} (${classes[ci].name})`);
-      }
-      students.push(student);
-    }
-  }
-
-  // ── Parents ──
-  const parentData = [
-    { name: "Worku Abebe", email: "workuabebe@parent.com", password: "Parent@123", childName: "Abebe Kebede" },
-    { name: "Tigist Hailu", email: "tigisthailu@parent.com", password: "Parent@123", childName: "Selam Tesfaye" },
+  const timeSlots = [
+    ["08:00", "08:45"], ["08:50", "09:35"], ["09:45", "10:30"],
+    ["10:35", "11:20"], ["11:25", "12:10"]
   ];
-
-  const parents: any[] = [];
-  for (const p of parentData) {
-    let user = await prisma.user.findUnique({
-      where: { email_schoolId: { email: p.email, schoolId: SCHOOL_ID } },
-    });
-    if (!user) {
-      const passwordHash = await hashPassword(p.password);
-      user = await prisma.user.create({
-        data: {
-          schoolId: SCHOOL_ID,
-          name: p.name,
-          email: p.email,
-          role: "parent",
-          passwordHash,
-          phone: null,
-        },
-      });
-      console.log(`Created parent: ${p.name} (${p.email})`);
-    }
-    parents.push(user);
-
-    // Link parent to child
-    const child = students.find((s) => s.name === p.childName);
-    if (child) {
-      const existingLink = await prisma.parentStudent.findUnique({
-        where: { parentUserId_studentId: { parentUserId: user.id, studentId: child.id } },
-      });
-      if (!existingLink) {
-        await prisma.parentStudent.create({
-          data: { parentUserId: user.id, studentId: child.id, isPrimary: true },
-        });
-        console.log(`Linked parent ${p.name} to child ${child.name}`);
-      }
-    }
-  }
-
-  // ── Subjects ──
-  const subjectNames = ["Mathematics", "English", "Science"];
-  const subjects: any[] = [];
-  for (const name of subjectNames) {
-    let subj = await prisma.subject.findUnique({
-      where: { schoolId_name: { schoolId: SCHOOL_ID, name } },
-    });
-    if (!subj) {
-      subj = await prisma.subject.create({ data: { schoolId: SCHOOL_ID, name } });
-      console.log(`Created subject: ${name}`);
-    }
-    subjects.push(subj);
-  }
-
-  // ── Teaching Assignments ──
-  for (const cls of classes) {
-    for (const subj of subjects) {
-      const teacherId = cls.id === classes[0].id ? teachers[0].id : teachers[1].id;
-      const existingTA = await prisma.teachingAssignment.findFirst({
-        where: { classId: cls.id, teacherId, subjectId: subj.id },
-      });
-      if (!existingTA) {
-        await prisma.teachingAssignment.create({
-          data: { classId: cls.id, teacherId, subjectId: subj.id },
-        });
-      }
-    }
-  }
-  console.log("Teaching assignments created.");
-
-  // ── Schedule Slots ──
-  // 3 subjects × 5 days per class. Class A starts at 08:00, Class B starts at 09:00.
-  const days = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
-  // [startTime, endTime] pairs per period index (0=Math, 1=English, 2=Science)
-  const classTimes: Record<number, [string, string][]> = {
-    0: [["08:00", "08:45"], ["09:00", "09:45"], ["10:00", "10:45"]],
-    1: [["09:00", "09:45"], ["10:00", "10:45"], ["11:00", "11:45"]],
-  };
-  const rooms = ["Room 101", "Room 102", "Lab 1"];
 
   for (let ci = 0; ci < classes.length; ci++) {
     const cls = classes[ci];
-    const teacherId = teachers[ci].id;
-    const times = classTimes[ci];
-    for (const day of days) {
-      for (let si = 0; si < subjects.length; si++) {
-        const [startTime, endTime] = times[si];
-        const existing = await prisma.scheduleSlot.findFirst({
-          where: { classId: cls.id, dayOfWeek: day, startTime },
-        });
-        if (!existing) {
-          await prisma.scheduleSlot.create({
-            data: {
-              classId: cls.id,
-              subjectId: subjects[si].id,
-              teacherId,
-              dayOfWeek: day,
-              startTime,
-              endTime,
-              room: rooms[si],
-            },
+    const classSubjectIds = getSubjectsForClass(cls.name);
+
+    for (let si = 0; si < classSubjectIds.length; si++) {
+      const subjectId = classSubjectIds[si];
+      // Pick a teacher from the 100 teachers pool
+      const teacherId = teachers[(ci + si) % 100].id;
+
+      teachingAssignmentsData.push({
+        classId: cls.id,
+        teacherId,
+        subjectId,
+      });
+
+      // Assign first 5 subjects to schedule slots Mon-Fri
+      if (si < 5) {
+        for (const day of days) {
+          const [startTime, endTime] = timeSlots[si];
+          scheduleSlotsData.push({
+            classId: cls.id,
+            subjectId,
+            teacherId,
+            dayOfWeek: day,
+            startTime,
+            endTime,
+            room: `Room ${100 + (ci % 30)}`,
           });
         }
       }
     }
-    console.log(`Schedule slots created for ${cls.name}`);
   }
 
-  // ── Attendance (today, mark first 3 students present, last 2 absent) ──
+  await prisma.teachingAssignment.createMany({
+    data: teachingAssignmentsData,
+    skipDuplicates: true,
+  });
+
+  await prisma.scheduleSlot.createMany({
+    data: scheduleSlotsData,
+    skipDuplicates: true,
+  });
+
+  console.log(`✅ Created ${teachingAssignmentsData.length} teaching assignments & ${scheduleSlotsData.length} timetable slots.`);
+
+  // 7. Students (2,625 students = 75 classes x 35 students)
+  console.log("⏳ Seeding 2,625 students...");
+  const firstNames = [
+    "Abebe", "Meseret", "Tekle", "Hanna", "Dawit", "Selam", "Yonas", "Betelhem", "Ephrem", "Meron",
+    "Kassahun", "Rahel", "Tewodros", "Saba", "Berhanu", "Genet", "Samuel", "Kidist", "Tigist", "Worku",
+    "Daniel", "Martha", "Nathnael", "Ruth", "Solomon", "Helen", "Elias", "Lydia", "Biniam", "Sara",
+    "Ermias", "Bethlehem", "Mikiyas", "Mahlet", "Kaleb"
+  ];
+  const lastNames = [
+    "Kebede", "Alemu", "Berhan", "Wondimu", "Eshetu", "Tesfaye", "Girma", "Hailu", "Solomon", "Assefa",
+    "Fikre", "Getachew", "Kassaye", "Mulugeta", "Zewde", "Desta", "Tsegaye", "Haile", "Tadesse", "Bekele"
+  ];
+
+  const studentData: Array<{ schoolId: number; classId: number; name: string; dob: Date }> = [];
+  for (let ci = 0; ci < classes.length; ci++) {
+    const cls = classes[ci];
+    for (let stIdx = 1; stIdx <= 35; stIdx++) {
+      const fname = firstNames[(ci * 35 + stIdx - 1) % firstNames.length];
+      const lname = lastNames[(ci * 35 + stIdx - 1) % lastNames.length];
+      studentData.push({
+        schoolId: SCHOOL_ID,
+        classId: cls.id,
+        name: `${fname} ${lname} (${stIdx})`,
+        dob: new Date(2010, 0, (stIdx % 28) + 1),
+      });
+    }
+  }
+
+  await prisma.student.createMany({
+    data: studentData,
+  });
+
+  const students = await prisma.student.findMany({
+    where: { schoolId: SCHOOL_ID },
+    orderBy: { id: "asc" },
+  });
+  console.log(`✅ Loaded ${students.length} students.`);
+
+  // 8. Parent Accounts (2,625 parents) & Links
+  console.log("⏳ Seeding 2,625 parent accounts and links...");
+  const parentUserData: Array<{ schoolId: number; role: string; name: string; email: string; passwordHash: string }> = [];
+  for (let i = 0; i < students.length; i++) {
+    parentUserData.push({
+      schoolId: SCHOOL_ID,
+      role: "parent",
+      name: `Parent of ${students[i].name}`,
+      email: `parent${i + 1}@parent.com`,
+      passwordHash: parentPasswordHash,
+    });
+  }
+
+  await prisma.user.createMany({
+    data: parentUserData,
+    skipDuplicates: true,
+  });
+
+  const parentUsers = await prisma.user.findMany({
+    where: { schoolId: SCHOOL_ID, role: "parent" },
+    orderBy: { id: "asc" },
+  });
+
+  const parentStudentData: Array<{ parentUserId: number; studentId: number; isPrimary: boolean }> = [];
+  for (let i = 0; i < Math.min(students.length, parentUsers.length); i++) {
+    parentStudentData.push({
+      parentUserId: parentUsers[i].id,
+      studentId: students[i].id,
+      isPrimary: true,
+    });
+  }
+
+  await prisma.parentStudent.createMany({
+    data: parentStudentData,
+    skipDuplicates: true,
+  });
+  console.log(`✅ Linked ${parentStudentData.length} parents to students.`);
+
+  // 9. Attendance (Today + Past 5 Days = 6 Days ~15,750 records)
+  console.log("⏳ Generating 6 days of attendance history...");
+  const attendanceData: Array<{
+    studentId: number;
+    classId: number;
+    date: Date;
+    status: "present" | "absent" | "late";
+    markedBy: number;
+  }> = [];
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  for (const cls of classes) {
-    const classStudents = students.filter((s) => s.classId === cls.id);
-    for (let si = 0; si < classStudents.length; si++) {
-      const status = si < 3 ? "present" : "absent";
-      const existingAtt = await prisma.attendance.findFirst({
-        where: { studentId: classStudents[si].id, classId: cls.id, date: today },
-      });
-      if (!existingAtt) {
-        const att = await prisma.attendance.create({
-          data: {
-            studentId: classStudents[si].id,
-            classId: cls.id,
-            date: today,
-            status,
-            markedBy: cls.id === classes[0].id ? teachers[0].id : teachers[1].id,
-          },
-        });
-        console.log(`Attendance: ${classStudents[si].name} = ${status}`);
+  const datesToSeed: Date[] = [];
+  for (let d = 0; d < 6; d++) {
+    const dt = new Date(today);
+    dt.setDate(dt.getDate() - d);
+    datesToSeed.push(dt);
+  }
 
-        // Create notification for absent students
-        if (status === "absent") {
-          const parentLink = await prisma.parentStudent.findFirst({
-            where: { studentId: classStudents[si].id },
-          });
-          if (parentLink) {
-            await prisma.notification.create({
-              data: {
-                parentUserId: parentLink.parentUserId,
-                studentId: classStudents[si].id,
-                attendanceId: att.id,
-                type: "absence",
-              },
-            });
-            console.log(`  -> Notification sent to parent of ${classStudents[si].name}`);
-          }
-        }
+  for (const dt of datesToSeed) {
+    for (let ci = 0; ci < classes.length; ci++) {
+      const cls = classes[ci];
+      const classStudents = students.filter((s) => s.classId === cls.id);
+      const markedBy = cls.homeroomTeacherId || teachers[0].id;
+
+      for (let si = 0; si < classStudents.length; si++) {
+        const student = classStudents[si];
+        // Status distribution: ~90% present, 5% absent, 5% late
+        let status: "present" | "absent" | "late" = "present";
+        const rand = (si + dt.getDate()) % 20;
+        if (rand === 0) status = "absent";
+        else if (rand === 1) status = "late";
+
+        attendanceData.push({
+          studentId: student.id,
+          classId: cls.id,
+          date: dt,
+          status,
+          markedBy,
+        });
       }
     }
   }
 
-  // ── Summary ──
+  await prisma.attendance.createMany({
+    data: attendanceData,
+    skipDuplicates: true,
+  });
+  console.log(`✅ Seeded ${attendanceData.length} attendance records.`);
+
+  // Today's Absence Notifications for Parents
+  console.log("⏳ Generating absence notifications...");
+  const todayAttendances = await prisma.attendance.findMany({
+    where: { date: today, status: "absent" },
+    take: 100,
+  });
+
+  const notificationData: Array<{ parentUserId: number; studentId: number; attendanceId: number; type: "absence" }> = [];
+  for (const att of todayAttendances) {
+    const parentLink = parentStudentData.find((p) => p.studentId === att.studentId);
+    if (parentLink) {
+      notificationData.push({
+        parentUserId: parentLink.parentUserId,
+        studentId: att.studentId,
+        attendanceId: att.id,
+        type: "absence",
+      });
+    }
+  }
+
+  await prisma.notification.createMany({
+    data: notificationData,
+    skipDuplicates: true,
+  });
+
+  // 10. Sample Assessment & Submissions
+  console.log("⏳ Creating sample assessments & submissions...");
+  const firstClass = classes[0];
+  const firstTeacher = teachers[0];
+  const firstSubject = subjects[0];
+
+  const assessment = await prisma.assessment.create({
+    data: {
+      title: "Quarter 1 Comprehensive Evaluation",
+      description: "Mid-term assignment covering fundamental concepts.",
+      type: "assignment",
+      dueDate: new Date(Date.now() + 7 * 86400000),
+      classId: firstClass.id,
+      subjectId: firstSubject.id,
+      teacherId: firstTeacher.id,
+    },
+  });
+
+  const firstClassStudents = students.filter((s) => s.classId === firstClass.id);
+  const submissionsData = firstClassStudents.slice(0, 10).map((st, idx) => ({
+    assessmentId: assessment.id,
+    studentId: st.id,
+    content: "Assignment solution submission details.",
+    status: "graded",
+    gradeScore: 85 + (idx % 15),
+    gradedAt: new Date(),
+  }));
+
+  await prisma.submission.createMany({
+    data: submissionsData,
+    skipDuplicates: true,
+  });
+
+  const durationSec = ((Date.now() - startTime) / 1000).toFixed(2);
+  console.log(`\n🎉 Full K-12 Demo Seeding Completed in ${durationSec}s!`);
+
+  // Summary Counts
   const counts = {
+    schoolId: SCHOOL_ID,
     teachers: await prisma.user.count({ where: { schoolId: SCHOOL_ID, role: "teacher" } }),
     classes: await prisma.class.count({ where: { schoolId: SCHOOL_ID } }),
     students: await prisma.student.count({ where: { schoolId: SCHOOL_ID } }),
@@ -302,17 +483,17 @@ async function main() {
 
   console.log("\n=== Demo Data Summary ===");
   console.log(JSON.stringify(counts, null, 2));
-  console.log("\nLogin credentials:");
-  console.log("  Admin:   admin@testschool.com / Admin@123");
-  console.log("  Teacher: alembekele@school.edu / Teacher@123  (Grade 10A)");
-  console.log("  Teacher: birtadesse@school.edu / Teacher@123  (Grade 10B)");
-  console.log("  Parent:  workuabebe@parent.com / Parent@123   (child: Abebe Kebede)");
-  console.log("  Parent:  tigisthailu@parent.com / Parent@123  (child: Selam Tesfaye)");
+  console.log("\nSample Credentials:");
+  console.log("  Admin:     admin@testschool.com / Admin@123");
+  console.log("  Teacher 1 (KG1-A): alembekele@school.edu / Teacher@123");
+  console.log("  Teacher 2 (G10-A): birtadesse@school.edu / Teacher@123");
+  console.log("  Teacher 3 (G12-Nat): solomongirma@school.edu / Teacher@123");
+  console.log("  Parent 1:  parent1@parent.com / Parent@123");
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error("❌ Seed Error:", e);
     process.exit(1);
   })
   .finally(async () => {

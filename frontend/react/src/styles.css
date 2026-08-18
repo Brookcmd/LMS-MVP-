@@ -1864,6 +1864,58 @@ html[data-theme="dark"] .admin-topbar {
   font-size: 22px;
 }
 
+/* Admin Grade-Band Tier Breakdown Cards */
+.admin-grade-tier-card {
+  padding: 14px 16px;
+  border-radius: var(--radius-card);
+  background: var(--bg-surface-muted);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.admin-grade-tier-card:hover {
+  background: var(--bg-surface-strong);
+  border-color: var(--navy-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-subtle);
+}
+
+.admin-grade-tier-card .tier-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.admin-grade-tier-card .tier-header strong {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.admin-grade-tier-card .tier-header .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--navy-primary);
+}
+
+.admin-grade-tier-card .tier-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.admin-grade-tier-card .tier-count {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.admin-grade-tier-card .tier-count small {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
 /* Admin Modals */
 .admin-modal-backdrop {
   position: fixed;

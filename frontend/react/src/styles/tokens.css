@@ -29,6 +29,7 @@
   --bg-surface: #FFFFFF;
   --bg-surface-muted: #F0F4F8;
   --bg-surface-strong: #E2E8F0;
+  --bg-primary: #F0F4F8;
   --bg-light-gray: #F2F4F6;
   --bg-hero-blue: #F0F4F8;
   --bg-secondary: #F2F4F6;
@@ -121,6 +122,7 @@ html[data-theme="dark"],
   --bg-surface: #0D172A;
   --bg-surface-muted: #132038;
   --bg-surface-strong: #1E293B;
+  --bg-primary: #132038;
   --bg-light-gray: #0F1D33;
   --bg-hero-blue: #0A1628;
   --bg-secondary: #0D172A;

@@ -97,35 +97,89 @@ export async function deleteParentStudentLink(
   return { deleted: true };
 }
 
-export async function listParentStudentLinks(schoolIdValue: string) {
-  const schoolId = parseId(schoolIdValue, "schoolId");
+export interface ListParentStudentLinksOptions {
+  page?: number;
+  limit?: number;
+  search?: string;
+  studentId?: number;
+  parentUserId?: number;
+}
 
-  return prisma.parentStudent.findMany({
-    where: {
-      parent: { schoolId },
-      student: { schoolId },
-    },
-    select: {
-      parent: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
+export async function listParentStudentLinks(schoolIdValue: string, options: ListParentStudentLinksOptions = {}) {
+  const schoolId = parseId(schoolIdValue, "schoolId");
+  const { page, limit, search, studentId, parentUserId } = options;
+
+  const where: any = {
+    parent: { schoolId },
+    student: { schoolId },
+  };
+
+  if (studentId) where.studentId = studentId;
+  if (parentUserId) where.parentUserId = parentUserId;
+
+  if (search && search.trim()) {
+    const term = search.trim();
+    where.OR = [
+      { parent: { name: { contains: term, mode: "insensitive" } } },
+      { parent: { email: { contains: term, mode: "insensitive" } } },
+      { student: { name: { contains: term, mode: "insensitive" } } },
+    ];
+  }
+
+  const isPaginated = page !== undefined || limit !== undefined;
+  const pageNum = Math.max(1, page || 1);
+  const takeLimit = limit ? Math.min(100, Math.max(1, limit)) : (isPaginated ? 50 : undefined);
+  const skip = isPaginated ? (pageNum - 1) * (takeLimit || 50) : undefined;
+
+  const [items, total] = await Promise.all([
+    prisma.parentStudent.findMany({
+      where,
+      orderBy: { parentUserId: "asc" },
+      skip,
+      take: takeLimit,
+      select: {
+        parentUserId: true,
+        studentId: true,
+        parent: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            createdAt: true,
+          },
         },
-      },
-      student: {
-        select: {
-          id: true,
-          name: true,
-          classId: true,
-          createdAt: true,
+        student: {
+          select: {
+            id: true,
+            name: true,
+            classId: true,
+            createdAt: true,
+            class: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
         },
+        relationship: true,
+        isPrimary: true,
       },
-      relationship: true,
-      isPrimary: true,
-    },
-  });
+    }),
+    prisma.parentStudent.count({ where }),
+  ]);
+
+  const effectiveLimit = takeLimit || total || 1;
+  const totalPages = Math.ceil(total / effectiveLimit) || 1;
+
+  return {
+    items,
+    total,
+    page: pageNum,
+    limit: effectiveLimit,
+    totalPages,
+  };
 }
 
 interface ListParentChildrenPayload {

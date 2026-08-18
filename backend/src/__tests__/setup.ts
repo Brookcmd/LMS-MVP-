@@ -40,14 +40,21 @@ export let testData: TestData;
 
 beforeAll(async () => {
   // Clean existing test data in correct order (respect FK constraints)
+  await prisma.submission.deleteMany();
+  await prisma.material.deleteMany();
+  await prisma.grade.deleteMany();
   await prisma.notification.deleteMany();
   await prisma.message.deleteMany();
   await prisma.conversation.deleteMany();
   await prisma.attendance.deleteMany();
+  await prisma.scheduleSlot.deleteMany();
+  await prisma.assessment.deleteMany();
   await prisma.parentStudent.deleteMany();
   await prisma.classTeacher.deleteMany();
   await prisma.student.deleteMany();
+  await prisma.teachingAssignment.deleteMany();
   await prisma.class.deleteMany();
+  await prisma.subject.deleteMany();
   await prisma.user.deleteMany();
   await prisma.school.deleteMany();
 
@@ -90,17 +97,18 @@ beforeAll(async () => {
   });
 
   // Create class
-  const classRecord = await prisma.class.create({
+  const classObj = await prisma.class.create({
     data: {
+      name: "Grade 1A",
       schoolId: school.id,
-      name: "Grade 1",
+      homeroomTeacherId: teacherUser.id,
     },
   });
 
   // Link teacher to class
   await prisma.classTeacher.create({
     data: {
-      classId: classRecord.id,
+      classId: classObj.id,
       teacherId: teacherUser.id,
     },
   });
@@ -108,9 +116,9 @@ beforeAll(async () => {
   // Create student
   const student = await prisma.student.create({
     data: {
+      name: "Student One",
       schoolId: school.id,
-      classId: classRecord.id,
-      name: "Test Student",
+      classId: classObj.id,
     },
   });
 
@@ -119,23 +127,39 @@ beforeAll(async () => {
     data: {
       parentUserId: parentUser.id,
       studentId: student.id,
-      relationship: "Mother",
+      relationship: "Father",
       isPrimary: true,
     },
   });
 
-  // Create attendance record (absent)
+  // Create subject & teaching assignment
+  const subject = await prisma.subject.create({
+    data: {
+      name: "Mathematics",
+      schoolId: school.id,
+    },
+  });
+
+  const teachingAssignment = await prisma.teachingAssignment.create({
+    data: {
+      classId: classObj.id,
+      teacherId: teacherUser.id,
+      subjectId: subject.id,
+    },
+  });
+
+  // Create attendance record for test
   const attendance = await prisma.attendance.create({
     data: {
       studentId: student.id,
-      classId: classRecord.id,
-      date: new Date("2026-07-10"),
+      classId: classObj.id,
+      date: new Date("2026-07-10T00:00:00.000Z"),
       status: "absent",
       markedBy: teacherUser.id,
     },
   });
 
-  // Create notification
+  // Create notification record for test
   const notification = await prisma.notification.create({
     data: {
       parentUserId: parentUser.id,
@@ -145,38 +169,54 @@ beforeAll(async () => {
     },
   });
 
-  // Create JWT tokens
+  // Helper to sign tokens using the test secret
   const signToken = (userId: number, role: string) =>
     jwt.sign(
-      { userId: String(userId), role, schoolId: String(school.id) },
+      { userId: String(userId), email: `${role}@test.com`, role, schoolId: String(school.id) },
       JWT_SECRET,
-      { expiresIn: "1h" },
+      { expiresIn: "1h" }
     );
 
   testData = {
     schoolId: school.id,
     parentUserId: parentUser.id,
     teacherUserId: teacherUser.id,
-    classId: classRecord.id,
+    classId: classObj.id,
     studentId: student.id,
+    subjectId: subject.id,
     attendanceId: attendance.id,
     notificationId: notification.id,
     parentToken: signToken(parentUser.id, "parent"),
     teacherToken: signToken(teacherUser.id, "teacher"),
     adminToken: signToken(adminUser.id, "admin"),
-  };
+    school,
+    adminUser,
+    teacherUser,
+    parentUser,
+    class: classObj,
+    student,
+    subject,
+    teachingAssignment,
+  } as any;
 });
 
 afterAll(async () => {
   // Clean up test data
+  await prisma.submission.deleteMany();
+  await prisma.material.deleteMany();
+  await prisma.grade.deleteMany();
   await prisma.notification.deleteMany();
   await prisma.message.deleteMany();
   await prisma.conversation.deleteMany();
   await prisma.attendance.deleteMany();
+  await prisma.scheduleSlot.deleteMany();
+  await prisma.assessment.deleteMany();
   await prisma.parentStudent.deleteMany();
   await prisma.classTeacher.deleteMany();
   await prisma.student.deleteMany();
+  await prisma.teachingAssignment.deleteMany();
   await prisma.class.deleteMany();
+  await prisma.subject.deleteMany();
   await prisma.user.deleteMany();
   await prisma.school.deleteMany();
   await prisma.$disconnect();

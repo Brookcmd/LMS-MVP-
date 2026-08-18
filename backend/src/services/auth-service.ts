@@ -17,7 +17,7 @@ export interface CreateAccountPayload {
 }
 
 export interface LoginPayload {
-  schoolId: string;
+  schoolId?: string;
   email: string;
   password: string;
 }
@@ -128,26 +128,35 @@ export async function login(payload: LoginPayload): Promise<AuthResponse> {
   const { schoolId, email, password } = payload;
 
   // Validate required fields
-  if (!schoolId || !email || !password) {
+  if (!email || !password) {
     throw authErrors.missingField(
-      !schoolId ? "schoolId" : !email ? "email" : "password",
+      !email ? "email" : "password",
     );
   }
 
-  const schoolIdNum = Number.parseInt(schoolId, 10);
-  if (!Number.isInteger(schoolIdNum) || schoolIdNum <= 0) {
-    throw authErrors.missingField("schoolId");
+  let user = null;
+  if (schoolId) {
+    const schoolIdNum = Number.parseInt(schoolId, 10);
+    if (Number.isInteger(schoolIdNum) && schoolIdNum > 0) {
+      user = await prisma.user.findUnique({
+        where: {
+          email_schoolId: {
+            email,
+            schoolId: schoolIdNum,
+          },
+        },
+      });
+    }
   }
 
-  // Find user by email and schoolId
-  const user = await prisma.user.findUnique({
-    where: {
-      email_schoolId: {
+  // Fallback: look up user by email directly if schoolId not specified or not matched
+  if (!user) {
+    user = await prisma.user.findFirst({
+      where: {
         email,
-        schoolId: schoolIdNum,
       },
-    },
-  });
+    });
+  }
 
   if (!user) {
     throw authErrors.userNotFound();

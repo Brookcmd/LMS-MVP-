@@ -64,11 +64,10 @@ export async function loginHandler(
   response: Response,
 ): Promise<void> {
   try {
-    const { email, password } = request.body;
-    const schoolId = request.body.schoolId || "12";
+    const { email, password, schoolId } = request.body;
 
     const result = await login({
-      schoolId,
+      schoolId: schoolId ? String(schoolId) : undefined,
       email,
       password,
     });
