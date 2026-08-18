@@ -125,12 +125,13 @@ export async function createAccount(
  * Throws AuthError if user not found or password is incorrect.
  */
 export async function login(payload: LoginPayload): Promise<AuthResponse> {
-  const { schoolId, email, password } = payload;
+  const { schoolId, password } = payload;
+  const cleanEmail = payload.email?.trim();
 
   // Validate required fields
-  if (!email || !password) {
+  if (!cleanEmail || !password) {
     throw authErrors.missingField(
-      !email ? "email" : "password",
+      !cleanEmail ? "email" : "password",
     );
   }
 
@@ -138,12 +139,10 @@ export async function login(payload: LoginPayload): Promise<AuthResponse> {
   if (schoolId) {
     const schoolIdNum = Number.parseInt(schoolId, 10);
     if (Number.isInteger(schoolIdNum) && schoolIdNum > 0) {
-      user = await prisma.user.findUnique({
+      user = await prisma.user.findFirst({
         where: {
-          email_schoolId: {
-            email,
-            schoolId: schoolIdNum,
-          },
+          email: { equals: cleanEmail, mode: "insensitive" },
+          schoolId: schoolIdNum,
         },
       });
     }
@@ -153,7 +152,7 @@ export async function login(payload: LoginPayload): Promise<AuthResponse> {
   if (!user) {
     user = await prisma.user.findFirst({
       where: {
-        email,
+        email: { equals: cleanEmail, mode: "insensitive" },
       },
     });
   }
