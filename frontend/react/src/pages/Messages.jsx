@@ -206,23 +206,31 @@ export default function Messages() {
 
     try {
       if (user?.role === 'parent') {
-        const kidsData = await listParentStudents()
-        const kids = kidsData?.students || kidsData || []
+        const rawKids = await listParentStudents()
+        const kids = Array.isArray(rawKids) ? rawKids : (rawKids?.items || rawKids?.students || [])
         setModalChildren(kids)
         if (kids.length > 0) setSelectedStudentId(String(kids[0].id))
 
-        const teachersData = await listTeachers()
-        setModalTeachers(teachersData || [])
-        if (teachersData?.length > 0) setSelectedTeacherId(String(teachersData[0].id))
+        const teachersData = await listTeachers({ limit: 100 })
+        const teachers = Array.isArray(teachersData) ? teachersData : (teachersData?.items || [])
+        setModalTeachers(teachers)
+        if (teachers.length > 0) setSelectedTeacherId(String(teachers[0].id))
       } else if (user?.role === 'teacher') {
-        const studentsData = await listStudents()
-        const students = studentsData || []
+        const studentsData = await listStudents({ limit: 100 })
+        const students = Array.isArray(studentsData) ? studentsData : (studentsData?.items || [])
         setModalStudents(students)
         if (students.length > 0) {
           setSelectedStudentId(String(students[0].id))
           const linkedParents = (students[0].parents || []).map((p) => p.parent).filter(Boolean)
-          setModalParents(linkedParents)
-          if (linkedParents.length > 0) setSelectedParentId(String(linkedParents[0].id))
+          if (linkedParents.length > 0) {
+            setModalParents(linkedParents)
+            setSelectedParentId(String(linkedParents[0].id))
+          } else {
+            const allParentsData = await listParents({ limit: 100 })
+            const allParents = Array.isArray(allParentsData) ? allParentsData : (allParentsData?.items || [])
+            setModalParents(allParents)
+            if (allParents.length > 0) setSelectedParentId(String(allParents[0].id))
+          }
         }
       }
     } catch (err) {
@@ -233,15 +241,17 @@ export default function Messages() {
   // Handle Teacher Student selection change
   const handleTeacherStudentChange = (studentIdStr) => {
     setSelectedStudentId(studentIdStr)
-    const selectedStudent = modalStudents.find((s) => String(s.id) === String(studentIdStr))
-    if (selectedStudent?.parents && selectedStudent.parents.length > 0) {
-      const linkedParents = selectedStudent.parents.map((p) => p.parent).filter(Boolean)
+    const studentsList = Array.isArray(modalStudents) ? modalStudents : []
+    const selectedStudent = studentsList.find((s) => String(s.id) === String(studentIdStr))
+    const linkedParents = (selectedStudent?.parents || []).map((p) => p.parent).filter(Boolean)
+    if (linkedParents.length > 0) {
       setModalParents(linkedParents)
-      if (linkedParents.length > 0) setSelectedParentId(String(linkedParents[0].id))
+      setSelectedParentId(String(linkedParents[0].id))
     } else {
-      listParents().then((allParents) => {
-        setModalParents(allParents || [])
-        if (allParents?.length > 0) setSelectedParentId(String(allParents[0].id))
+      listParents({ limit: 100 }).then((res) => {
+        const allParents = Array.isArray(res) ? res : (res?.items || [])
+        setModalParents(allParents)
+        if (allParents.length > 0) setSelectedParentId(String(allParents[0].id))
       }).catch(() => {})
     }
   }
@@ -709,7 +719,7 @@ export default function Messages() {
                       onChange={(e) => setSelectedStudentId(e.target.value)}
                       required
                     >
-                      {modalChildren.map((kid) => (
+                      {(Array.isArray(modalChildren) ? modalChildren : []).map((kid) => (
                         <option key={kid.id} value={kid.id}>
                           {kid.name} ({kid.class?.name || 'Class'})
                         </option>
@@ -725,7 +735,7 @@ export default function Messages() {
                       onChange={(e) => setSelectedTeacherId(e.target.value)}
                       required
                     >
-                      {modalTeachers.map((t) => (
+                      {(Array.isArray(modalTeachers) ? modalTeachers : []).map((t) => (
                         <option key={t.id} value={t.id}>
                           {t.name} ({t.email})
                         </option>
@@ -743,7 +753,7 @@ export default function Messages() {
                       onChange={(e) => handleTeacherStudentChange(e.target.value)}
                       required
                     >
-                      {modalStudents.map((s) => (
+                      {(Array.isArray(modalStudents) ? modalStudents : []).map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.name} ({s.class?.name || 'Class'})
                         </option>
@@ -753,7 +763,7 @@ export default function Messages() {
 
                   <div className="input-label">
                     <span className="label-caps">Select Linked Parent / Guardian</span>
-                    {modalParents.length === 0 ? (
+                    {(!Array.isArray(modalParents) || modalParents.length === 0) ? (
                       <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>
                         No parents linked to this student.
                       </p>

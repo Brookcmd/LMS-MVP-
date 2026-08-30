@@ -29,30 +29,33 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "10mb" })); // Support avatar uploads
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
-app.use("/health", healthRouter);
-app.use("/auth", authRouter);
-app.use("/profile", profileRouter);
-app.use("/analytics", analyticsRouter);
-app.use("/api/analytics", analyticsRouter);
-app.use("/materials", materialsRouter);
-app.use("/api/materials", materialsRouter);
-app.use("/submissions", submissionsRouter);
-app.use("/api/submissions", submissionsRouter);
-app.use("/classes", classesRouter);
-app.use("/students", studentsRouter);
-app.use("/teachers", teachersRouter);
-app.use("/parents", parentsRouter);
-app.use("/parent-students", parentStudentsRouter);
-app.use("/attendance", attendanceRouter);
-app.use("/parent", parentRouter);
-app.use("/student", studentRouter);
-app.use("/grades", gradesRouter);
-app.use("/assessments", assessmentsRouter);
-app.use("/schedule", scheduleRouter);
-app.use("/messages", messagesRouter);
-app.use("/notifications", notificationsRouter);
-app.use("/contact", contactRouter);
-app.use("/api/contact", contactRouter);
+const apiRoutes: Array<[string, express.Router]> = [
+  ["/health", healthRouter],
+  ["/auth", authRouter],
+  ["/profile", profileRouter],
+  ["/analytics", analyticsRouter],
+  ["/materials", materialsRouter],
+  ["/submissions", submissionsRouter],
+  ["/classes", classesRouter],
+  ["/students", studentsRouter],
+  ["/teachers", teachersRouter],
+  ["/parents", parentsRouter],
+  ["/parent-students", parentStudentsRouter],
+  ["/attendance", attendanceRouter],
+  ["/parent", parentRouter],
+  ["/student", studentRouter],
+  ["/grades", gradesRouter],
+  ["/assessments", assessmentsRouter],
+  ["/schedule", scheduleRouter],
+  ["/messages", messagesRouter],
+  ["/notifications", notificationsRouter],
+  ["/contact", contactRouter],
+];
+
+for (const [routePath, router] of apiRoutes) {
+  app.use(routePath, router);
+  app.use(`/api${routePath}`, router);
+}
 app.use(errorHandler);
 
 export default app;
