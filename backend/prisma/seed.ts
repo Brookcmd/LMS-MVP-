@@ -8,20 +8,24 @@ import { hashPassword } from "../src/lib/auth-utils";
 async function main() {
   console.log("Seeding database...");
 
-  // Check if test school already exists
-  let school = await prisma.school.findFirst({
-    where: { name: "Sheba Estudent" },
+  // Target fixed School ID 254
+  const TARGET_SCHOOL_ID = 254;
+  let school = await prisma.school.findUnique({
+    where: { id: TARGET_SCHOOL_ID },
   });
 
   if (!school) {
-    school = await prisma.school.create({
-      data: {
-        name: "Sheba Estudent",
+    school = await prisma.school.upsert({
+      where: { id: TARGET_SCHOOL_ID },
+      update: { name: "Sheba Academy" },
+      create: {
+        id: TARGET_SCHOOL_ID,
+        name: "Sheba Academy",
       },
     });
-    console.log(`Created school: ${school.name} (ID: ${school.id})`);
+    console.log(`Configured fixed school: ${school.name} (ID: ${school.id})`);
   } else {
-    console.log(`School already exists: ${school.name} (ID: ${school.id})`);
+    console.log(`Using fixed school: ${school.name} (ID: ${school.id})`);
   }
 
   // Check if admin user already exists

@@ -7,8 +7,11 @@ async function main() {
   const NUM_CLASSES = 10;
   const STUDENTS_PER_CLASS = 25;
 
-  const school = await prisma.school.findFirst({ where: { name: SCHOOL_NAME } });
-  if (!school) throw new Error(`School not found: ${SCHOOL_NAME}`);
+  let school = await prisma.school.findUnique({ where: { id: 254 } });
+  if (!school) {
+    school = await prisma.school.findFirst({ where: { name: SCHOOL_NAME } });
+  }
+  if (!school) throw new Error(`School with ID 254 not found`);
 
   // Subjects
   const subjectNames = ["Mathematics", "English", "Science", "History", "Art"];

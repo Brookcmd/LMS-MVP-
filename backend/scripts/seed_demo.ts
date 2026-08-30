@@ -17,17 +17,48 @@ import { hashPassword } from "../src/lib/auth-utils";
 async function main() {
   console.log("Starting Full K-12 Demo Seeding...");
   const startTime = Date.now();
-  // 1. School
-  let school = await prisma.school.findFirst();
+  // 1. School (Pinned permanently to ID: 254)
+  const TARGET_SCHOOL_ID = 254;
+  let school = await prisma.school.findUnique({
+    where: { id: TARGET_SCHOOL_ID },
+  });
+
   if (!school) {
-    school = await prisma.school.create({
-      data: { name: "Sheba Academy" },
-    });
-    console.log(`Created School: ${school.name} (ID: ${school.id})`);
+    const anySchool = await prisma.school.findFirst();
+    if (anySchool) {
+      console.log(`Updating existing School ID ${anySchool.id} to fixed ID ${TARGET_SCHOOL_ID}...`);
+      await prisma.$executeRawUnsafe(
+        `UPDATE schools SET id = ${TARGET_SCHOOL_ID}, name = 'Sheba Academy' WHERE id = ${anySchool.id};`
+      );
+      school = await prisma.school.findUnique({ where: { id: TARGET_SCHOOL_ID } });
+    } else {
+      console.log(`Creating School with fixed ID ${TARGET_SCHOOL_ID}...`);
+      school = await prisma.school.create({
+        data: {
+          id: TARGET_SCHOOL_ID,
+          name: "Sheba Academy",
+        },
+      });
+    }
   } else {
-    console.log(`Using existing School: ${school.name} (ID: ${school.id})`);
+    console.log(`Using fixed School: ${school.name} (ID: ${school.id})`);
   }
-  const SCHOOL_ID = school.id;
+
+  // Remove any stray schools with other IDs so there's always a single school
+  await prisma.school.deleteMany({
+    where: { id: { not: TARGET_SCHOOL_ID } },
+  });
+
+  // Ensure Postgres autoincrement sequence is at least 255 so future autoincrements don't conflict
+  try {
+    await prisma.$executeRawUnsafe(
+      `SELECT setval(pg_get_serial_sequence('schools', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM schools), 254));`
+    );
+  } catch (err) {
+    console.warn("Notice: Could not adjust sequence (non-fatal):", err);
+  }
+
+  const SCHOOL_ID = TARGET_SCHOOL_ID;
 
   // Cleanup any old records for school ID to ensure clean idempotent state
   console.log(`Cleaning up old data for School ID ${SCHOOL_ID}...`);
