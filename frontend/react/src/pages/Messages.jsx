@@ -252,7 +252,7 @@ export default function Messages() {
         const allParents = Array.isArray(res) ? res : (res?.items || [])
         setModalParents(allParents)
         if (allParents.length > 0) setSelectedParentId(String(allParents[0].id))
-      }).catch(() => {})
+      }).catch(() => { })
     }
   }
 
@@ -341,7 +341,7 @@ export default function Messages() {
   return (
     <div className="chat-page-container">
       <div className={`chat-shell ${mobileViewActiveChat ? 'mobile-chat-open' : 'mobile-threads-open'}`}>
-        
+
         {/* ==================================================================
             PANEL 1: THREAD LIST (LEFT PANEL)
            ================================================================== */}
