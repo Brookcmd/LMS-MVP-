@@ -98,6 +98,16 @@ async function main() {
   console.log("First Cycle Data Import: Grades 1 to 4");
   console.log("=================================================");
 
+  // Clean up any stray row from Grade 12C if present
+  const strayUser = await prisma.user.findFirst({
+    where: { email: "homeroom.alemu@student.sheba.edu" },
+  });
+  if (strayUser) {
+    await prisma.student.deleteMany({ where: { userId: strayUser.id } });
+    await prisma.user.delete({ where: { id: strayUser.id } });
+    console.log("Cleaned up accidental homeroom row from students.");
+  }
+
   // 1. Verify School & load existing emails
   const school = await prisma.school.findUnique({ where: { id: SCHOOL_ID } });
   if (!school) {
@@ -260,7 +270,6 @@ async function main() {
     subjectDbMap.set(sName, sub.id);
   }
 
-  // Also load any existing subjects so teaching assignments can link
   const allDbSubjects = await prisma.subject.findMany({
     where: { schoolId: SCHOOL_ID },
   });
@@ -352,7 +361,6 @@ async function main() {
     }
     classDbMap.set(clsName, cls.id);
 
-    // Link homeroom teacher to class_teachers
     if (hrTeacherId) {
       await prisma.classTeacher.upsert({
         where: { classId_teacherId: { classId: cls.id, teacherId: hrTeacherId } },
@@ -361,7 +369,6 @@ async function main() {
       });
     }
 
-    // Link Subject Teachers & create TeachingAssignments
     for (const assign of cData.assignments) {
       const tId = teacherDbMap.get(assign.teacher);
       const sId = subjectDbMap.get(assign.subject);
@@ -423,7 +430,12 @@ async function main() {
       }
       for (let r = 3; r <= sheet1.rowCount; r++) {
         const name = cleanText(sheet1.getRow(r).getCell(nameCol).value);
-        if (name && isNaN(Number(name))) {
+        if (
+          name &&
+          isNaN(Number(name)) &&
+          !name.toLowerCase().includes("homeroom") &&
+          !name.toLowerCase().includes("student's")
+        ) {
           rawStudents.push({ name: normalizeName(name), className: s.name });
         }
       }
@@ -453,7 +465,12 @@ async function main() {
       }
       for (let r = 3; r <= sheet2.rowCount; r++) {
         const name = cleanText(sheet2.getRow(r).getCell(nameCol).value);
-        if (name && isNaN(Number(name))) {
+        if (
+          name &&
+          isNaN(Number(name)) &&
+          !name.toLowerCase().includes("homeroom") &&
+          !name.toLowerCase().includes("student's")
+        ) {
           rawStudents.push({ name: normalizeName(name), className: s.name });
         }
       }
@@ -484,7 +501,12 @@ async function main() {
       }
       for (let r = 4; r <= sheet3.rowCount; r++) {
         const name = cleanText(sheet3.getRow(r).getCell(nameCol).value);
-        if (name && isNaN(Number(name))) {
+        if (
+          name &&
+          isNaN(Number(name)) &&
+          !name.toLowerCase().includes("homeroom") &&
+          !name.toLowerCase().includes("student's")
+        ) {
           rawStudents.push({ name: normalizeName(name), className: s.name });
         }
       }
@@ -515,7 +537,12 @@ async function main() {
       }
       for (let r = 4; r <= sheet4.rowCount; r++) {
         const name = cleanText(sheet4.getRow(r).getCell(nameCol).value);
-        if (name && isNaN(Number(name))) {
+        if (
+          name &&
+          isNaN(Number(name)) &&
+          !name.toLowerCase().includes("homeroom") &&
+          !name.toLowerCase().includes("student's")
+        ) {
           rawStudents.push({ name: normalizeName(name), className: s.name });
         }
       }
@@ -546,7 +573,7 @@ async function main() {
   const studentHashes = await hashBatch(studentPassList);
 
   console.log("\nSaving students to database...");
-  const DB_CONCURRENCY = 20;
+  const DB_CONCURRENCY = 25;
   for (let i = 0; i < studentCreds.length; i += DB_CONCURRENCY) {
     const chunk = studentCreds.slice(i, i + DB_CONCURRENCY);
     const chunkIndices = chunk.map((_, idx) => i + idx);
@@ -633,8 +660,27 @@ async function main() {
     }
   }
 
-  const combinedTeachers = [...(existingJsonData.teachers || []), ...teacherCreds];
-  const combinedStudents = [...(existingJsonData.students || []), ...studentCreds];
+  // Deduplicate and filter out accidental homeroom row if present
+  const teacherMap = new Map<string, TeacherCred>();
+  for (const t of existingJsonData.teachers || []) {
+    teacherMap.set(t.email, t);
+  }
+  for (const t of teacherCreds) {
+    teacherMap.set(t.email, t);
+  }
+
+  const studentMap = new Map<string, StudentCred>();
+  for (const s of existingJsonData.students || []) {
+    if (!s.name.toLowerCase().includes("homeroom teacher name")) {
+      studentMap.set(s.email, s);
+    }
+  }
+  for (const s of studentCreds) {
+    studentMap.set(s.email, s);
+  }
+
+  const combinedTeachers = Array.from(teacherMap.values());
+  const combinedStudents = Array.from(studentMap.values());
 
   fs.writeFileSync(
     jsonExportPath,
@@ -653,33 +699,33 @@ async function main() {
     )
   );
 
-  // Append to CSV Export
+  // Rewrite CSV Export
   const csvExportPath = path.join(exportDir, "accounts_credentials.csv");
-  const newCsvRows: string[] = [];
+  const csvRows: string[] = ["Role,Name,Class,Email,Password,HomeroomFor"];
 
-  for (const t of teacherCreds) {
-    const hr = t.homeroomClasses.length > 0 ? `"${t.homeroomClasses.join(", ")}"` : "";
-    newCsvRows.push(`Teacher,"${t.name}","",${t.email},${t.password},${hr}`);
+  for (const t of combinedTeachers) {
+    const hr = t.homeroomClasses && t.homeroomClasses.length > 0 ? `"${t.homeroomClasses.join(", ")}"` : "";
+    csvRows.push(`Teacher,"${t.name}","",${t.email},${t.password},${hr}`);
   }
 
-  for (const s of studentCreds) {
-    newCsvRows.push(`Student,"${s.name}","${s.className}",${s.email},${s.password},""`);
+  for (const s of combinedStudents) {
+    csvRows.push(`Student,"${s.name}","${s.className}",${s.email},${s.password},""`);
   }
 
-  fs.appendFileSync(csvExportPath, newCsvRows.join("\n") + "\n");
+  fs.writeFileSync(csvExportPath, csvRows.join("\n") + "\n");
 
-  console.log(`✅ Appended to JSON Credentials: ${jsonExportPath}`);
-  console.log(`✅ Appended to CSV Credentials: ${csvExportPath}`);
+  console.log(`✅ Saved unified JSON Credentials: ${jsonExportPath}`);
+  console.log(`✅ Saved unified CSV Credentials: ${csvExportPath}`);
 
   // Summary
   console.log("\n=================================================");
   console.log("FIRST CYCLE IMPORT SUMMARY");
   console.log("=================================================");
   console.log(`• School: Sheba Academy (ID: ${SCHOOL_ID})`);
-  console.log(`• Classes created: ${parsedClassesMap.size}`);
-  console.log(`• Subjects created/updated: ${subjectNamesSet.size}`);
-  console.log(`• Teachers created: ${teacherCreds.length}`);
-  console.log(`• Students created: ${studentCreds.length}`);
+  console.log(`• Primary Classes created: ${parsedClassesMap.size}`);
+  console.log(`• Primary Subjects created/updated: ${subjectNamesSet.size}`);
+  console.log(`• Primary Teachers created: ${teacherCreds.length}`);
+  console.log(`• Primary Students created: ${studentCreds.length}`);
   console.log(`• New accounts generated: ${teacherCreds.length + studentCreds.length}`);
   console.log(`• Total system accounts now: ${combinedTeachers.length + combinedStudents.length}`);
   console.log("\nSample First Cycle Teacher Logins:");
