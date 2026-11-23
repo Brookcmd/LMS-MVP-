@@ -64,7 +64,7 @@ export default function AdminSchedule() {
         listSubjects(),
       ])
       setClasses(classData ?? [])
-      setTeachers(teacherData ?? [])
+      setTeachers(teacherData?.items ?? (Array.isArray(teacherData) ? teacherData : []))
       setSubjects(subjectData ?? [])
       if (classData?.length && !selectedClassId) {
         setSelectedClassId(String(classData[0].id))

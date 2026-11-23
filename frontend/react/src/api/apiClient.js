@@ -69,7 +69,7 @@ export async function signup({ name, email, password, role }) {
 }
 
 export async function listNotifications() {
-  return request("/parent/notifications");
+  return request("/notifications");
 }
 
 export async function listParentStudents() {
@@ -77,7 +77,7 @@ export async function listParentStudents() {
 }
 
 export async function markNotificationRead(notificationId) {
-  return request(`/parent/notifications/${notificationId}/read`, {
+  return request(`/notifications/${notificationId}/read`, {
     method: "PATCH",
   });
 }
@@ -215,12 +215,14 @@ export async function createScheduleSlot(body) { return request('/schedule', { m
 export async function updateScheduleSlot(id, body) { return request(`/schedule/${id}`, { method: 'PUT', body }) }
 export async function deleteScheduleSlot(id) { return request(`/schedule/${id}`, { method: 'DELETE' }) }
 export async function getTeacherSchedule() { return request('/schedule/teacher') }
+export async function getStudentSchedule() { return request('/schedule/student') }
 export async function getParentSchedule(studentId) {
   return request(`/schedule/parent${studentId ? `?studentId=${studentId}` : ''}`)
 }
 
 // Messaging & Notifications (Feature 15)
 export async function listConversations() { return request('/messages/conversations') }
+export async function getEligibleRecipients() { return request('/messages/recipients') }
 export async function createConversation(body) { return request('/messages/conversations', { method: 'POST', body }) }
 export async function getConversationDetails(id, page = 1, limit = 50) { return request(`/messages/conversations/${id}?page=${page}&limit=${limit}`) }
 export async function sendMessage(conversationId, content) { return request(`/messages/conversations/${conversationId}/messages`, { method: 'POST', body: { content } }) }

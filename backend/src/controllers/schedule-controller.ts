@@ -85,6 +85,17 @@ export async function getParentScheduleHandler(request: Request, response: Respo
   }
 }
 
+export async function getStudentScheduleHandler(request: Request, response: Response) {
+  try {
+    const auth = user(request, response);
+    if (!auth) return;
+    const data = await scheduleService.getStudentSchedule(auth.userId, auth.schoolId);
+    response.json({ success: true, data });
+  } catch (error) {
+    fail(error, response);
+  }
+}
+
 export async function getClassScheduleHandler(request: Request, response: Response) {
   try {
     const auth = user(request, response);

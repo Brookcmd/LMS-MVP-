@@ -7,10 +7,7 @@ import {
   createConversation,
   getConversationDetails,
   sendMessage as sendApiMessage,
-  listParentStudents,
-  listTeachers,
-  listStudents,
-  listParents,
+  getEligibleRecipients,
 } from '../api/apiClient'
 
 const QUICK_REPLIES = [
@@ -205,32 +202,50 @@ export default function Messages() {
     setSelectedParentId('')
 
     try {
+      const recipients = await getEligibleRecipients()
       if (user?.role === 'parent') {
-        const rawKids = await listParentStudents()
-        const kids = Array.isArray(rawKids) ? rawKids : (rawKids?.items || rawKids?.students || [])
-        setModalChildren(kids)
-        if (kids.length > 0) setSelectedStudentId(String(kids[0].id))
-
-        const teachersData = await listTeachers({ limit: 100 })
-        const teachers = Array.isArray(teachersData) ? teachersData : (teachersData?.items || [])
-        setModalTeachers(teachers)
-        if (teachers.length > 0) setSelectedTeacherId(String(teachers[0].id))
-      } else if (user?.role === 'teacher') {
-        const studentsData = await listStudents({ limit: 100 })
-        const students = Array.isArray(studentsData) ? studentsData : (studentsData?.items || [])
-        setModalStudents(students)
-        if (students.length > 0) {
-          setSelectedStudentId(String(students[0].id))
-          const linkedParents = (students[0].parents || []).map((p) => p.parent).filter(Boolean)
-          if (linkedParents.length > 0) {
-            setModalParents(linkedParents)
-            setSelectedParentId(String(linkedParents[0].id))
-          } else {
-            const allParentsData = await listParents({ limit: 100 })
-            const allParents = Array.isArray(allParentsData) ? allParentsData : (allParentsData?.items || [])
-            setModalParents(allParents)
-            if (allParents.length > 0) setSelectedParentId(String(allParents[0].id))
+        const rawRecipients = Array.isArray(recipients) ? recipients : []
+        const uniqueKidsMap = new Map()
+        rawRecipients.forEach((r) => {
+          if (!uniqueKidsMap.has(r.studentId)) {
+            uniqueKidsMap.set(r.studentId, {
+              id: r.studentId,
+              name: r.studentName,
+              class: { id: r.classId, name: r.className },
+              teachers: [],
+            })
           }
+          uniqueKidsMap.get(r.studentId).teachers.push({
+            id: r.teacherId,
+            name: r.teacherName,
+            email: r.teacherEmail,
+            roleLabel: r.roleLabel,
+            existingConversationId: r.existingConversationId,
+          })
+        })
+        const kids = Array.from(uniqueKidsMap.values())
+        setModalChildren(kids)
+        if (kids.length > 0) {
+          setSelectedStudentId(String(kids[0].id))
+          setModalTeachers(kids[0].teachers)
+          if (kids[0].teachers.length > 0) {
+            setSelectedTeacherId(String(kids[0].teachers[0].id))
+          }
+        }
+      } else if (user?.role === 'teacher') {
+        const studentList = Array.isArray(recipients) ? recipients : []
+        setModalStudents(studentList)
+        if (studentList.length > 0) {
+          setSelectedStudentId(String(studentList[0].studentId))
+          const parents = (studentList[0].parents || []).map((p) => ({
+            id: p.parentId,
+            name: p.parentName,
+            email: p.parentEmail,
+            relationship: p.relationship,
+            existingConversationId: p.existingConversationId,
+          }))
+          setModalParents(parents)
+          if (parents.length > 0) setSelectedParentId(String(parents[0].id))
         }
       }
     } catch (err) {
@@ -238,21 +253,35 @@ export default function Messages() {
     }
   }
 
+  // Handle Parent Student selection change
+  const handleParentStudentChange = (studentIdStr) => {
+    setSelectedStudentId(studentIdStr)
+    const kid = modalChildren.find((k) => String(k.id) === String(studentIdStr))
+    const teachers = kid?.teachers || []
+    setModalTeachers(teachers)
+    if (teachers.length > 0) {
+      setSelectedTeacherId(String(teachers[0].id))
+    } else {
+      setSelectedTeacherId('')
+    }
+  }
+
   // Handle Teacher Student selection change
   const handleTeacherStudentChange = (studentIdStr) => {
     setSelectedStudentId(studentIdStr)
-    const studentsList = Array.isArray(modalStudents) ? modalStudents : []
-    const selectedStudent = studentsList.find((s) => String(s.id) === String(studentIdStr))
-    const linkedParents = (selectedStudent?.parents || []).map((p) => p.parent).filter(Boolean)
-    if (linkedParents.length > 0) {
-      setModalParents(linkedParents)
-      setSelectedParentId(String(linkedParents[0].id))
+    const s = modalStudents.find((st) => String(st.studentId) === String(studentIdStr))
+    const parents = (s?.parents || []).map((p) => ({
+      id: p.parentId,
+      name: p.parentName,
+      email: p.parentEmail,
+      relationship: p.relationship,
+      existingConversationId: p.existingConversationId,
+    }))
+    setModalParents(parents)
+    if (parents.length > 0) {
+      setSelectedParentId(String(parents[0].id))
     } else {
-      listParents({ limit: 100 }).then((res) => {
-        const allParents = Array.isArray(res) ? res : (res?.items || [])
-        setModalParents(allParents)
-        if (allParents.length > 0) setSelectedParentId(String(allParents[0].id))
-      }).catch(() => { })
+      setSelectedParentId('')
     }
   }
 
@@ -266,33 +295,47 @@ export default function Messages() {
 
     setCreatingConv(true)
     try {
-      const body = {
-        studentId: Number.parseInt(selectedStudentId, 10),
-      }
-
+      let existingId = null
       if (user?.role === 'parent') {
         if (!selectedTeacherId) {
-          toast.warning('Please select a faculty instructor.')
+          toast.warning('Please select an instructor.')
           setCreatingConv(false)
           return
         }
-        body.teacherId = Number.parseInt(selectedTeacherId, 10)
+        const t = modalTeachers.find((item) => String(item.id) === String(selectedTeacherId))
+        existingId = t?.existingConversationId
       } else if (user?.role === 'teacher') {
         if (!selectedParentId) {
           toast.warning('Please select a parent guardian.')
           setCreatingConv(false)
           return
         }
+        const p = modalParents.find((item) => String(item.id) === String(selectedParentId))
+        existingId = p?.existingConversationId
+      }
+
+      if (existingId) {
+        setShowNewModal(false)
+        handleSelectConv(existingId)
+        return
+      }
+
+      const body = {
+        studentId: Number.parseInt(selectedStudentId, 10),
+      }
+      if (user?.role === 'parent') {
+        body.teacherId = Number.parseInt(selectedTeacherId, 10)
+      } else {
         body.parentId = Number.parseInt(selectedParentId, 10)
       }
 
       const conv = await createConversation(body)
       setShowNewModal(false)
-      toast.success('Conversation channel opened.')
-      await fetchConversations(false)
-      setActiveConvId(conv.id)
-      setMobileViewActiveChat(true)
-      await fetchThread(conv.id, false)
+      await fetchConversations(true)
+      if (conv?.id) {
+        handleSelectConv(conv.id)
+      }
+      toast.success('Conversation opened!')
     } catch (err) {
       toast.error(err.message || 'Failed to start conversation')
     } finally {
@@ -716,7 +759,7 @@ export default function Messages() {
                     <select
                       className="select-field"
                       value={selectedStudentId}
-                      onChange={(e) => setSelectedStudentId(e.target.value)}
+                      onChange={(e) => handleParentStudentChange(e.target.value)}
                       required
                     >
                       {(Array.isArray(modalChildren) ? modalChildren : []).map((kid) => (
@@ -737,7 +780,7 @@ export default function Messages() {
                     >
                       {(Array.isArray(modalTeachers) ? modalTeachers : []).map((t) => (
                         <option key={t.id} value={t.id}>
-                          {t.name} ({t.email})
+                          {t.name} ({t.roleLabel || t.email})
                         </option>
                       ))}
                     </select>
@@ -754,8 +797,8 @@ export default function Messages() {
                       required
                     >
                       {(Array.isArray(modalStudents) ? modalStudents : []).map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name} ({s.class?.name || 'Class'})
+                        <option key={s.studentId} value={s.studentId}>
+                          {s.studentName} ({s.className || 'Class'})
                         </option>
                       ))}
                     </select>
@@ -776,7 +819,7 @@ export default function Messages() {
                       >
                         {modalParents.map((p) => (
                           <option key={p.id} value={p.id}>
-                            {p.name} ({p.email})
+                            {p.name} {p.relationship ? `(${p.relationship})` : ''} ({p.email})
                           </option>
                         ))}
                       </select>

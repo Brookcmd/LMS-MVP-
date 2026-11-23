@@ -30,7 +30,7 @@ export function ToastProvider({ children }) {
   }
 
   return (
-    <ToastContext.Provider value={{ toast, removeToast, toasts }}>
+    <ToastContext.Provider value={{ toast, removeToast, toasts, addToast }}>
       {children}
     </ToastContext.Provider>
   )
@@ -40,6 +40,7 @@ export function useToast() {
   const context = useContext(ToastContext)
   if (!context) {
     return {
+      addToast: (msg, type) => console.log(`Toast [${type}]:`, msg),
       toast: {
         success: (msg) => console.log('Toast [success]:', msg),
         error: (msg) => console.error('Toast [error]:', msg),

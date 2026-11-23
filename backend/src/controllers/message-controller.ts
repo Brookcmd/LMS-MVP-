@@ -101,3 +101,14 @@ export async function markConversationReadHandler(request: Request, response: Re
     fail(error, response);
   }
 }
+
+export async function getEligibleRecipientsHandler(request: Request, response: Response) {
+  try {
+    const auth = user(request, response);
+    if (!auth) return;
+    const data = await messageService.getEligibleRecipients(parseNum(auth.userId), auth.role, parseNum(auth.schoolId));
+    response.json({ success: true, data });
+  } catch (error) {
+    fail(error, response);
+  }
+}

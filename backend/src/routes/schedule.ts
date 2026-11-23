@@ -7,6 +7,7 @@ import {
   deleteSlotHandler,
   getTeacherScheduleHandler,
   getParentScheduleHandler,
+  getStudentScheduleHandler,
   getClassScheduleHandler,
 } from "../controllers/schedule-controller";
 
@@ -22,6 +23,7 @@ scheduleRouter.delete("/:id", roleMiddleware(["admin"]), deleteSlotHandler);
 // Read-only schedule endpoints
 scheduleRouter.get("/teacher", roleMiddleware(["teacher"]), getTeacherScheduleHandler);
 scheduleRouter.get("/parent", roleMiddleware(["parent"]), getParentScheduleHandler);
+scheduleRouter.get("/student", roleMiddleware(["student"]), getStudentScheduleHandler);
 scheduleRouter.get("/class/:classId", roleMiddleware(["teacher", "admin"]), getClassScheduleHandler);
 
 export default scheduleRouter;

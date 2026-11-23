@@ -37,7 +37,7 @@ export default function AdminSubjects() {
       setSubjects(subjectData ?? [])
       setAssignments(assignmentData ?? [])
       setClasses(classData ?? [])
-      setTeachers(teacherData ?? [])
+      setTeachers(teacherData?.items ?? (Array.isArray(teacherData) ? teacherData : []))
     } catch (err) {
       toast.error(err?.message ?? 'Unable to load curriculum data')
     } finally {

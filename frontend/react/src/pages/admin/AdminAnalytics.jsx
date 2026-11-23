@@ -7,7 +7,7 @@ import { useToast } from '../../context/ToastContext'
 import { GRADE_BANDS, groupClassesByGradeBand } from '../../utils/gradeBands'
 
 export default function AdminAnalytics() {
-  const { addToast } = useToast()
+  const { toast, addToast } = useToast()
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)

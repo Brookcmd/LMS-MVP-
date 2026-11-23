@@ -7,6 +7,7 @@ import {
   getConversationDetailsHandler,
   sendMessageHandler,
   markConversationReadHandler,
+  getEligibleRecipientsHandler,
 } from "../controllers/message-controller";
 
 const messagesRouter = Router();
@@ -14,6 +15,7 @@ const messagesRouter = Router();
 messagesRouter.use(authMiddleware);
 messagesRouter.use(roleMiddleware(["teacher", "parent"]));
 
+messagesRouter.get("/recipients", getEligibleRecipientsHandler);
 messagesRouter.get("/conversations", listConversationsHandler);
 messagesRouter.post("/conversations", createConversationHandler);
 messagesRouter.get("/conversations/:id", getConversationDetailsHandler);

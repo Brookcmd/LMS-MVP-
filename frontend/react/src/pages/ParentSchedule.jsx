@@ -1,5 +1,5 @@
 import React from 'react'
-import { getParentSchedule, listParentStudents } from '../api/apiClient'
+import { getParentSchedule, getStudentSchedule, listParentStudents } from '../api/apiClient'
 import { useAuth } from '../auth/AuthContext'
 
 const DAYS = [
@@ -63,7 +63,7 @@ export default function ParentSchedule() {
     try {
       setError('')
       const [scheduleData, studentData] = await Promise.all([
-        getParentSchedule(childId || undefined),
+        isStudent ? getStudentSchedule() : getParentSchedule(childId || undefined),
         isStudent ? Promise.resolve([]) : listParentStudents().catch(() => []),
       ])
       setAllSlots(scheduleData || [])

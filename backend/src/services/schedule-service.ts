@@ -225,3 +225,31 @@ export async function getClassSchedule(
 
   return sortSlots(slots);
 }
+
+export async function getStudentSchedule(
+  userIdValue: unknown,
+  schoolIdValue: unknown
+) {
+  const userId = toInt(userIdValue, "userId");
+  const schoolId = toInt(schoolIdValue, "schoolId");
+
+  const student = await prisma.student.findFirst({
+    where: { userId, schoolId },
+    select: { id: true, name: true, classId: true },
+  });
+
+  if (!student) {
+    throw appErrors.notFound("No student profile found for this user account");
+  }
+
+  const slots = await prisma.scheduleSlot.findMany({
+    where: { classId: student.classId, class: { schoolId } },
+    include: SLOT_INCLUDE,
+  });
+
+  const sorted = sortSlots(slots);
+  return sorted.map((slot) => ({
+    ...slot,
+    students: [student],
+  }));
+}

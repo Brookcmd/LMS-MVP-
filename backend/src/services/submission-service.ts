@@ -157,11 +157,20 @@ export async function listAssessmentSubmissions(assessmentId: number, teacherId:
   }
 
   if (role !== "admin" && assessment.teacherId !== teacherId) {
-    // Check if teacher is assigned to class
-    const assignment = await prisma.classTeacher.findFirst({
-      where: { classId: assessment.classId, teacherId },
-    });
-    if (!assignment) {
+    // Check if teacher is assigned to class via ClassTeacher, TeachingAssignment, or Homeroom
+    const [classTeacher, teachingAssignment, cls] = await Promise.all([
+      prisma.classTeacher.findFirst({
+        where: { classId: assessment.classId, teacherId },
+      }),
+      prisma.teachingAssignment.findFirst({
+        where: { classId: assessment.classId, teacherId },
+      }),
+      prisma.class.findUnique({
+        where: { id: assessment.classId },
+        select: { homeroomTeacherId: true },
+      }),
+    ]);
+    if (!classTeacher && !teachingAssignment && cls?.homeroomTeacherId !== teacherId) {
       throw appErrors.forbidden("Unauthorized to view submissions for this assessment", "FORBIDDEN");
     }
   }

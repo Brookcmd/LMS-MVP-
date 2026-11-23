@@ -109,11 +109,19 @@ export async function getOrCreateConversation(
     }
     parentId = parseId(payload.parentId, "parentId");
 
-    // AC-1: Verify teacher is assigned to student's class via ClassTeacher
-    const classTeacher = await prisma.classTeacher.findFirst({
-      where: { classId: student.classId, teacherId },
-    });
-    if (!classTeacher) {
+    // AC-1: Verify teacher is assigned to student's class via ClassTeacher, TeachingAssignment, or Homeroom
+    const [classTeacher, teachingAssignment, cls] = await Promise.all([
+      prisma.classTeacher?.findFirst
+        ? prisma.classTeacher.findFirst({ where: { classId: student.classId, teacherId } })
+        : null,
+      prisma.teachingAssignment?.findFirst
+        ? prisma.teachingAssignment.findFirst({ where: { classId: student.classId, teacherId } })
+        : null,
+      prisma.class?.findUnique
+        ? prisma.class.findUnique({ where: { id: student.classId }, select: { homeroomTeacherId: true } })
+        : null,
+    ]);
+    if (!classTeacher && !teachingAssignment && cls?.homeroomTeacherId !== teacherId) {
       throw appErrors.forbidden("Teacher is not assigned to this student's class");
     }
 
@@ -139,11 +147,19 @@ export async function getOrCreateConversation(
       throw appErrors.forbidden("Parent is not linked to this student");
     }
 
-    // Verify teacher is assigned to student's class via ClassTeacher
-    const classTeacher = await prisma.classTeacher.findFirst({
-      where: { classId: student.classId, teacherId },
-    });
-    if (!classTeacher) {
+    // Verify teacher is assigned to student's class via ClassTeacher, TeachingAssignment, or Homeroom
+    const [classTeacher, teachingAssignment, cls] = await Promise.all([
+      prisma.classTeacher?.findFirst
+        ? prisma.classTeacher.findFirst({ where: { classId: student.classId, teacherId } })
+        : null,
+      prisma.teachingAssignment?.findFirst
+        ? prisma.teachingAssignment.findFirst({ where: { classId: student.classId, teacherId } })
+        : null,
+      prisma.class?.findUnique
+        ? prisma.class.findUnique({ where: { id: student.classId }, select: { homeroomTeacherId: true } })
+        : null,
+    ]);
+    if (!classTeacher && !teachingAssignment && cls?.homeroomTeacherId !== teacherId) {
       throw appErrors.badRequest("Selected teacher is not assigned to this student's class");
     }
   } else {
@@ -383,4 +399,239 @@ export async function markConversationRead(
   });
 
   return { success: true };
+}
+
+export async function getEligibleRecipients(userId: number, role: string, schoolId: number) {
+  if (role !== "parent" && role !== "teacher") {
+    throw appErrors.forbidden("Only teachers and parents can access recipients");
+  }
+
+  if (role === "parent") {
+    const parentLinks = await prisma.parentStudent.findMany({
+      where: {
+        parentUserId: userId,
+        student: { schoolId },
+      },
+      include: {
+        student: {
+          select: {
+            id: true,
+            name: true,
+            classId: true,
+            class: {
+              select: {
+                id: true,
+                name: true,
+                homeroomTeacherId: true,
+                homeroomTeacher: {
+                  select: { id: true, name: true, email: true },
+                },
+                teachers: {
+                  select: {
+                    teacher: {
+                      select: { id: true, name: true, email: true },
+                    },
+                  },
+                },
+                teachingAssignments: {
+                  select: {
+                    teacher: {
+                      select: { id: true, name: true, email: true },
+                    },
+                    subject: { select: { id: true, name: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (parentLinks.length === 0) return [];
+
+    const studentIds = parentLinks.map((l) => l.student.id);
+    const existingConversations = await prisma.conversation.findMany({
+      where: {
+        parentId: userId,
+        studentId: { in: studentIds },
+      },
+      select: { id: true, studentId: true, teacherId: true },
+    });
+
+    const conversationMap = new Map<string, number>();
+    for (const c of existingConversations) {
+      conversationMap.set(`${c.studentId}_${c.teacherId}`, c.id);
+    }
+
+    const recipients: Array<{
+      teacherId: number;
+      teacherName: string;
+      teacherEmail: string;
+      studentId: number;
+      studentName: string;
+      classId: number;
+      className: string;
+      isHomeroom: boolean;
+      roleLabel: string;
+      existingConversationId: number | null;
+    }> = [];
+
+    for (const link of parentLinks) {
+      const student = link.student;
+      const cls = student.class;
+      if (!cls) continue;
+
+      const teacherMap = new Map<number, {
+        id: number;
+        name: string;
+        email: string;
+        isHomeroom: boolean;
+        subjects: string[];
+      }>();
+
+      // Homeroom Teacher
+      if (cls.homeroomTeacher) {
+        teacherMap.set(cls.homeroomTeacher.id, {
+          id: cls.homeroomTeacher.id,
+          name: cls.homeroomTeacher.name,
+          email: cls.homeroomTeacher.email,
+          isHomeroom: true,
+          subjects: [],
+        });
+      }
+
+      // Class Teachers
+      for (const ct of cls.teachers || []) {
+        if (!ct.teacher) continue;
+        if (!teacherMap.has(ct.teacher.id)) {
+          teacherMap.set(ct.teacher.id, {
+            id: ct.teacher.id,
+            name: ct.teacher.name,
+            email: ct.teacher.email,
+            isHomeroom: cls.homeroomTeacherId === ct.teacher.id,
+            subjects: [],
+          });
+        }
+      }
+
+      // Teaching Assignments
+      for (const ta of cls.teachingAssignments || []) {
+        if (!ta.teacher) continue;
+        const subjectName = ta.subject?.name;
+        const existing = teacherMap.get(ta.teacher.id);
+        if (existing) {
+          if (subjectName && !existing.subjects.includes(subjectName)) {
+            existing.subjects.push(subjectName);
+          }
+        } else {
+          teacherMap.set(ta.teacher.id, {
+            id: ta.teacher.id,
+            name: ta.teacher.name,
+            email: ta.teacher.email,
+            isHomeroom: cls.homeroomTeacherId === ta.teacher.id,
+            subjects: subjectName ? [subjectName] : [],
+          });
+        }
+      }
+
+      for (const t of teacherMap.values()) {
+        const labels: string[] = [];
+        if (t.isHomeroom) labels.push("Homeroom Teacher");
+        if (t.subjects.length > 0) {
+          labels.push(t.subjects.join(", "));
+        } else if (!t.isHomeroom) {
+          labels.push("Teacher");
+        }
+
+        const existingConvId = conversationMap.get(`${student.id}_${t.id}`) ?? null;
+
+        recipients.push({
+          teacherId: t.id,
+          teacherName: t.name,
+          teacherEmail: t.email,
+          studentId: student.id,
+          studentName: student.name,
+          classId: cls.id,
+          className: cls.name,
+          isHomeroom: t.isHomeroom,
+          roleLabel: labels.join(" • ") || "Teacher",
+          existingConversationId: existingConvId,
+        });
+      }
+    }
+
+    return recipients;
+  }
+
+  // Teacher role
+  const [classTeachers, teachingAssignments, homeroomClasses] = await Promise.all([
+    prisma.classTeacher.findMany({
+      where: { teacherId: userId },
+      select: { classId: true },
+    }),
+    prisma.teachingAssignment.findMany({
+      where: { teacherId: userId },
+      select: { classId: true },
+    }),
+    prisma.class.findMany({
+      where: { homeroomTeacherId: userId, schoolId },
+      select: { id: true },
+    }),
+  ]);
+
+  const classIds = Array.from(
+    new Set([
+      ...classTeachers.map((c) => c.classId),
+      ...teachingAssignments.map((t) => t.classId),
+      ...homeroomClasses.map((h) => h.id),
+    ])
+  );
+
+  if (classIds.length === 0) return [];
+
+  const [students, existingConversations] = await Promise.all([
+    prisma.student.findMany({
+      where: {
+        classId: { in: classIds },
+        schoolId,
+      },
+      orderBy: { name: "asc" },
+      include: {
+        class: { select: { id: true, name: true } },
+        parents: {
+          include: {
+            parent: {
+              select: { id: true, name: true, email: true, phone: true },
+            },
+          },
+        },
+      },
+    }),
+    prisma.conversation.findMany({
+      where: { teacherId: userId },
+      select: { id: true, studentId: true, parentId: true },
+    }),
+  ]);
+
+  const conversationMap = new Map<string, number>();
+  for (const c of existingConversations) {
+    conversationMap.set(`${c.studentId}_${c.parentId}`, c.id);
+  }
+
+  return students.map((s) => ({
+    studentId: s.id,
+    studentName: s.name,
+    classId: s.class.id,
+    className: s.class.name,
+    parents: (s.parents || []).map((p) => ({
+      parentId: p.parent.id,
+      parentName: p.parent.name,
+      parentEmail: p.parent.email,
+      parentPhone: p.parent.phone,
+      relationship: p.relationship,
+      isPrimary: p.isPrimary,
+      existingConversationId: conversationMap.get(`${s.id}_${p.parent.id}`) ?? null,
+    })),
+  }));
 }

@@ -103,16 +103,28 @@ async function validateTeacherOwnsClass(
   teacherId: number,
   classId: number
 ): Promise<void> {
-  const assignment = await prisma.classTeacher.findUnique({
-    where: {
-      classId_teacherId: {
+  const [assignment, teachingAssignment, cls] = await Promise.all([
+    prisma.classTeacher.findUnique({
+      where: {
+        classId_teacherId: {
+          classId,
+          teacherId,
+        },
+      },
+    }),
+    prisma.teachingAssignment.findFirst({
+      where: {
         classId,
         teacherId,
       },
-    },
-  });
+    }),
+    prisma.class.findUnique({
+      where: { id: classId },
+      select: { homeroomTeacherId: true },
+    }),
+  ]);
 
-  if (!assignment) {
+  if (!assignment && !teachingAssignment && cls?.homeroomTeacherId !== teacherId) {
     throw appErrors.forbidden(
       "Teacher is not assigned to this class"
     );
