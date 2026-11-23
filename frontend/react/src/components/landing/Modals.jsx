@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Send, UserCheck, Lock, QrCode, BookOpen, CheckCircle, ShieldCheck, Upload, FileText, ChevronRight, Shield, AlertTriangle, Home } from 'lucide-react';
 import { founderBio } from '../../data/universityData';
+import { request } from '../../api/apiClient';
 
 export function Modals({ activeModal, closeModal, t, selectedProgram, searchQuery }) {
   const navigate = useNavigate();
@@ -31,16 +32,15 @@ export function Modals({ activeModal, closeModal, t, selectedProgram, searchQuer
     e.preventDefault();
     setSubmitting(true);
     try {
-      await fetch('/api/contact', {
+      await request('/contact', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           name: formData.fullName,
           email: formData.email,
           phone: formData.phone,
           subject: `Admission Application: ${formData.program}`,
           message: `Branch: ${formData.branch}, Modality: ${formData.modality}. Attached files: ${formData.attachedFiles.join(', ') || 'None'}`
-        })
+        }
       });
     } catch (err) {
       console.warn('Backend contact submission fallback:', err);

@@ -1,4 +1,11 @@
-const BASE_URL = import.meta.env.VITE_API_URL ?? "/api";
+const rawBaseUrl = import.meta.env.VITE_API_URL;
+export const BASE_URL = rawBaseUrl ? rawBaseUrl.replace(/\/+$/, "") : "/api";
+
+if (typeof window !== "undefined" && import.meta.env.PROD && !rawBaseUrl) {
+  console.warn(
+    "[ShebaLMS] VITE_API_URL is not set in this build. Requests will default to '/api' and will fail if the backend is hosted on a separate service (e.g. Render)."
+  );
+}
 
 function getToken() {
   return localStorage.getItem("rollcall_token");
@@ -20,7 +27,8 @@ function buildHeaders(json = true) {
 }
 
 export async function request(path, { method = "GET", body } = {}) {
-  const response = await fetch(`${BASE_URL}${path}`, {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const response = await fetch(`${BASE_URL}${normalizedPath}`, {
     method,
     headers: buildHeaders(body !== undefined),
     body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -105,7 +113,7 @@ export async function downloadGradeTemplate({ assignmentId, academicYear, quarte
   if (!response.ok) {
     const text = await response.text()
     let msg = response.statusText
-    try { const json = JSON.parse(text); msg = json?.error?.message ?? msg } catch {}
+    try { const json = JSON.parse(text); msg = json?.error?.message ?? msg } catch { }
     throw new Error(msg)
   }
   const blob = await response.blob()

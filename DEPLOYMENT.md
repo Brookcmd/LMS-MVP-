@@ -7,7 +7,7 @@ This guide covers deploying the LMS application for client testing using **Rende
 ## 🛠️ What Has Been Done For You (Pre-configured Codebase)
 
 1. **CORS Enabled**: Installed and configured `cors` in `backend/src/app.ts` so the Vercel frontend can make cross-origin API calls to Render without browser security blocks.
-2. **Prisma & Database Ready**: Pushed database schema to cloud PostgreSQL database (`c7q5h4r3.eu-central.database.insforge.app`).
+2. **Prisma & Database Ready**: Pushed database schema and imported users/records to cloud PostgreSQL database (`73pixccw.eu-central.database.insforge.app`).
 3. **Build Verification**: Verified both `backend` (TypeScript) and `frontend/react` (Vite) build locally with 0 errors.
 
 ---
@@ -42,7 +42,7 @@ git push origin master
 4. Scroll down to **Environment Variables** and click **Add Environment Variable**:
    | Key | Value |
    | :--- | :--- |
-   | `DATABASE_URL` | `postgresql://postgres:82ce05c2c7c6a262e17848c40764a108@c7q5h4r3.eu-central.database.insforge.app:5432/insforge?sslmode=require` |
+   | `DATABASE_URL` | `postgresql://postgres:981c654bf2e150bb68edeaffceffd198@73pixccw.eu-central.database.insforge.app:5432/insforge?sslmode=require` |
    | `PORT` | `5200` |
    | `JWT_SECRET` | `prod-secret-key-replace-with-your-own` |
    | `JWT_EXPIRY` | `86400` |
@@ -84,5 +84,11 @@ git push origin master
 ---
 
 ## 🔍 Troubleshooting & Helpful Tips
-- **Free Tier Sleep**: Render's free tier Web Services spin down after 15 minutes of inactivity. The first request after a sleep period might take 30–50 seconds to respond as it wakes up.
+- **Login fails or returns 404 / Network Error**:
+  - Check that `VITE_API_URL` is set in Vercel Project Settings -> **Environment Variables**.
+  - **Important (Vite Build Cache)**: Vite embeds `VITE_API_URL` at *build time*. If you added or changed `VITE_API_URL` after deploying, go to Vercel **Deployments** -> click the three dots `...` next to the latest deployment -> **Redeploy** (ensure "Use existing build cache" is **unchecked**).
+  - Verify that `VITE_API_URL` uses `https://` (not `http://`), e.g., `https://lms-backend.onrender.com`.
+- **Database Mismatch / "Invalid email or password" on valid accounts**:
+  - In Render -> Service -> **Environment Variables**, verify `DATABASE_URL` matches the active database `73pixccw.eu-central.database.insforge.app`. If set to an older database, imported users will not exist.
+- **Free Tier Sleep**: Render's free tier Web Services spin down after 15 minutes of inactivity. The first request after a sleep period might take 30–60 seconds to respond as it wakes up. Test by visiting `https://your-backend.onrender.com/health` in your browser.
 - **Updating Backend URL**: If you re-deploy the backend to a custom domain later, simply update `VITE_API_URL` in Vercel settings and trigger a redeploy on Vercel.
